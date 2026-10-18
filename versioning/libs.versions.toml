@@ -40,11 +40,16 @@ spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-aut
 jakarta-validation = { module = "jakarta.validation:jakarta.validation-api" }
 jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api" }
 spring-security-web = { module = "org.springframework.security:spring-security-web" }
+spring-security-oauth2-client = { module = "org.springframework.security:spring-security-oauth2-client" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
 jakarta-servlet = { module = "jakarta.servlet:jakarta.servlet-api" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 ecom-partner-api = { module = "uz.heeypay.ecom:partner-api", version.ref = "ecom-platform" }
 ecom-error = { module = "uz.heeypay.ecom:error", version.ref = "ecom-platform" }
 ecom-otp = { module = "uz.heeypay.ecom:otp", version.ref = "ecom-platform" }
+ecom-security = { module = "uz.heeypay.ecom:security", version.ref = "ecom-platform" }
+ecom-keycloak = { module = "uz.heeypay.ecom:keycloak", version.ref = "ecom-platform" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }

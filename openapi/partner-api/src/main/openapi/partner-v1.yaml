@@ -77,8 +77,126 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "429": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/admin/partners/{id}/verify:
+    post:
+      tags: [PartnerAdmin]
+      operationId: verifyPartner
+      summary: Documents checked; the partner moves on to waiting for a contract
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/reject:
+    post:
+      tags: [PartnerAdmin]
+      operationId: rejectPartner
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/contract:
+    post:
+      tags: [PartnerAdmin]
+      operationId: signContract
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContractRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/activate:
+    post:
+      tags: [PartnerAdmin]
+      operationId: activatePartner
+      summary: Switches an approved partner on
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/suspend:
+    post:
+      tags: [PartnerAdmin]
+      operationId: suspendPartner
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/restore:
+    post:
+      tags: [PartnerAdmin]
+      operationId: restorePartner
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/terminate:
+    post:
+      tags: [PartnerAdmin]
+      operationId: terminatePartner
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/history:
+    get:
+      tags: [PartnerAdmin]
+      operationId: getPartnerHistory
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
+      responses:
+        "200":
+          description: Every status change, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StatusChangeResponse" }
+        "404": { $ref: "#/components/responses/Problem" }
+
 components:
+  parameters:
+    PartnerId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    AdminId:
+      name: X-Admin-Id
+      in: header
+      required: true
+      description: The admin making the change
+      schema: { type: string, minLength: 1, maxLength: 64 }
+  requestBodies:
+    Reason:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    Partner:
+      description: The partner after the change
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/PartnerResponse" }
     Problem:
       description: RFC 9457 problem detail with a stable error code
       content:
@@ -91,8 +209,11 @@ components:
       properties:
         id: { type: string, format: uuid }
         companyName: { type: string }
-        status: { type: string, enum: [PENDING_VERIFICATION, VERIFIED] }
+        status:
+          type: string
+          enum: [PENDING_VERIFICATION, VERIFIED, WAITING_CONTRACT, APPROVED, ACTIVE, SUSPENDED, TERMINATED, REJECTED]
         emailVerified: { type: boolean }
+        contractNumber: { type: string }
     RegistrationRequest:
       type: object
       required: [companyName, email]
@@ -110,6 +231,25 @@ components:
       required: [email]
       properties:
         email: { type: string, format: email }
+    ReasonRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    ContractRequest:
+      type: object
+      required: [contractNumber]
+      properties:
+        contractNumber: { type: string, minLength: 3, maxLength: 64 }
+    StatusChangeResponse:
+      type: object
+      required: [fromStatus, toStatus, changedBy, changedAt]
+      properties:
+        fromStatus: { type: string }
+        toStatus: { type: string }
+        changedBy: { type: string }
+        reason: { type: string }
+        changedAt: { type: string, format: date-time }
     Problem:
       type: object
       properties:

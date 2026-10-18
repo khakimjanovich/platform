@@ -114,16 +114,40 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/partners/{id}/activate:
+  /api/v1/admin/partners/{id}/activation-requests:
     post:
-      tags: [PartnerAdmin]
-      operationId: activatePartner
-      summary: Switches an approved partner on
+      tags: [ActivationRequests]
+      operationId: requestActivation
+      summary: One admin asks to switch an approved partner on; another admin must approve
       parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
       responses:
-        "200": { $ref: "#/components/responses/Partner" }
+        "201": { $ref: "#/components/responses/ActivationRequest" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/activation-requests/{requestId}/approve:
+    post:
+      tags: [ActivationRequests]
+      operationId: approveActivation
+      summary: A second admin approves; the partner becomes active
+      parameters: [{ $ref: "#/components/parameters/RequestId" }, { $ref: "#/components/parameters/AdminId" }]
+      responses:
+        "200": { $ref: "#/components/responses/ActivationRequest" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/activation-requests/{requestId}/reject:
+    post:
+      tags: [ActivationRequests]
+      operationId: rejectActivation
+      parameters: [{ $ref: "#/components/parameters/RequestId" }, { $ref: "#/components/parameters/AdminId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/ActivationRequest" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/suspend:
     post:
@@ -179,6 +203,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     AdminId:
       name: X-Admin-Id
       in: header
@@ -192,6 +221,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    ActivationRequest:
+      description: The activation request after the change
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ActivationRequestResponse" }
     Partner:
       description: The partner after the change
       content:
@@ -250,6 +284,18 @@ components:
         changedBy: { type: string }
         reason: { type: string }
         changedAt: { type: string, format: date-time }
+    ActivationRequestResponse:
+      type: object
+      required: [id, partnerId, status, requestedBy, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        partnerId: { type: string, format: uuid }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, EXPIRED] }
+        requestedBy: { type: string }
+        decidedBy: { type: string }
+        reason: { type: string }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
     Problem:
       type: object
       properties:

@@ -7,6 +7,7 @@ spring-modulith = "2.1.1"
 openapi-generator = "7.14.0"
 springdoc = "3.1.1"
 lombok = "1.18.48"
+shedlock = "7.10.1"
 ecom-platform = "0.1.0"
 
 [libraries]
@@ -40,6 +41,9 @@ ecom-partner-api = { module = "uz.heeypay.ecom:partner-api", version.ref = "ecom
 ecom-error-starter = { module = "uz.heeypay.ecom:error-starter", version.ref = "ecom-platform" }
 ecom-otp-starter = { module = "uz.heeypay.ecom:otp-starter", version.ref = "ecom-platform" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }
+shedlock-jdbc = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-template", version.ref = "shedlock" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

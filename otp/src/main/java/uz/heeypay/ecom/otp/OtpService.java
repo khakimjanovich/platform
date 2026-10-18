@@ -62,10 +62,7 @@ public class OtpService {
             hash(code),
             String.valueOf(properties.ttl().toMillis()));
     if (sends == null || sends < 0) {
-      throw new ApiException(
-          HttpStatus.TOO_MANY_REQUESTS,
-          OtpErrorCode.SEND_LIMIT,
-          OtpConstantUtils.SEND_LIMIT_DETAIL);
+      throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, OtpErrorCode.SEND_LIMIT);
     }
     return code;
   }
@@ -81,17 +78,10 @@ public class OtpService {
             hash(code));
     switch (result == null ? 0 : result.intValue()) {
       case 1 -> {}
-      case -1 ->
-          throw new ApiException(
-              HttpStatus.BAD_REQUEST, OtpErrorCode.INVALID, OtpConstantUtils.INVALID_DETAIL);
+      case -1 -> throw new ApiException(HttpStatus.BAD_REQUEST, OtpErrorCode.INVALID);
       case -2 ->
-          throw new ApiException(
-              HttpStatus.TOO_MANY_REQUESTS,
-              OtpErrorCode.ATTEMPTS_EXCEEDED,
-              OtpConstantUtils.ATTEMPTS_EXCEEDED_DETAIL);
-      default ->
-          throw new ApiException(
-              HttpStatus.GONE, OtpErrorCode.EXPIRED, OtpConstantUtils.EXPIRED_DETAIL);
+          throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, OtpErrorCode.ATTEMPTS_EXCEEDED);
+      default -> throw new ApiException(HttpStatus.GONE, OtpErrorCode.EXPIRED);
     }
   }
 

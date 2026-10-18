@@ -29,10 +29,7 @@ public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessD
         request,
         response,
         null,
-        new ApiException(
-            HttpStatus.UNAUTHORIZED,
-            ErrorConstantUtils.UNAUTHORIZED_CODE,
-            ErrorConstantUtils.UNAUTHORIZED_DETAIL));
+        new ApiException(HttpStatus.UNAUTHORIZED, ErrorConstantUtils.UNAUTHORIZED_CODE));
   }
 
   @Override
@@ -42,9 +39,6 @@ public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessD
         request,
         response,
         null,
-        new ApiException(
-            HttpStatus.FORBIDDEN,
-            ErrorConstantUtils.FORBIDDEN_CODE,
-            ErrorConstantUtils.FORBIDDEN_DETAIL));
+        new ApiException(HttpStatus.FORBIDDEN, ErrorConstantUtils.FORBIDDEN_CODE));
   }
 }

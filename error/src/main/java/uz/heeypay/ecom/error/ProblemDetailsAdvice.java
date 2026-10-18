@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -33,9 +34,17 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     log.error(ErrorConstantUtils.LOG_UNEXPECTED_ERROR, ex);
     var problem =
         ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR, ErrorConstantUtils.INTERNAL_ERROR_DETAIL);
+            HttpStatus.INTERNAL_SERVER_ERROR, message(ErrorConstantUtils.INTERNAL_ERROR_CODE));
     problem.setProperty(ErrorConstantUtils.CODE_PROPERTY, ErrorConstantUtils.INTERNAL_ERROR_CODE);
     return problem;
+  }
+
+  /** The message for {@code key} in the request's language; the key itself if no bundle has it. */
+  private String message(String key) {
+    var messages = getMessageSource();
+    return messages == null
+        ? key
+        : messages.getMessage(key, null, key, LocaleContextHolder.getLocale());
   }
 
   @Override
@@ -81,7 +90,8 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   protected ResponseEntity<Object> handleExceptionInternal(
       Exception ex, Object body, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
     if (body == null && ex instanceof ErrorResponse error) {
-      body = error.getBody(); // Spring passes no body for its own errors and fills it in later
+      // Spring passes no body for its own errors; fill and translate it as Spring would.
+      body = error.updateAndGetBody(getMessageSource(), LocaleContextHolder.getLocale());
     }
     if (body instanceof ProblemDetail problem
         && (problem.getProperties() == null
@@ -101,7 +111,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
-    problem.setDetail(ErrorConstantUtils.VALIDATION_DETAIL);
+    problem.setDetail(message(ErrorConstantUtils.VALIDATION_CODE));
     problem.setProperty(ErrorConstantUtils.CODE_PROPERTY, ErrorConstantUtils.VALIDATION_CODE);
     problem.setProperty(ErrorConstantUtils.ERRORS_PROPERTY, errors);
     return handleExceptionInternal(ex, problem, headers, status, request);

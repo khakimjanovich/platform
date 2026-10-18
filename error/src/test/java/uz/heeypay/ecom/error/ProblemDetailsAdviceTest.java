@@ -85,11 +85,31 @@ class ProblemDetailsAdviceTest {
         .andExpect(content().string(Matchers.not(Matchers.containsString("hunter2"))));
   }
 
+  @Test
+  void detailsSpeakTheCallersLanguage() throws Exception {
+    mvc.perform(get("/boom").header("Accept-Language", "ru"))
+        .andExpect(
+            jsonPath("$.detail")
+                .value("На нашей стороне что-то пошло не так. Попробуйте ещё раз."));
+    mvc.perform(delete("/taken").header("Accept-Language", "uz-UZ"))
+        .andExpect(jsonPath("$.detail").value("Bu yerda «DELETE» usuli qoʻllab-quvvatlanmaydi."));
+    mvc.perform(get("/boom").header("Accept-Language", "de"))
+        .andExpect(
+            jsonPath("$.detail").value("Something went wrong on our side. Please try again."));
+  }
+
   private static MockMvc mvc() {
     var validator = new LocalValidatorFactoryBean();
     validator.afterPropertiesSet();
+    var messages = new org.springframework.context.support.ResourceBundleMessageSource();
+    messages.setBasename("messages/error");
+    messages.setDefaultEncoding("UTF-8");
+    messages.setFallbackToSystemLocale(false);
+    messages.setAlwaysUseMessageFormat(true);
+    var advice = new ProblemDetailsAdvice();
+    advice.setMessageSource(messages);
     return MockMvcBuilders.standaloneSetup(new Endpoints())
-        .setControllerAdvice(new ProblemDetailsAdvice())
+        .setControllerAdvice(advice)
         .setValidator(validator)
         .build();
   }

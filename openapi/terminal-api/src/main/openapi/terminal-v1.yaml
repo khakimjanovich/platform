@@ -1,0 +1,207 @@
+# Terminal API: the bank's terminals (MID/TID) each website's payments go through.
+openapi: 3.0.3
+info:
+  title: Terminal API
+  version: "1"
+security:
+  - bearer: []
+
+paths:
+  /api/v1/admin/sales-points/{salesPointId}/terminals:
+    get:
+      tags: [TerminalAdmin]
+      operationId: listTerminals
+      summary: A website's terminals, newest first
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200":
+          description: Terminals
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TerminalResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [TerminalAdmin]
+      operationId: registerTerminal
+      summary: Registers a terminal the processing center issued; it is live at once
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TerminalRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/terminals/route:
+    get:
+      tags: [TerminalAdmin]
+      operationId: routeTerminal
+      summary: The terminal a payment with this card scheme would go through now
+      parameters:
+        - { $ref: "#/components/parameters/SalesPointId" }
+        - { name: scheme, in: query, required: true, schema: { $ref: "#/components/schemas/CardScheme" } }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/terminals/{terminalId}/suspend:
+    post:
+      tags: [TerminalAdmin]
+      operationId: suspendTerminal
+      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/terminals/{terminalId}/resume:
+    post:
+      tags: [TerminalAdmin]
+      operationId: resumeTerminal
+      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/terminals/{terminalId}/revoke:
+    post:
+      tags: [TerminalAdmin]
+      operationId: revokeTerminal
+      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/terminals/{terminalId}/audit:
+    get:
+      tags: [TerminalAdmin]
+      operationId: terminalAudit
+      summary: Every change to the terminal, oldest first
+      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TerminalAuditResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A Keycloak access token from realm ecom
+  parameters:
+    SalesPointId:
+      name: salesPointId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TerminalId:
+      name: terminalId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  requestBodies:
+    Reason:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ReasonRequest" }
+  responses:
+    Terminal:
+      description: The terminal
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TerminalResponse" }
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    CardScheme:
+      type: string
+      enum: [UZCARD, HUMO]
+    ReasonRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    TerminalStatus:
+      type: string
+      enum: [ACTIVE, SUSPENDED, REVOKED]
+    TerminalRequest:
+      type: object
+      required: [scheme, merchantId, terminalId]
+      properties:
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        merchantId: { type: string, minLength: 1, maxLength: 30, pattern: "^[A-Za-z0-9]+$", description: MID from the processing center }
+        terminalId: { type: string, minLength: 1, maxLength: 30, pattern: "^[A-Za-z0-9]+$", description: TID from the processing center }
+    TerminalResponse:
+      type: object
+      required: [id, salesPointId, scheme, merchantId, terminalId, status, registeredBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        merchantId: { type: string }
+        terminalId: { type: string }
+        status: { $ref: "#/components/schemas/TerminalStatus" }
+        registeredBy: { type: string }
+        createdAt: { type: string, format: date-time }
+    TerminalAuditResponse:
+      type: object
+      required: [action, actor, occurredAt]
+      properties:
+        action: { type: string, enum: [REGISTERED, SUSPENDED, RESUMED, REVOKED] }
+        actor: { type: string }
+        reason: { type: string }
+        occurredAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

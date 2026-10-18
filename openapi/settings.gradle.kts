@@ -1,7 +1,7 @@
 rootProject.name = "openapi"
 
 // One project per module contract: the OpenAPI spec in, a generated API jar out (published to local Maven).
-include("partner-api", "commission-api")
+include("partner-api", "commission-api", "terminal-api")
 
 pluginManagement { includeBuild("../build-logic") }
 

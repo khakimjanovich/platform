@@ -20,6 +20,8 @@ starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liq
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }
+starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-client" }
 starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 postgresql = { module = "org.postgresql:postgresql" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }

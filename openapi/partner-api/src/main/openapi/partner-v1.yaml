@@ -3,6 +3,9 @@ openapi: 3.0.3
 info:
   title: Partner API
   version: "1"
+security:
+  - bearer: []
+
 paths:
   /api/v1/partners/{id}:
     get:
@@ -21,10 +24,55 @@ paths:
               schema: { $ref: "#/components/schemas/PartnerResponse" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/partner/me:
+    get:
+      tags: [PartnerSelf]
+      operationId: getMe
+      summary: The signed-in partner
+      responses:
+        "200": { $ref: "#/components/responses/Partner" }
+
+  /api/v1/partner/clients:
+    get:
+      tags: [PartnerSelf]
+      operationId: listClients
+      summary: The partner's API clients; secrets are never shown again
+      responses:
+        "200":
+          description: API clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ApiClientResponse" }
+    post:
+      tags: [PartnerSelf]
+      operationId: createClient
+      summary: Creates a machine-to-machine client; the secret is shown only in this response
+      responses:
+        "201": { $ref: "#/components/responses/ApiClientSecret" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/clients/{clientId}/secret:
+    post:
+      tags: [PartnerSelf]
+      operationId: rotateClientSecret
+      summary: Issues a new secret; the old one stops working at once
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/ApiClientSecret" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /api/v1/registrations:
     post:
       tags: [Registration]
       operationId: register
+      security: []
       summary: Register a merchant and email it a one-time code
       requestBody:
         required: true
@@ -44,6 +92,7 @@ paths:
     post:
       tags: [Registration]
       operationId: verifyEmail
+      security: []
       summary: Prove ownership of the email with the one-time code
       requestBody:
         required: true
@@ -65,6 +114,7 @@ paths:
     post:
       tags: [Registration]
       operationId: resendCode
+      security: []
       summary: Send a new one-time code
       requestBody:
         required: true
@@ -82,7 +132,7 @@ paths:
       tags: [PartnerAdmin]
       operationId: verifyPartner
       summary: Documents checked; the partner moves on to waiting for a contract
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "200": { $ref: "#/components/responses/Partner" }
         "404": { $ref: "#/components/responses/Problem" }
@@ -92,7 +142,7 @@ paths:
     post:
       tags: [PartnerAdmin]
       operationId: rejectPartner
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
@@ -103,7 +153,7 @@ paths:
     post:
       tags: [PartnerAdmin]
       operationId: signContract
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       requestBody:
         required: true
         content:
@@ -119,7 +169,7 @@ paths:
       tags: [ActivationRequests]
       operationId: requestActivation
       summary: One admin asks to switch an approved partner on; another admin must approve
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "201": { $ref: "#/components/responses/ActivationRequest" }
         "404": { $ref: "#/components/responses/Problem" }
@@ -130,7 +180,7 @@ paths:
       tags: [ActivationRequests]
       operationId: approveActivation
       summary: A second admin approves; the partner becomes active
-      parameters: [{ $ref: "#/components/parameters/RequestId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
       responses:
         "200": { $ref: "#/components/responses/ActivationRequest" }
         "404": { $ref: "#/components/responses/Problem" }
@@ -141,7 +191,7 @@ paths:
     post:
       tags: [ActivationRequests]
       operationId: rejectActivation
-      parameters: [{ $ref: "#/components/parameters/RequestId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/ActivationRequest" }
@@ -153,7 +203,7 @@ paths:
     post:
       tags: [PartnerAdmin]
       operationId: suspendPartner
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
@@ -164,7 +214,7 @@ paths:
     post:
       tags: [PartnerAdmin]
       operationId: restorePartner
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "200": { $ref: "#/components/responses/Partner" }
         "404": { $ref: "#/components/responses/Problem" }
@@ -174,7 +224,7 @@ paths:
     post:
       tags: [PartnerAdmin]
       operationId: terminatePartner
-      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/AdminId" }]
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
@@ -197,6 +247,12 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
 
 components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A Keycloak access token from realm ecom
   parameters:
     PartnerId:
       name: id
@@ -208,12 +264,6 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
-    AdminId:
-      name: X-Admin-Id
-      in: header
-      required: true
-      description: The admin making the change
-      schema: { type: string, minLength: 1, maxLength: 64 }
   requestBodies:
     Reason:
       required: true
@@ -221,6 +271,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    ApiClientSecret:
+      description: The client and its secret, shown once
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiClientSecretResponse" }
     ActivationRequest:
       description: The activation request after the change
       content:
@@ -250,10 +305,11 @@ components:
         contractNumber: { type: string }
     RegistrationRequest:
       type: object
-      required: [companyName, email]
+      required: [companyName, email, password]
       properties:
         companyName: { type: string, minLength: 2, maxLength: 255 }
         email: { type: string, format: email, maxLength: 320 }
+        password: { type: string, format: password, minLength: 12, maxLength: 128, description: Stored only in Keycloak }
     EmailVerificationRequest:
       type: object
       required: [email, code]
@@ -296,6 +352,19 @@ components:
         reason: { type: string }
         createdAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time }
+    ApiClientResponse:
+      type: object
+      required: [clientId, createdAt]
+      properties:
+        clientId: { type: string }
+        createdAt: { type: string, format: date-time }
+        secretRotatedAt: { type: string, format: date-time }
+    ApiClientSecretResponse:
+      type: object
+      required: [clientId, clientSecret]
+      properties:
+        clientId: { type: string }
+        clientSecret: { type: string }
     Problem:
       type: object
       properties:

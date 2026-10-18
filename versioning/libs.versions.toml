@@ -50,6 +50,9 @@ ecom-error = { module = "uz.heeypay.ecom:error", version.ref = "ecom-platform" }
 ecom-otp = { module = "uz.heeypay.ecom:otp", version.ref = "ecom-platform" }
 ecom-security = { module = "uz.heeypay.ecom:security", version.ref = "ecom-platform" }
 ecom-keycloak = { module = "uz.heeypay.ecom:keycloak", version.ref = "ecom-platform" }
+ecom-persistence = { module = "uz.heeypay.ecom:persistence", version.ref = "ecom-platform" }
+ecom-commission-api = { module = "uz.heeypay.ecom:commission-api", version.ref = "ecom-platform" }
+ecom-terminal-api = { module = "uz.heeypay.ecom:terminal-api", version.ref = "ecom-platform" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }

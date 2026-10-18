@@ -1,0 +1,11 @@
+// What every module needs to own its data: its own connection pool, migrations, entity manager and
+// transactions, connecting as its own database user to its own schema.
+plugins {
+    id("ecom.library")
+}
+
+dependencies {
+    api(platform(libs.spring.boot.bom))
+    api(libs.starter.data.jpa)
+    api(libs.liquibase.core)
+}

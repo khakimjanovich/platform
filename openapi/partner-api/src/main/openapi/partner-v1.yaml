@@ -78,6 +78,194 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/partner/sales-points:
+    get:
+      tags: [SalesPoints]
+      operationId: listMySalesPoints
+      summary: The signed-in partner's websites that take payments
+      responses:
+        "200":
+          description: Sales points, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SalesPointResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [SalesPoints]
+      operationId: createSalesPoint
+      summary: Adds a website as a draft; the bank checks it before it can take payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SalesPointRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/SalesPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/sales-points/{salesPointId}/return-urls:
+    put:
+      tags: [SalesPoints]
+      operationId: updateReturnUrls
+      summary: Where buyers may be sent back after paying; only while the sales point is a draft
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReturnUrlsRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/sales-points:
+    get:
+      tags: [SalesPointAdmin]
+      operationId: listPartnerSalesPoints
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
+      responses:
+        "200":
+          description: The partner's sales points, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SalesPointResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}:
+    get:
+      tags: [SalesPointAdmin]
+      operationId: getSalesPoint
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/site-checks:
+    get:
+      tags: [SalesPointAdmin]
+      operationId: listSiteChecks
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200":
+          description: Every check of the website, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SiteCheckResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [SalesPointAdmin]
+      operationId: recordSiteCheck
+      summary: Records what an admin found on the website
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SiteCheckRequest" }
+      responses:
+        "201":
+          description: The recorded check
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteCheckResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/settings:
+    put:
+      tags: [SalesPointAdmin]
+      operationId: updateSalesPointSettings
+      summary: The terms of the deal for this website
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SalesPointSettingsRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/activate:
+    post:
+      tags: [SalesPointAdmin]
+      operationId: activateSalesPoint
+      summary: Lets the website take payments; needs an active partner and a passed site check
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/suspend:
+    post:
+      tags: [SalesPointAdmin]
+      operationId: suspendSalesPoint
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/restore:
+    post:
+      tags: [SalesPointAdmin]
+      operationId: restoreSalesPoint
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/close:
+    post:
+      tags: [SalesPointAdmin]
+      operationId: closeSalesPoint
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
   /api/v1/registrations:
     post:
       tags: [Registration]
@@ -331,6 +519,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    SalesPointId:
+      name: salesPointId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     RequestId:
       name: requestId
       in: path
@@ -343,6 +536,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    SalesPoint:
+      description: The sales point after the change
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SalesPointResponse" }
     ApiClientSecret:
       description: The client and its secret, shown once
       content:
@@ -452,6 +650,89 @@ components:
       properties:
         clientId: { type: string }
         clientSecret: { type: string }
+    CardScheme:
+      type: string
+      enum: [UZCARD, HUMO]
+    SalesPointStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, SUSPENDED, CLOSED]
+    SalesPointRequest:
+      type: object
+      required: [name, websiteUrl, returnUrls]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        websiteUrl: { type: string, maxLength: 255, pattern: "^https://.+", example: "https://shop.example.uz" }
+        returnUrls:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: string, maxLength: 500, pattern: "^https://.+" }
+    ReturnUrlsRequest:
+      type: object
+      required: [returnUrls]
+      properties:
+        returnUrls:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items: { type: string, maxLength: 500, pattern: "^https://.+" }
+    SalesPointSettingsRequest:
+      type: object
+      required: [schemes, refundWindowDays]
+      properties:
+        schemes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: "#/components/schemas/CardScheme" }
+        refundWindowDays: { type: integer, minimum: 0, description: Days after a payment when it can still be refunded }
+        extendedRefundDays: { type: integer, minimum: 1, description: Extra days agreed with the bank; needs a reason }
+        extendedRefundReason: { type: string, minLength: 3, maxLength: 500 }
+    SalesPointResponse:
+      type: object
+      required: [id, partnerId, name, websiteUrl, returnUrls, status, schemes, refundWindowDays, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        partnerId: { type: string, format: uuid }
+        name: { type: string }
+        websiteUrl: { type: string }
+        returnUrls:
+          type: array
+          items: { type: string }
+        status: { $ref: "#/components/schemas/SalesPointStatus" }
+        schemes:
+          type: array
+          items: { $ref: "#/components/schemas/CardScheme" }
+        refundWindowDays: { type: integer }
+        extendedRefundDays: { type: integer }
+        extendedRefundReason: { type: string }
+        statusReason: { type: string }
+        lastSiteCheck: { $ref: "#/components/schemas/SiteCheckResponse" }
+        createdAt: { type: string, format: date-time }
+    SiteCheckResult:
+      type: string
+      enum: [PASSED, FAILED]
+    SiteCheckRequest:
+      type: object
+      required: [result, findings]
+      properties:
+        result: { $ref: "#/components/schemas/SiteCheckResult" }
+        findings:
+          type: array
+          maxItems: 20
+          description: What the admin saw, one line each; required when the check fails
+          items: { type: string, minLength: 3, maxLength: 300 }
+    SiteCheckResponse:
+      type: object
+      required: [id, result, findings, checkedBy, checkedAt]
+      properties:
+        id: { type: string, format: uuid }
+        result: { $ref: "#/components/schemas/SiteCheckResult" }
+        findings:
+          type: array
+          items: { type: string }
+        checkedBy: { type: string }
+        checkedAt: { type: string, format: date-time }
     Problem:
       type: object
       description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.

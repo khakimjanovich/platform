@@ -19,9 +19,10 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   ProblemDetail unexpected(Exception ex) {
-    log.error("Unexpected error", ex);
-    var problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong on our side.");
-    problem.setProperty("code", "INTERNAL_ERROR");
+    log.error(ErrorStarterConstantUtils.LOG_UNEXPECTED_ERROR, ex);
+    var problem =
+        ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, ErrorStarterConstantUtils.INTERNAL_ERROR_DETAIL);
+    problem.setProperty(ErrorStarterConstantUtils.CODE_PROPERTY, ErrorStarterConstantUtils.INTERNAL_ERROR_CODE);
     return problem;
   }
 }

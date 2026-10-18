@@ -13,7 +13,7 @@ public class ApiException extends ErrorResponseException {
 
   private static ProblemDetail problem(HttpStatusCode status, String code, String detail) {
     var problem = ProblemDetail.forStatusAndDetail(status, detail);
-    problem.setProperty("code", code);
+    problem.setProperty(ErrorStarterConstantUtils.CODE_PROPERTY, code);
     return problem;
   }
 }

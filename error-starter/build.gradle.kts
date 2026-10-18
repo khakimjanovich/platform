@@ -19,6 +19,8 @@ dependencies {
     api(libs.spring.webmvc)
     implementation(libs.spring.boot.autoconfigure)
     compileOnly(libs.jakarta.servlet)
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 }
 
 publishing { publications { create<MavenPublication>("starter") { from(components["java"]) } } }

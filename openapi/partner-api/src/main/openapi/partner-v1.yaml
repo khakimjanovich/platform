@@ -1,0 +1,32 @@
+# The contract: what outsiders may ask the partner module (episode 03).
+openapi: 3.0.3
+info:
+  title: Partner API
+  version: "1"
+paths:
+  /api/v1/partners/{id}:
+    get:
+      tags: [Partners]
+      operationId: getPartner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The partner
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PartnerResponse" }
+        "404":
+          description: No such partner
+components:
+  schemas:
+    PartnerResponse:
+      type: object
+      required: [id, companyName, status]
+      properties:
+        id: { type: string, format: uuid }
+        companyName: { type: string }
+        status: { type: string, enum: [PENDING_VERIFICATION, VERIFIED] }

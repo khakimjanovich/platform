@@ -1,0 +1,196 @@
+# Card API: the BIN registry and the card vault, for the bank's admins. No card number ever leaves.
+openapi: 3.0.3
+info:
+  title: Card API
+  version: "1"
+security:
+  - bearer: []
+
+paths:
+  /api/v1/admin/bins:
+    get:
+      tags: [BinAdmin]
+      operationId: listBins
+      summary: Every known BIN range, by prefix
+      responses:
+        "200":
+          description: BIN ranges
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BinResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/bins/sync:
+    post:
+      tags: [BinAdmin]
+      operationId: syncBins
+      summary: Fetches the BIN lists from both schemes now (also runs on a schedule)
+      responses:
+        "200":
+          description: What each scheme gave
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BinSyncResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/bins/lookup:
+    get:
+      tags: [BinAdmin]
+      operationId: lookupBin
+      summary: The scheme of a card, from its first digits (the longest matching prefix wins)
+      parameters:
+        - name: digits
+          in: query
+          required: true
+          schema: { type: string, pattern: "^[0-9]{6,8}$" }
+      responses:
+        "200":
+          description: The matching range
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BinResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/cards/search:
+    post:
+      tags: [CardAdmin]
+      operationId: searchCard
+      summary: Finds a stored card by its number without decrypting any card (the lookup is audited)
+      description: A POST, so the card number never sits in a URL or an access log.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardSearchRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/Card" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/cards/{cardToken}:
+    get:
+      tags: [CardAdmin]
+      operationId: getCard
+      parameters: [{ $ref: "#/components/parameters/CardToken" }]
+      responses:
+        "200": { $ref: "#/components/responses/Card" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/cards/{cardToken}/audit:
+    get:
+      tags: [CardAdmin]
+      operationId: cardAudit
+      summary: Every use of the card's data, oldest first
+      parameters: [{ $ref: "#/components/parameters/CardToken" }]
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CardAuditResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A Keycloak access token from realm ecom
+  parameters:
+    CardToken:
+      name: cardToken
+      in: path
+      required: true
+      schema: { type: string, pattern: "^ctk_[0-9a-f]{32}$" }
+  responses:
+    Card:
+      description: The card, masked
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/CardResponse" }
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    CardScheme:
+      type: string
+      enum: [UZCARD, HUMO]
+    BinResponse:
+      type: object
+      required: [prefix, scheme, syncedAt]
+      properties:
+        prefix: { type: string }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        issuer: { type: string, description: The issuing bank's code at the scheme }
+        syncedAt: { type: string, format: date-time }
+    BinSyncResponse:
+      type: object
+      required: [scheme, ranges, updated]
+      properties:
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        ranges: { type: integer, description: Ranges the registry now holds for this scheme }
+        updated: { type: boolean, description: false when the scheme didn't answer; its old list is kept }
+    CardSearchRequest:
+      type: object
+      required: [number]
+      properties:
+        number: { type: string, pattern: "^[0-9]{16}$" }
+    CardStatus:
+      type: string
+      enum: [PENDING, ACTIVE]
+    CardResponse:
+      type: object
+      required: [cardToken, scheme, maskedNumber, status, createdAt]
+      properties:
+        cardToken: { type: string }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        maskedNumber: { type: string, example: "860014******7890" }
+        status: { $ref: "#/components/schemas/CardStatus" }
+        createdAt: { type: string, format: date-time }
+        boundAt: { type: string, format: date-time }
+    CardAuditResponse:
+      type: object
+      required: [action, actor, occurredAt]
+      properties:
+        action: { type: string, enum: [BINDING_STARTED, BOUND, DEBITED, LOOKED_UP] }
+        actor: { type: string }
+        reference: { type: string, description: The payment a debit belongs to }
+        occurredAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

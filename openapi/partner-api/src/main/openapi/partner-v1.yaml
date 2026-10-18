@@ -138,6 +138,42 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "429": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/admin/partners:
+    get:
+      tags: [PartnerAdmin]
+      operationId: listPartners
+      summary: Partners, newest first, filtered by status and searched by company name or email
+      parameters:
+        - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/PartnerStatus" } }
+        - { name: q, in: query, required: false, schema: { type: string, maxLength: 100 } }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200":
+          description: One page of partners
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PartnerPage" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/activation-requests:
+    get:
+      tags: [ActivationRequests]
+      operationId: listActivationRequests
+      summary: Activation requests waiting for a second admin, oldest first
+      responses:
+        "200":
+          description: Waiting requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ActivationRequestResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /api/v1/admin/partners/{id}/verify:
     post:
       tags: [PartnerAdmin]
@@ -330,15 +366,29 @@ components:
   schemas:
     PartnerResponse:
       type: object
-      required: [id, companyName, status, emailVerified]
+      required: [id, companyName, email, status, emailVerified, createdAt]
       properties:
         id: { type: string, format: uuid }
         companyName: { type: string }
-        status:
-          type: string
-          enum: [PENDING_VERIFICATION, VERIFIED, WAITING_CONTRACT, APPROVED, ACTIVE, SUSPENDED, TERMINATED, REJECTED]
+        email: { type: string, format: email }
+        status: { $ref: "#/components/schemas/PartnerStatus" }
         emailVerified: { type: boolean }
         contractNumber: { type: string }
+        createdAt: { type: string, format: date-time }
+    PartnerStatus:
+      type: string
+      enum: [PENDING_VERIFICATION, VERIFIED, WAITING_CONTRACT, APPROVED, ACTIVE, SUSPENDED, TERMINATED, REJECTED]
+    PartnerPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/PartnerResponse" }
+        page: { type: integer }
+        size: { type: integer }
+        totalItems: { type: integer, format: int64 }
+        totalPages: { type: integer }
     RegistrationRequest:
       type: object
       required: [companyName, email, password]
@@ -382,6 +432,7 @@ components:
       properties:
         id: { type: string, format: uuid }
         partnerId: { type: string, format: uuid }
+        companyName: { type: string }
         status: { type: string, enum: [PENDING, APPROVED, REJECTED, EXPIRED] }
         requestedBy: { type: string }
         decidedBy: { type: string }

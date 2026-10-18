@@ -1,4 +1,4 @@
-# The contract: what outsiders may ask the partner module (episode 03).
+# Partner API: what clients may ask the partner module.
 openapi: 3.0.3
 info:
   title: Partner API

@@ -1,4 +1,4 @@
-// One error format for every module: RFC 9457 problem details plus a stable error code (episode 02).
+// One error format for every module: RFC 9457 problem details plus a stable error code.
 plugins {
     `java-library`
     `maven-publish`

@@ -1,4 +1,4 @@
-// The partner contract (episode 03): partner-v1.yaml → generated Spring interfaces and models, published as a jar.
+// The partner contract: partner-v1.yaml → generated Spring interfaces and models, published as a jar.
 // Generated code lives only in build/ and in the published jar, never in source.
 plugins {
     `java-library`

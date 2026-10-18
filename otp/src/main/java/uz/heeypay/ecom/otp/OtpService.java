@@ -1,66 +1,106 @@
 package uz.heeypay.ecom.otp;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.HexFormat;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.HttpStatus;
 import uz.heeypay.ecom.error.ApiException;
 
 /**
- * Issues and checks one-time codes. Redis keeps only a hash of each code, with its lifetime;
- * wrong attempts and sends are counted, and both are capped by configuration.
+ * Issues and checks one-time codes. Redis keeps only a keyed hash (HMAC-SHA256 with a configured
+ * secret) of each code, so a copy of Redis alone can't be brute-forced; the subject in each key is
+ * hashed the same way. Issuing and checking each run as one Lua script, so limits hold and a code
+ * works once even under concurrent requests.
  */
-@RequiredArgsConstructor
 public class OtpService {
 
   private static final SecureRandom RANDOM = new SecureRandom();
+  private static final RedisScript<Long> ISSUE =
+      RedisScript.of(new ClassPathResource(OtpConstantUtils.ISSUE_SCRIPT), Long.class);
+  private static final RedisScript<Long> VERIFY =
+      RedisScript.of(new ClassPathResource(OtpConstantUtils.VERIFY_SCRIPT), Long.class);
 
   private final StringRedisTemplate redis;
   private final OtpProperties properties;
+  private final SecretKeySpec key;
 
-  /** A new code for this flow and subject (e.g. "registration", an email). The caller delivers it. */
+  public OtpService(StringRedisTemplate redis, OtpProperties properties) {
+    if (properties.secret() == null || properties.secret().isBlank()) {
+      throw new IllegalStateException(OtpConstantUtils.SECRET_MISSING);
+    }
+    this.redis = redis;
+    this.properties = properties;
+    this.key =
+        new SecretKeySpec(
+            properties.secret().getBytes(StandardCharsets.UTF_8), OtpConstantUtils.HASH_ALGORITHM);
+  }
+
+  /**
+   * A new code for this flow and subject (e.g. "registration", an email). The caller delivers it.
+   */
   public String issue(String flow, String subject) {
-    var sends = redis.opsForValue().increment(key(flow, subject, OtpConstantUtils.KEY_SENDS));
-    if (sends != null && sends == 1) {
-      redis.expire(key(flow, subject, OtpConstantUtils.KEY_SENDS), properties.sendWindow());
-    }
-    if (sends != null && sends > properties.maxSends()) {
-      throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, OtpErrorCode.SEND_LIMIT, OtpConstantUtils.SEND_LIMIT_DETAIL);
-    }
     var code = randomDigits(properties.length());
-    redis.opsForValue().set(key(flow, subject, OtpConstantUtils.KEY_CODE), hash(code), properties.ttl());
-    redis.delete(key(flow, subject, OtpConstantUtils.KEY_ATTEMPTS));
+    var sends =
+        redis.execute(
+            ISSUE,
+            keys(
+                flow,
+                subject,
+                OtpConstantUtils.KEY_SENDS,
+                OtpConstantUtils.KEY_CODE,
+                OtpConstantUtils.KEY_ATTEMPTS),
+            String.valueOf(properties.maxSends()),
+            String.valueOf(properties.sendWindow().toMillis()),
+            hash(code),
+            String.valueOf(properties.ttl().toMillis()));
+    if (sends == null || sends < 0) {
+      throw new ApiException(
+          HttpStatus.TOO_MANY_REQUESTS,
+          OtpErrorCode.SEND_LIMIT,
+          OtpConstantUtils.SEND_LIMIT_DETAIL);
+    }
     return code;
   }
 
   /** Returns normally if the code is right; the code can then never be used again. */
   public void verify(String flow, String subject, String code) {
-    var stored = redis.opsForValue().get(key(flow, subject, OtpConstantUtils.KEY_CODE));
-    if (stored == null) {
-      throw new ApiException(HttpStatus.GONE, OtpErrorCode.EXPIRED, OtpConstantUtils.EXPIRED_DETAIL);
+    var result =
+        redis.execute(
+            VERIFY,
+            keys(flow, subject, OtpConstantUtils.KEY_CODE, OtpConstantUtils.KEY_ATTEMPTS),
+            String.valueOf(properties.maxAttempts()),
+            String.valueOf(properties.ttl().toMillis()),
+            hash(code));
+    switch (result == null ? 0 : result.intValue()) {
+      case 1 -> {}
+      case -1 ->
+          throw new ApiException(
+              HttpStatus.BAD_REQUEST, OtpErrorCode.INVALID, OtpConstantUtils.INVALID_DETAIL);
+      case -2 ->
+          throw new ApiException(
+              HttpStatus.TOO_MANY_REQUESTS,
+              OtpErrorCode.ATTEMPTS_EXCEEDED,
+              OtpConstantUtils.ATTEMPTS_EXCEEDED_DETAIL);
+      default ->
+          throw new ApiException(
+              HttpStatus.GONE, OtpErrorCode.EXPIRED, OtpConstantUtils.EXPIRED_DETAIL);
     }
-    var attemptsKey = key(flow, subject, OtpConstantUtils.KEY_ATTEMPTS);
-    var attempts = redis.opsForValue().increment(attemptsKey);
-    if (attempts != null && attempts == 1) {
-      redis.expire(attemptsKey, properties.ttl());
-    }
-    if (attempts != null && attempts > properties.maxAttempts()) {
-      throw new ApiException(
-          HttpStatus.TOO_MANY_REQUESTS, OtpErrorCode.ATTEMPTS_EXCEEDED, OtpConstantUtils.ATTEMPTS_EXCEEDED_DETAIL);
-    }
-    if (!MessageDigest.isEqual(stored.getBytes(StandardCharsets.UTF_8), hash(code).getBytes(StandardCharsets.UTF_8))) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, OtpErrorCode.INVALID, OtpConstantUtils.INVALID_DETAIL);
-    }
-    redis.delete(key(flow, subject, OtpConstantUtils.KEY_CODE));
-    redis.delete(attemptsKey);
   }
 
-  private static String key(String flow, String subject, String part) {
-    return OtpConstantUtils.KEY_FORMAT.formatted(flow, subject, part);
+  /** The Redis key for each part; the subject (often an email) is stored only as a keyed hash. */
+  private List<String> keys(String flow, String subject, String... parts) {
+    var hashedSubject = hash(subject);
+    return java.util.Arrays.stream(parts)
+        .map(part -> OtpConstantUtils.KEY_FORMAT.formatted(flow, hashedSubject, part))
+        .toList();
   }
 
   private static String randomDigits(int length) {
@@ -71,11 +111,12 @@ public class OtpService {
     return digits.toString();
   }
 
-  private static String hash(String code) {
+  private String hash(String value) {
     try {
-      var digest = MessageDigest.getInstance(OtpConstantUtils.HASH_ALGORITHM);
-      return HexFormat.of().formatHex(digest.digest(code.getBytes(StandardCharsets.UTF_8)));
-    } catch (NoSuchAlgorithmException e) {
+      var mac = Mac.getInstance(OtpConstantUtils.HASH_ALGORITHM);
+      mac.init(key);
+      return HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
       throw new IllegalStateException(e);
     }
   }

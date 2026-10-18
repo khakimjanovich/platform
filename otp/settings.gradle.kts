@@ -1,5 +1,7 @@
 rootProject.name = "otp"
 
+pluginManagement { includeBuild("../build-logic") }
+
 dependencyResolutionManagement {
     repositories {
         mavenLocal()

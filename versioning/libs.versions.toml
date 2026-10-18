@@ -8,6 +8,8 @@ openapi-generator = "7.14.0"
 springdoc = "3.1.1"
 lombok = "1.18.48"
 shedlock = "7.10.1"
+spotless = "8.10.4"
+google-java-format = "1.30.0" # newer releases fail inside Spotless 8.10 (missing commonmark extension)
 ecom-platform = "0.1.0"
 
 [libraries]
@@ -47,6 +49,8 @@ junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }
 shedlock-jdbc = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-template", version.ref = "shedlock" }
+
+spotless-gradle = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

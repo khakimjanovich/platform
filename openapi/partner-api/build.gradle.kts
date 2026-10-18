@@ -1,17 +1,8 @@
 // The partner contract: partner-v1.yaml → generated Spring interfaces and models, published as a jar.
 // Generated code lives only in build/ and in the published jar, never in source.
 plugins {
-    `java-library`
-    `maven-publish`
+    id("ecom.library")
     alias(libs.plugins.openapi.generator)
-}
-
-group = "uz.heeypay.ecom"
-version = libs.versions.ecom.platform.get()
-
-java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
-    withSourcesJar()
 }
 
 dependencies {
@@ -53,4 +44,3 @@ tasks.named("sourcesJar") { dependsOn(tasks.openApiGenerate) }
 // The spec itself ships in the jar, so Swagger UI can show exactly what we wrote.
 tasks.processResources { from("src/main/openapi") { into("static/openapi") } }
 
-publishing { publications { create<MavenPublication>("api") { from(components["java"]) } } }

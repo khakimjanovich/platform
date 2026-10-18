@@ -12,8 +12,9 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
- * 401 and 403 from Spring Security become the same problem details as every other error. They are handed to
- * Spring MVC's exception resolver, so they are written exactly like an {@link ApiException} from a controller.
+ * 401 and 403 from Spring Security become the same problem details as every other error. They are
+ * handed to Spring MVC's exception resolver, so they are written exactly like an {@link
+ * ApiException} from a controller.
  */
 @RequiredArgsConstructor
 public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
@@ -21,21 +22,29 @@ public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessD
   private final HandlerExceptionResolver resolver;
 
   @Override
-  public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ex) {
+  public void commence(
+      HttpServletRequest request, HttpServletResponse response, AuthenticationException ex) {
     response.setHeader(HttpHeaders.WWW_AUTHENTICATE, ErrorConstantUtils.BEARER_CHALLENGE);
     resolver.resolveException(
         request,
         response,
         null,
-        new ApiException(HttpStatus.UNAUTHORIZED, ErrorConstantUtils.UNAUTHORIZED_CODE, ErrorConstantUtils.UNAUTHORIZED_DETAIL));
+        new ApiException(
+            HttpStatus.UNAUTHORIZED,
+            ErrorConstantUtils.UNAUTHORIZED_CODE,
+            ErrorConstantUtils.UNAUTHORIZED_DETAIL));
   }
 
   @Override
-  public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex) {
+  public void handle(
+      HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex) {
     resolver.resolveException(
         request,
         response,
         null,
-        new ApiException(HttpStatus.FORBIDDEN, ErrorConstantUtils.FORBIDDEN_CODE, ErrorConstantUtils.FORBIDDEN_DETAIL));
+        new ApiException(
+            HttpStatus.FORBIDDEN,
+            ErrorConstantUtils.FORBIDDEN_CODE,
+            ErrorConstantUtils.FORBIDDEN_DETAIL));
   }
 }

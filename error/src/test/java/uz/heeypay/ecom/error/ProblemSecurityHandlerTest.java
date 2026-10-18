@@ -23,7 +23,8 @@ class ProblemSecurityHandlerTest {
   @Test
   void noValidTokenIsA401ProblemWithABearerChallenge() {
     var response = new MockHttpServletResponse();
-    handler.commence(new MockHttpServletRequest(), response, new BadCredentialsException("expired"));
+    handler.commence(
+        new MockHttpServletRequest(), response, new BadCredentialsException("expired"));
 
     assertThat(resolved.getStatusCode().value()).isEqualTo(401);
     assertThat(resolved.getBody().getProperties()).containsEntry("code", "UNAUTHORIZED");
@@ -32,7 +33,10 @@ class ProblemSecurityHandlerTest {
 
   @Test
   void theWrongRoleIsA403Problem() {
-    handler.handle(new MockHttpServletRequest(), new MockHttpServletResponse(), new AccessDeniedException("no role"));
+    handler.handle(
+        new MockHttpServletRequest(),
+        new MockHttpServletResponse(),
+        new AccessDeniedException("no role"));
 
     assertThat(resolved.getStatusCode().value()).isEqualTo(403);
     assertThat(resolved.getBody().getProperties()).containsEntry("code", "FORBIDDEN");

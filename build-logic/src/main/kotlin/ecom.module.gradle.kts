@@ -1,0 +1,9 @@
+// A module of the app (or the app itself): the Java conventions, the Modulith BOM, and integration tests.
+plugins {
+    id("ecom.java")
+    id("ecom.integration-test")
+}
+
+val libs = rootProject.extensions.getByType<VersionCatalogsExtension>().named("libs")
+
+dependencies { "implementation"(platform(libs.findLibrary("spring-modulith-bom").get())) }

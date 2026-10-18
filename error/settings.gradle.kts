@@ -1,5 +1,7 @@
 rootProject.name = "error"
 
+pluginManagement { includeBuild("../build-logic") }
+
 dependencyResolutionManagement {
     repositories {
         mavenLocal()

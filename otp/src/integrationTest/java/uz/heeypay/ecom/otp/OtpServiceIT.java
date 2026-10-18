@@ -22,7 +22,8 @@ class OtpServiceIT {
   private static final String EMAIL = "aziza@example.uz";
 
   @Container
-  static final GenericContainer<?> REDIS = new GenericContainer<>("redis:8.2-alpine").withExposedPorts(6379);
+  static final GenericContainer<?> REDIS =
+      new GenericContainer<>("redis:8.2-alpine").withExposedPorts(6379);
 
   private StringRedisTemplate redis;
   private OtpService otp;
@@ -34,28 +35,70 @@ class OtpServiceIT {
     redis = new StringRedisTemplate(connection);
     redis.afterPropertiesSet();
     redis.getConnectionFactory().getConnection().serverCommands().flushAll();
-    otp = new OtpService(redis, new OtpProperties(6, Duration.ofMinutes(5), 3, 2, Duration.ofMinutes(15)));
+    otp =
+        new OtpService(
+            redis,
+            new OtpProperties(
+                "test-secret", 6, Duration.ofMinutes(5), 3, 2, Duration.ofMinutes(15)));
   }
 
   @Test
   void aCodeWorksOnce() {
     var code = otp.issue(FLOW, EMAIL);
     otp.verify(FLOW, EMAIL, code);
-    assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, code)).satisfies(e -> assertCode(e, OtpErrorCode.EXPIRED));
+    assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, code))
+        .satisfies(e -> assertCode(e, OtpErrorCode.EXPIRED));
   }
 
   @Test
-  void onlyTheHashIsStored() {
+  void neitherTheCodeNorTheEmailIsStored() {
     var code = otp.issue(FLOW, EMAIL);
-    var stored = redis.opsForValue().get(OtpConstantUtils.KEY_FORMAT.formatted(FLOW, EMAIL, OtpConstantUtils.KEY_CODE));
-    assertThat(stored).isNotEqualTo(code).hasSize(64);
+    var keys = redis.keys("otp:*");
+    assertThat(keys).isNotEmpty().noneMatch(key -> key.contains(EMAIL));
+    assertThat(keys.stream().map(key -> redis.opsForValue().get(key))).noneMatch(code::equals);
+  }
+
+  @Test
+  void aCodeWorksOnceEvenUnderConcurrentRequests() throws Exception {
+    var code = otp.issue(FLOW, EMAIL);
+    var accepted = new java.util.concurrent.atomic.AtomicInteger();
+    try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var start = new java.util.concurrent.CountDownLatch(1);
+      for (int i = 0; i < 20; i++) {
+        pool.submit(
+            () -> {
+              start.await();
+              try {
+                otp.verify(FLOW, EMAIL, code);
+                accepted.incrementAndGet();
+              } catch (ApiException ignored) {
+                // expired: someone else used it first
+              }
+              return null;
+            });
+      }
+      start.countDown();
+    }
+    assertThat(accepted).hasValue(1);
+  }
+
+  @Test
+  void aServiceWithoutASecretRefusesToStart() {
+    assertThatThrownBy(
+            () ->
+                new OtpService(
+                    redis,
+                    new OtpProperties(" ", 6, Duration.ofMinutes(5), 3, 2, Duration.ofMinutes(15))))
+        .isInstanceOf(IllegalStateException.class);
   }
 
   @Test
   void wrongCodesLockAfterTheLimit() {
     var code = otp.issue(FLOW, EMAIL);
+    var wrong = code.equals("000000") ? "111111" : "000000";
     for (int i = 0; i < 3; i++) {
-      assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, "000000")).satisfies(e -> assertCode(e, OtpErrorCode.INVALID));
+      assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, wrong))
+          .satisfies(e -> assertCode(e, OtpErrorCode.INVALID));
     }
     assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, code))
         .satisfies(e -> assertCode(e, OtpErrorCode.ATTEMPTS_EXCEEDED));
@@ -65,10 +108,12 @@ class OtpServiceIT {
   void sendsAreCapped() {
     otp.issue(FLOW, EMAIL);
     otp.issue(FLOW, EMAIL);
-    assertThatThrownBy(() -> otp.issue(FLOW, EMAIL)).satisfies(e -> assertCode(e, OtpErrorCode.SEND_LIMIT));
+    assertThatThrownBy(() -> otp.issue(FLOW, EMAIL))
+        .satisfies(e -> assertCode(e, OtpErrorCode.SEND_LIMIT));
   }
 
   private static void assertCode(Throwable e, String code) {
-    assertThat(((ApiException) e).getBody().getProperties()).containsEntry(ErrorConstantUtils.CODE_PROPERTY, code);
+    assertThat(((ApiException) e).getBody().getProperties())
+        .containsEntry(ErrorConstantUtils.CODE_PROPERTY, code);
   }
 }

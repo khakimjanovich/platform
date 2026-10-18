@@ -37,6 +37,7 @@ spring-webmvc = { module = "org.springframework:spring-webmvc" }
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
 jakarta-validation = { module = "jakarta.validation:jakarta.validation-api" }
 jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api" }
+spring-security-web = { module = "org.springframework.security:spring-security-web" }
 jakarta-servlet = { module = "jakarta.servlet:jakarta.servlet-api" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 ecom-partner-api = { module = "uz.heeypay.ecom:partner-api", version.ref = "ecom-platform" }

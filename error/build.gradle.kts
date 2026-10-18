@@ -19,8 +19,16 @@ dependencies {
     api(libs.spring.webmvc)
     implementation(libs.spring.boot.autoconfigure)
     compileOnly(libs.jakarta.servlet)
+    compileOnly(libs.spring.security.web) // security problems only when the app uses Spring Security
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
+
+    testImplementation(libs.starter.test)
+    testImplementation(libs.spring.security.web)
+    testImplementation(libs.jakarta.servlet)
+    testRuntimeOnly(libs.junit.launcher)
 }
+
+tasks.test { useJUnitPlatform() }
 
 publishing { publications { create<MavenPublication>("library") { from(components["java"]) } } }

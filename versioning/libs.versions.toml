@@ -58,6 +58,7 @@ junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }
 shedlock-jdbc = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-template", version.ref = "shedlock" }
 
+openapi-generator-gradle = { module = "org.openapitools:openapi-generator-gradle-plugin", version.ref = "openapi-generator" }
 spotless-gradle = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 
 [plugins]

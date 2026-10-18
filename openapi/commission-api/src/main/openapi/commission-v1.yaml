@@ -1,0 +1,262 @@
+# Commission API: the bank's fee rules, changed only with four eyes, and what a payment would pay.
+openapi: 3.0.3
+info:
+  title: Commission API
+  version: "1"
+security:
+  - bearer: []
+
+paths:
+  /api/v1/admin/commissions:
+    get:
+      tags: [CommissionAdmin]
+      operationId: listCommissionRules
+      summary: Fee rules, newest first; optionally for one partner or one sales point
+      parameters:
+        - { name: partnerId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/CommissionRuleStatus" } }
+      responses:
+        "200":
+          description: Fee rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CommissionRuleResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [CommissionAdmin]
+      operationId: proposeCommissionRule
+      summary: Proposes a new fee rule; it applies once a second admin approves
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CommissionRuleRequest" }
+      responses:
+        "202": { $ref: "#/components/responses/ChangeRequest" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/commissions/{ruleId}/end:
+    post:
+      tags: [CommissionAdmin]
+      operationId: proposeCommissionRuleEnd
+      summary: Proposes ending a rule at a moment; it applies once a second admin approves
+      parameters: [{ $ref: "#/components/parameters/RuleId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EndRuleRequest" }
+      responses:
+        "202": { $ref: "#/components/responses/ChangeRequest" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/commissions/quote:
+    post:
+      tags: [CommissionAdmin]
+      operationId: quoteCommission
+      summary: The fee a payment would pay, and the rule that sets it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuoteRequest" }
+      responses:
+        "200":
+          description: The fee
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuoteResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/commission-requests:
+    get:
+      tags: [CommissionRequests]
+      operationId: listCommissionRequests
+      summary: Fee changes waiting for a second admin, oldest first
+      responses:
+        "200":
+          description: Waiting changes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChangeRequestResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/commission-requests/{requestId}/approve:
+    post:
+      tags: [CommissionRequests]
+      operationId: approveCommissionRequest
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
+      responses:
+        "200": { $ref: "#/components/responses/ChangeRequest" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/commission-requests/{requestId}/reject:
+    post:
+      tags: [CommissionRequests]
+      operationId: rejectCommissionRequest
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RejectRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ChangeRequest" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A Keycloak access token from realm ecom
+  parameters:
+    RuleId:
+      name: ruleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    ChangeRequest:
+      description: The change request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ChangeRequestResponse" }
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    CardScheme:
+      type: string
+      enum: [UZCARD, HUMO]
+    CommissionRuleStatus:
+      type: string
+      description: PROPOSED until a second admin approves it; REJECTED if they don't
+      enum: [PROPOSED, ACTIVE, REJECTED]
+    CommissionRuleRequest:
+      type: object
+      description: Leave a scope field out to mean "any". A sales point needs its partner.
+      required: [percent, fixedFee, validFrom]
+      properties:
+        partnerId: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        percent: { type: number, minimum: 0, maximum: 100, description: "Percent of the amount, up to 4 decimals" }
+        fixedFee: { type: integer, format: int64, minimum: 0, description: In tiyin }
+        minFee: { type: integer, format: int64, minimum: 0, description: In tiyin }
+        maxFee: { type: integer, format: int64, minimum: 0, description: In tiyin }
+        validFrom: { type: string, format: date-time }
+        validTo: { type: string, format: date-time, description: Exclusive; leave out for no end }
+    CommissionRuleResponse:
+      type: object
+      required: [id, percent, fixedFee, validFrom, status, proposedBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        partnerId: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        percent: { type: number }
+        fixedFee: { type: integer, format: int64 }
+        minFee: { type: integer, format: int64 }
+        maxFee: { type: integer, format: int64 }
+        validFrom: { type: string, format: date-time }
+        validTo: { type: string, format: date-time }
+        status: { $ref: "#/components/schemas/CommissionRuleStatus" }
+        proposedBy: { type: string }
+        approvedBy: { type: string }
+        createdAt: { type: string, format: date-time }
+    EndRuleRequest:
+      type: object
+      required: [endsAt]
+      properties:
+        endsAt: { type: string, format: date-time }
+    ChangeKind:
+      type: string
+      enum: [CREATE, END]
+    ChangeStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+    ChangeRequestResponse:
+      type: object
+      required: [id, kind, status, rule, requestedBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { $ref: "#/components/schemas/ChangeKind" }
+        status: { $ref: "#/components/schemas/ChangeStatus" }
+        rule: { $ref: "#/components/schemas/CommissionRuleResponse" }
+        endsAt: { type: string, format: date-time }
+        requestedBy: { type: string }
+        decidedBy: { type: string }
+        rejectReason: { type: string }
+        createdAt: { type: string, format: date-time }
+    RejectRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 3, maxLength: 500 }
+    QuoteRequest:
+      type: object
+      required: [partnerId, salesPointId, scheme, amount]
+      properties:
+        partnerId: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        at: { type: string, format: date-time, description: Defaults to now }
+    QuoteResponse:
+      type: object
+      required: [ruleId, amount, fee, net]
+      properties:
+        ruleId: { type: string, format: uuid }
+        amount: { type: integer, format: int64 }
+        fee: { type: integer, format: int64 }
+        net: { type: integer, format: int64, description: What the merchant receives }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

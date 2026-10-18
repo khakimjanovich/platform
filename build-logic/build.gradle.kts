@@ -4,4 +4,5 @@ plugins {
 
 dependencies {
     implementation(libs.spotless.gradle)
+    implementation(libs.openapi.generator.gradle)
 }

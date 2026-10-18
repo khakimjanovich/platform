@@ -19,14 +19,101 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PartnerResponse" }
-        "404":
-          description: No such partner
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/registrations:
+    post:
+      tags: [Registration]
+      operationId: register
+      summary: Register a merchant and email it a one-time code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegistrationRequest" }
+      responses:
+        "201":
+          description: Registered, pending email verification
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PartnerResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/registrations/email-verification:
+    post:
+      tags: [Registration]
+      operationId: verifyEmail
+      summary: Prove ownership of the email with the one-time code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmailVerificationRequest" }
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PartnerResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/registrations/email-verification/resend:
+    post:
+      tags: [Registration]
+      operationId: resendCode
+      summary: Send a new one-time code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResendCodeRequest" }
+      responses:
+        "202": { description: A new code was sent }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
 components:
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
     PartnerResponse:
       type: object
-      required: [id, companyName, status]
+      required: [id, companyName, status, emailVerified]
       properties:
         id: { type: string, format: uuid }
         companyName: { type: string }
         status: { type: string, enum: [PENDING_VERIFICATION, VERIFIED] }
+        emailVerified: { type: boolean }
+    RegistrationRequest:
+      type: object
+      required: [companyName, email]
+      properties:
+        companyName: { type: string, minLength: 2, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 320 }
+    EmailVerificationRequest:
+      type: object
+      required: [email, code]
+      properties:
+        email: { type: string, format: email }
+        code: { type: string, pattern: "^[0-9]{6}$" }
+    ResendCodeRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+    Problem:
+      type: object
+      properties:
+        status: { type: integer }
+        title: { type: string }
+        detail: { type: string }
+        code: { type: string }

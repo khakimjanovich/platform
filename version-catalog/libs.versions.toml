@@ -17,6 +17,8 @@ starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data
 starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase" }
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
+starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 postgresql = { module = "org.postgresql:postgresql" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
@@ -24,6 +26,7 @@ liquibase-core = { module = "org.liquibase:liquibase-core" }
 spring-jdbc = { module = "org.springframework:spring-jdbc" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
+testcontainers-core = { module = "org.testcontainers:testcontainers" }
 modulith-core = { module = "org.springframework.modulith:spring-modulith-core" }
 springdoc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 spring-web = { module = "org.springframework:spring-web" }
@@ -35,6 +38,7 @@ jakarta-servlet = { module = "jakarta.servlet:jakarta.servlet-api" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 ecom-partner-api = { module = "uz.heeypay.ecom:partner-api", version.ref = "ecom-platform" }
 ecom-error-starter = { module = "uz.heeypay.ecom:error-starter", version.ref = "ecom-platform" }
+ecom-otp-starter = { module = "uz.heeypay.ecom:otp-starter", version.ref = "ecom-platform" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 [plugins]

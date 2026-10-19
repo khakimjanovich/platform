@@ -5,14 +5,18 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ErrorConstantUtils {
 
+  public static final String PROPERTIES_PREFIX = "exception.starter";
+
   /** Extra property on every problem detail: the stable, machine-readable error code. */
   public static final String CODE_PROPERTY = "code";
 
-  public static final String INTERNAL_ERROR_CODE = "INTERNAL_ERROR";
   public static final String LOG_UNEXPECTED_ERROR = "Unexpected error";
+  public static final String LOG_NO_DEFINITION = "No definition for error {}; answering 500";
 
-  /* ------- invalid input ------- */
-  public static final String VALIDATION_CODE = "VALIDATION_FAILED";
+  /** Used only when a service forgot to import properties/error-exception.yaml. */
+  public static final ErrorStarterProperties.ErrorDefinition LAST_RESORT =
+      new ErrorStarterProperties.ErrorDefinition(
+          500, "internal-error", true, "Something went wrong.", null, null);
 
   /** Extra property on a validation problem: [{ field, message }]. */
   public static final String ERRORS_PROPERTY = "errors";
@@ -21,8 +25,6 @@ public class ErrorConstantUtils {
   public static final String MESSAGE = "message";
 
   /* ------- security ------- */
-  public static final String UNAUTHORIZED_CODE = "UNAUTHORIZED";
-  public static final String FORBIDDEN_CODE = "FORBIDDEN";
   public static final String BEARER_CHALLENGE = "Bearer";
 
   /** Spring MVC's composite exception resolver bean. */

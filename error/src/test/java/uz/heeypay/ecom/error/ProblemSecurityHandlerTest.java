@@ -12,10 +12,10 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 class ProblemSecurityHandlerTest {
 
-  private ApiException resolved;
+  private GeneralException resolved;
   private final HandlerExceptionResolver resolver =
       (request, response, handler, ex) -> {
-        resolved = (ApiException) ex;
+        resolved = (GeneralException) ex;
         return null;
       };
   private final ProblemSecurityHandler handler = new ProblemSecurityHandler(resolver);
@@ -26,8 +26,7 @@ class ProblemSecurityHandlerTest {
     handler.commence(
         new MockHttpServletRequest(), response, new BadCredentialsException("expired"));
 
-    assertThat(resolved.getStatusCode().value()).isEqualTo(401);
-    assertThat(resolved.getBody().getProperties()).containsEntry("code", "UNAUTHORIZED");
+    assertThat(resolved.getStatus()).isEqualTo(ErrorExceptionStatus.UNAUTHORIZED);
     assertThat(response.getHeader(HttpHeaders.WWW_AUTHENTICATE)).isEqualTo("Bearer");
   }
 
@@ -38,7 +37,6 @@ class ProblemSecurityHandlerTest {
         new MockHttpServletResponse(),
         new AccessDeniedException("no role"));
 
-    assertThat(resolved.getStatusCode().value()).isEqualTo(403);
-    assertThat(resolved.getBody().getProperties()).containsEntry("code", "FORBIDDEN");
+    assertThat(resolved.getStatus()).isEqualTo(ErrorExceptionStatus.FORBIDDEN);
   }
 }

@@ -11,8 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import uz.heeypay.ecom.error.ApiException;
-import uz.heeypay.ecom.error.ErrorConstantUtils;
+import uz.heeypay.ecom.error.GeneralException;
 
 /** The one-time code rules, checked against a real Redis. */
 @Testcontainers
@@ -47,7 +46,7 @@ class OtpServiceIT {
     var code = otp.issue(FLOW, EMAIL);
     otp.verify(FLOW, EMAIL, code);
     assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, code))
-        .satisfies(e -> assertCode(e, OtpErrorCode.EXPIRED));
+        .satisfies(e -> assertCode(e, OtpExceptionStatus.OTP_EXPIRED.getType()));
   }
 
   @Test
@@ -71,7 +70,7 @@ class OtpServiceIT {
               try {
                 otp.verify(FLOW, EMAIL, code);
                 accepted.incrementAndGet();
-              } catch (ApiException ignored) {
+              } catch (GeneralException ignored) {
                 // expired: someone else used it first
               }
               return null;
@@ -98,10 +97,10 @@ class OtpServiceIT {
     var wrong = code.equals("000000") ? "111111" : "000000";
     for (int i = 0; i < 3; i++) {
       assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, wrong))
-          .satisfies(e -> assertCode(e, OtpErrorCode.INVALID));
+          .satisfies(e -> assertCode(e, OtpExceptionStatus.OTP_INVALID.getType()));
     }
     assertThatThrownBy(() -> otp.verify(FLOW, EMAIL, code))
-        .satisfies(e -> assertCode(e, OtpErrorCode.ATTEMPTS_EXCEEDED));
+        .satisfies(e -> assertCode(e, OtpExceptionStatus.OTP_ATTEMPTS_EXCEEDED.getType()));
   }
 
   @Test
@@ -109,11 +108,10 @@ class OtpServiceIT {
     otp.issue(FLOW, EMAIL);
     otp.issue(FLOW, EMAIL);
     assertThatThrownBy(() -> otp.issue(FLOW, EMAIL))
-        .satisfies(e -> assertCode(e, OtpErrorCode.SEND_LIMIT));
+        .satisfies(e -> assertCode(e, OtpExceptionStatus.OTP_SEND_LIMIT.getType()));
   }
 
   private static void assertCode(Throwable e, String code) {
-    assertThat(((ApiException) e).getBody().getProperties())
-        .containsEntry(ErrorConstantUtils.CODE_PROPERTY, code);
+    assertThat(((GeneralException) e).getStatus().getType()).isEqualTo(code);
   }
 }

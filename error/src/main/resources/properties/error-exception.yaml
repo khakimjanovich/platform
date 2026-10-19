@@ -1,0 +1,33 @@
+# Errors every service shares: HTTP status, title and message in English, Russian and Uzbek.
+# Import this file in each service: spring.config.import: classpath:properties/error-exception.yaml
+exception:
+  starter:
+    error:
+      INTERNAL_ERROR:
+        http-code: 500
+        title: internal-error
+        is-loggable: true
+        message-en: "Something went wrong on our side. Please try again."
+        message-ru: "На нашей стороне что-то пошло не так. Попробуйте ещё раз."
+        message-uz: "Bizning tomonda nimadir xato ketdi. Qaytadan urinib koʻring."
+      VALIDATION_FAILED:
+        http-code: 400
+        title: validation-failed
+        is-loggable: false
+        message-en: "Some fields are invalid."
+        message-ru: "Некоторые поля заполнены неверно."
+        message-uz: "Baʼzi maydonlar notoʻgʻri toʻldirilgan."
+      UNAUTHORIZED:
+        http-code: 401
+        title: unauthorized
+        is-loggable: false
+        message-en: "Sign in with a valid access token."
+        message-ru: "Войдите с действующим токеном доступа."
+        message-uz: "Amaldagi kirish tokeni bilan tizimga kiring."
+      FORBIDDEN:
+        http-code: 403
+        title: forbidden
+        is-loggable: false
+        message-en: "Your account isn't allowed to do this."
+        message-ru: "Вашей учётной записи это действие недоступно."
+        message-uz: "Hisobingizga bu amalni bajarishga ruxsat berilmagan."

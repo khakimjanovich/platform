@@ -2,12 +2,14 @@ package uz.heeypay.ecom.error;
 
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -20,31 +22,48 @@ import org.springframework.web.method.annotation.HandlerMethodValidationExceptio
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
- * Spring's own handler turns every {@link ApiException} and every framework error into a problem
- * detail; here each one also gets a stable {@code code}. Invalid input lists the failing fields.
- * Anything unexpected becomes a plain 500 with a code, never a stack trace.
+ * Every error leaves as a problem detail with a stable {@code code}: a {@link GeneralException}
+ * from its definition (status, title, message in the caller's language), Spring's own errors with a
+ * code named after their status. Invalid input lists the failing fields. Anything unexpected
+ * becomes a plain 500 with a code, never a stack trace.
  */
 @RestControllerAdvice
+@RequiredArgsConstructor
 class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
 
   private static final Log log = LogFactory.getLog(ProblemDetailsAdvice.class);
 
-  @ExceptionHandler(Exception.class)
-  ProblemDetail unexpected(Exception ex) {
-    log.error(ErrorConstantUtils.LOG_UNEXPECTED_ERROR, ex);
-    var problem =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR, message(ErrorConstantUtils.INTERNAL_ERROR_CODE));
-    problem.setProperty(ErrorConstantUtils.CODE_PROPERTY, ErrorConstantUtils.INTERNAL_ERROR_CODE);
-    return problem;
+  private final ErrorStarterProperties errors;
+
+  @ExceptionHandler(GeneralException.class)
+  ResponseEntity<ProblemDetail> general(GeneralException ex) {
+    var problem = problem(ex.getStatus(), ex.getParams());
+    return ResponseEntity.status(problem.getStatus())
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .body(problem);
   }
 
-  /** The message for {@code key} in the request's language; the key itself if no bundle has it. */
-  private String message(String key) {
-    var messages = getMessageSource();
-    return messages == null
-        ? key
-        : messages.getMessage(key, null, key, LocaleContextHolder.getLocale());
+  @ExceptionHandler(Exception.class)
+  ResponseEntity<ProblemDetail> unexpected(Exception ex) {
+    log.error(ErrorConstantUtils.LOG_UNEXPECTED_ERROR, ex);
+    return general(new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR));
+  }
+
+  private ProblemDetail problem(StatusThrowable status, Object... params) {
+    var definition = errors.error().get(status.getType());
+    if (definition == null) {
+      log.error(ErrorConstantUtils.LOG_NO_DEFINITION.replace("{}", status.getType()));
+      status = ErrorExceptionStatus.INTERNAL_ERROR;
+      params = new Object[0];
+      definition = errors.error().getOrDefault(status.getType(), ErrorConstantUtils.LAST_RESORT);
+    }
+    var detail = definition.message(LocaleContextHolder.getLocale(), params);
+    if (definition.isLoggable()) log.warn(status.getType() + " | " + detail);
+    var problem =
+        ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(definition.httpCode()), detail);
+    problem.setTitle(definition.title());
+    problem.setProperty(ErrorConstantUtils.CODE_PROPERTY, status.getType());
+    return problem;
   }
 
   @Override
@@ -111,8 +130,11 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
-    problem.setDetail(message(ErrorConstantUtils.VALIDATION_CODE));
-    problem.setProperty(ErrorConstantUtils.CODE_PROPERTY, ErrorConstantUtils.VALIDATION_CODE);
+    var invalid = problem(ErrorExceptionStatus.VALIDATION_FAILED);
+    problem.setTitle(invalid.getTitle());
+    problem.setDetail(invalid.getDetail());
+    problem.setProperty(
+        ErrorConstantUtils.CODE_PROPERTY, ErrorExceptionStatus.VALIDATION_FAILED.getType());
     problem.setProperty(ErrorConstantUtils.ERRORS_PROPERTY, errors);
     return handleExceptionInternal(ex, problem, headers, status, request);
   }

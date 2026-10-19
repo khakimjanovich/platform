@@ -30,6 +30,7 @@ import org.springframework.web.context.WebApplicationContext;
 @SpringBootTest(
     classes = SecurityAutoConfigurationTest.App.class,
     properties = {
+      "spring.config.import=classpath:properties/error-exception.yaml",
       "ecom.security.public-routes[0]=POST /signup",
       "ecom.security.public-routes[1]=/docs/**",
       "ecom.security.roles[/admin/**]=ADMIN",

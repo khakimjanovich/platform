@@ -11,8 +11,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.http.HttpStatus;
-import uz.heeypay.ecom.error.ApiException;
+import uz.heeypay.ecom.error.GeneralException;
 
 /**
  * Issues and checks one-time codes. Redis keeps only a keyed hash (HMAC-SHA256 with a configured
@@ -62,7 +61,7 @@ public class OtpService {
             hash(code),
             String.valueOf(properties.ttl().toMillis()));
     if (sends == null || sends < 0) {
-      throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, OtpErrorCode.SEND_LIMIT);
+      throw new GeneralException(OtpExceptionStatus.OTP_SEND_LIMIT);
     }
     return code;
   }
@@ -78,10 +77,9 @@ public class OtpService {
             hash(code));
     switch (result == null ? 0 : result.intValue()) {
       case 1 -> {}
-      case -1 -> throw new ApiException(HttpStatus.BAD_REQUEST, OtpErrorCode.INVALID);
-      case -2 ->
-          throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, OtpErrorCode.ATTEMPTS_EXCEEDED);
-      default -> throw new ApiException(HttpStatus.GONE, OtpErrorCode.EXPIRED);
+      case -1 -> throw new GeneralException(OtpExceptionStatus.OTP_INVALID);
+      case -2 -> throw new GeneralException(OtpExceptionStatus.OTP_ATTEMPTS_EXCEEDED);
+      default -> throw new GeneralException(OtpExceptionStatus.OTP_EXPIRED);
     }
   }
 

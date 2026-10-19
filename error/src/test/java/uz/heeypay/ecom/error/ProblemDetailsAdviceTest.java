@@ -12,7 +12,10 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -29,6 +32,17 @@ class ProblemDetailsAdviceTest {
 
   record Signup(@Size(min = 2) String name, @Email String email) {}
 
+  /** A service's own errors; EMAIL_TAKEN is defined below, NOT_DEFINED nowhere. */
+  enum TestStatus implements StatusThrowable {
+    EMAIL_TAKEN,
+    NOT_DEFINED;
+
+    @Override
+    public String getType() {
+      return name();
+    }
+  }
+
   @RestController
   static class Endpoints {
     @PostMapping("/signup")
@@ -36,7 +50,12 @@ class ProblemDetailsAdviceTest {
 
     @GetMapping("/taken")
     void taken() {
-      throw new ApiException(HttpStatus.CONFLICT, "EMAIL_TAKEN", "Already registered");
+      throw new GeneralException(TestStatus.EMAIL_TAKEN, "aziz@example.uz");
+    }
+
+    @GetMapping("/undefined")
+    void undefined() {
+      throw new GeneralException(TestStatus.NOT_DEFINED);
     }
 
     @GetMapping("/boom")
@@ -61,10 +80,22 @@ class ProblemDetailsAdviceTest {
   }
 
   @Test
-  void ownErrorsKeepTheirCode() throws Exception {
+  void ownErrorsTakeStatusTitleAndMessageFromTheirDefinition() throws Exception {
     mvc.perform(get("/taken"))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"));
+        .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"))
+        .andExpect(jsonPath("$.title").value("email-taken"))
+        .andExpect(jsonPath("$.detail").value("aziz@example.uz is already registered."));
+    mvc.perform(get("/taken").header("Accept-Language", "uz"))
+        .andExpect(jsonPath("$.detail").value("aziz@example.uz allaqachon roʻyxatdan oʻtgan."));
+  }
+
+  @Test
+  void anErrorWithoutADefinitionIsAPlain500() throws Exception {
+    mvc.perform(get("/undefined"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
   }
 
   @Test
@@ -106,11 +137,26 @@ class ProblemDetailsAdviceTest {
     messages.setDefaultEncoding("UTF-8");
     messages.setFallbackToSystemLocale(false);
     messages.setAlwaysUseMessageFormat(true);
-    var advice = new ProblemDetailsAdvice();
+    var advice = new ProblemDetailsAdvice(definitions());
     advice.setMessageSource(messages);
     return MockMvcBuilders.standaloneSetup(new Endpoints())
         .setControllerAdvice(advice)
         .setValidator(validator)
         .build();
+  }
+
+  /** The library's own definitions, as a service imports them, plus one of the service's own. */
+  private static ErrorStarterProperties definitions() {
+    var yaml = new YamlPropertiesFactoryBean();
+    yaml.setResources(new ClassPathResource("properties/error-exception.yaml"));
+    var properties = yaml.getObject();
+    properties.put("exception.starter.error.EMAIL_TAKEN.http-code", "409");
+    properties.put("exception.starter.error.EMAIL_TAKEN.title", "email-taken");
+    properties.put("exception.starter.error.EMAIL_TAKEN.message-en", "{0} is already registered.");
+    properties.put(
+        "exception.starter.error.EMAIL_TAKEN.message-uz", "{0} allaqachon roʻyxatdan oʻtgan.");
+    return new Binder(new MapConfigurationPropertySource(properties))
+        .bind(ErrorConstantUtils.PROPERTIES_PREFIX, ErrorStarterProperties.class)
+        .get();
   }
 }

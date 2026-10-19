@@ -1,0 +1,33 @@
+# Errors the otp library returns: HTTP status, title and message in English, Russian and Uzbek.
+# {0}, {1}… are filled with the exception's parameters.
+exception:
+  starter:
+    error:
+      OTP_EXPIRED:
+        http-code: 410
+        title: otp-expired
+        is-loggable: false
+        message-en: "The code has expired or was never sent. Ask for a new one."
+        message-ru: "Срок действия кода истёк, или код не отправлялся. Запросите новый."
+        message-uz: "Kod muddati tugagan yoki yuborilmagan. Yangisini soʻrang."
+      OTP_INVALID:
+        http-code: 400
+        title: otp-invalid
+        is-loggable: false
+        message-en: "The code is wrong."
+        message-ru: "Неверный код."
+        message-uz: "Kod notoʻgʻri."
+      OTP_ATTEMPTS_EXCEEDED:
+        http-code: 429
+        title: otp-attempts-exceeded
+        is-loggable: false
+        message-en: "Too many wrong codes. Ask for a new one later."
+        message-ru: "Слишком много неверных кодов. Запросите новый позже."
+        message-uz: "Notoʻgʻri kodlar juda koʻp. Keyinroq yangisini soʻrang."
+      OTP_SEND_LIMIT:
+        http-code: 429
+        title: otp-send-limit
+        is-loggable: false
+        message-en: "Too many codes sent. Try again later."
+        message-ru: "Отправлено слишком много кодов. Попробуйте позже."
+        message-uz: "Juda koʻp kod yuborildi. Keyinroq urinib koʻring."

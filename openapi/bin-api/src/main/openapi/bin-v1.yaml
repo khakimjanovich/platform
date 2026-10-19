@@ -1,0 +1,118 @@
+# BIN API: which card scheme and which bank a card number belongs to, for the bank's admins.
+openapi: 3.0.3
+info:
+  title: BIN API
+  version: "1"
+  description: |
+    The bank's own copy of the schemes' BIN lists (Uzcard and Humo, through their adapters), synced
+    at startup and nightly, with a directory of bank names. Lookups are answered from memory: the
+    digits are cut from the longest known BIN length down to the shortest, and the first match wins.
+    Bank names follow Accept-Language (en, ru, uz).
+security:
+  - bearer: []
+
+paths:
+  /api/v1/admin/bins:
+    get:
+      tags: [BinAdmin]
+      operationId: listBins
+      summary: Every known BIN range, by prefix
+      responses:
+        "200":
+          description: BIN ranges
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BinResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/bins/sync:
+    post:
+      tags: [BinAdmin]
+      operationId: syncBins
+      summary: Fetches the BIN lists from both schemes now (also runs on a schedule)
+      responses:
+        "200":
+          description: What each scheme gave
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BinSyncResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/bins/lookup:
+    get:
+      tags: [BinAdmin]
+      operationId: lookupBin
+      summary: The scheme of a card, from its first digits (the longest matching prefix wins)
+      parameters:
+        - name: digits
+          in: query
+          required: true
+          schema: { type: string, pattern: "^[0-9]{6,8}$" }
+      responses:
+        "200":
+          description: The matching range
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BinResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A Keycloak access token from realm ecom
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    CardScheme:
+      type: string
+      enum: [UZCARD, HUMO]
+    BinResponse:
+      type: object
+      required: [prefix, scheme, syncedAt]
+      properties:
+        prefix: { type: string }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        issuer: { type: string, description: The issuing bank's code at the scheme }
+        bankName: { type: string, description: "The issuing bank's name in the caller's language, when the directory knows it" }
+        syncedAt: { type: string, format: date-time }
+    BinSyncResponse:
+      type: object
+      required: [scheme, ranges, updated]
+      properties:
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        ranges: { type: integer, description: Ranges the registry now holds for this scheme }
+        updated: { type: boolean, description: false when the scheme didn't answer; its old list is kept }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

@@ -3,7 +3,7 @@ pluginManagement { includeBuild '../build-logic' }
 rootProject.name = 'openapi'
 
 // One project per module contract: the OpenAPI spec in, a generated API jar out (published to local Maven).
-include('partner-api', 'commission-api', 'terminal-api', 'card-api', 'payment-api', 'uzcard-adapter-api', 'humo-adapter-api', 'file-service-api')
+include('partner-api', 'commission-api', 'terminal-api', 'card-api', 'payment-api', 'uzcard-adapter-api', 'humo-adapter-api', 'file-service-api', 'bin-api')
 
 dependencyResolutionManagement {
     repositories {

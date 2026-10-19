@@ -58,6 +58,7 @@ ecom-vault = { module = "uz.heeypay.ecom:vault", version.ref = "ecom-platform" }
 ecom-commission-api = { module = "uz.heeypay.ecom:commission-api", version.ref = "ecom-platform" }
 ecom-terminal-api = { module = "uz.heeypay.ecom:terminal-api", version.ref = "ecom-platform" }
 ecom-card-api = { module = "uz.heeypay.ecom:card-api", version.ref = "ecom-platform" }
+ecom-bin-api = { module = "uz.heeypay.ecom:bin-api", version.ref = "ecom-platform" }
 ecom-payment-api = { module = "uz.heeypay.ecom:payment-api", version.ref = "ecom-platform" }
 ecom-uzcard-adapter-api = { module = "uz.heeypay.ecom:uzcard-adapter-api", version.ref = "ecom-platform" }
 ecom-uzcard-adapter-client = { module = "uz.heeypay.ecom:uzcard-adapter-client", version.ref = "ecom-platform" }
@@ -65,6 +66,7 @@ ecom-humo-adapter-api = { module = "uz.heeypay.ecom:humo-adapter-api", version.r
 ecom-humo-adapter-client = { module = "uz.heeypay.ecom:humo-adapter-client", version.ref = "ecom-platform" }
 ecom-file-service-api = { module = "uz.heeypay.ecom:file-service-api", version.ref = "ecom-platform" }
 ecom-file-service-client = { module = "uz.heeypay.ecom:file-service-client", version.ref = "ecom-platform" }
+
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }

@@ -1,4 +1,4 @@
-# Card API: the BIN registry and the card vault, for the bank's admins. No card number ever leaves.
+# Card API: the card vault, for the bank's admins. No card number ever leaves.
 openapi: 3.0.3
 info:
   title: Card API
@@ -7,59 +7,6 @@ security:
   - bearer: []
 
 paths:
-  /api/v1/admin/bins:
-    get:
-      tags: [BinAdmin]
-      operationId: listBins
-      summary: Every known BIN range, by prefix
-      responses:
-        "200":
-          description: BIN ranges
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/BinResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-
-  /api/v1/admin/bins/sync:
-    post:
-      tags: [BinAdmin]
-      operationId: syncBins
-      summary: Fetches the BIN lists from both schemes now (also runs on a schedule)
-      responses:
-        "200":
-          description: What each scheme gave
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/BinSyncResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-
-  /api/v1/admin/bins/lookup:
-    get:
-      tags: [BinAdmin]
-      operationId: lookupBin
-      summary: The scheme of a card, from its first digits (the longest matching prefix wins)
-      parameters:
-        - name: digits
-          in: query
-          required: true
-          schema: { type: string, pattern: "^[0-9]{6,8}$" }
-      responses:
-        "200":
-          description: The matching range
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/BinResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-
   /api/v1/admin/cards/search:
     post:
       tags: [CardAdmin]
@@ -135,21 +82,6 @@ components:
     CardScheme:
       type: string
       enum: [UZCARD, HUMO]
-    BinResponse:
-      type: object
-      required: [prefix, scheme, syncedAt]
-      properties:
-        prefix: { type: string }
-        scheme: { $ref: "#/components/schemas/CardScheme" }
-        issuer: { type: string, description: The issuing bank's code at the scheme }
-        syncedAt: { type: string, format: date-time }
-    BinSyncResponse:
-      type: object
-      required: [scheme, ranges, updated]
-      properties:
-        scheme: { $ref: "#/components/schemas/CardScheme" }
-        ranges: { type: integer, description: Ranges the registry now holds for this scheme }
-        updated: { type: boolean, description: false when the scheme didn't answer; its old list is kept }
     CardSearchRequest:
       type: object
       required: [number]

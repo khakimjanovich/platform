@@ -230,8 +230,12 @@ components:
         returnUrl: { type: string, maxLength: 2048, pattern: "^https://.+", description: "Where the buyer goes afterwards; one of the website's return addresses" }
     PaymentStatus:
       type: string
-      description: "CREATED: link sent · AWAITING_CODE: a code went to the cardholder · CARD_CONFIRMED: ready to debit · FAILED: the page closed"
-      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, FAILED]
+      description: >-
+        CREATED: link sent · AWAITING_CODE: a code went to the cardholder · CARD_CONFIRMED: ready to
+        debit · DEBITING: the scheme is being asked · PAID: the money moved · DECLINED: the scheme
+        refused (declineCode says why) · UNKNOWN: the scheme didn't answer, so the money may have
+        moved; never treat it as declined · FAILED: the page closed before any debit
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, FAILED]
     PaymentCardRequest:
       type: object
       required: [number, expiry]
@@ -260,6 +264,9 @@ components:
         maskedCard: { type: string, description: "Set once a card is in use, e.g. 860014******7890" }
         cardScheme: { type: string, enum: [UZCARD, HUMO] }
         cardBank: { type: string, description: "The bank that issued the card, in the buyer's language, when known" }
+        rrn: { type: string, description: The scheme's reference number for a paid payment }
+        declineCode: { type: string, description: "Why the scheme declined, e.g. CARD_INSUFFICIENT_FUNDS" }
+        paidAt: { type: string, format: date-time }
         returnUrl: { type: string, description: Back to the shop }
     PaymentResponse:
       type: object
@@ -273,6 +280,11 @@ components:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         paymentUrl: { type: string, description: "Only in the response that created the payment: send the buyer here" }
         pageExpiresAt: { type: string, format: date-time }
+        rrn: { type: string, description: "The scheme's reference number, once paid" }
+        declineCode: { type: string, description: Why the scheme declined }
+        fee: { type: integer, format: int64, description: "The bank's fee in tiyin, fixed when the debit started" }
+        net: { type: integer, format: int64, description: "What the merchant receives, in tiyin" }
+        paidAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
     PaymentAdminResponse:
       type: object
@@ -286,6 +298,15 @@ components:
         amount: { type: integer, format: int64 }
         description: { type: string }
         status: { $ref: "#/components/schemas/PaymentStatus" }
+        cardMask: { type: string }
+        cardScheme: { type: string }
+        merchantId: { type: string, description: The terminal's MID the debit went through }
+        terminalId: { type: string, description: The terminal's TID }
+        fee: { type: integer, format: int64 }
+        net: { type: integer, format: int64 }
+        rrn: { type: string }
+        declineCode: { type: string }
+        paidAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
     Problem:
       type: object

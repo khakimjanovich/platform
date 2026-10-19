@@ -1,4 +1,4 @@
-# Payment API: a merchant's server creates payments; the bank's admins see them.
+# Payment API: a merchant's server creates payments, the buyer pays on the bank's page, and the bank's admins see them.
 openapi: 3.0.3
 info:
   title: Payment API
@@ -8,6 +8,9 @@ info:
     HMAC-SHA256 signature. Sign, with the API client's signing key (base64-decoded), the text
     `METHOD\nPATH\nX-Timestamp\nX-Nonce\nhex(SHA-256(body))`, where PATH includes the query string
     and an empty body hashes the empty string; send the base64 result as X-Signature.
+
+    The payment page calls (`/api/v1/pay/{token}`) need no login: the one-time token in the link is
+    the only credential, and it works until the page expires.
 security:
   - bearer: []
 
@@ -82,6 +85,90 @@ paths:
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/pay/{token}:
+    get:
+      tags: [PaymentPage]
+      operationId: getPaymentPage
+      summary: What the buyer sees on the payment page; reading it changes nothing
+      security: []
+      parameters: [{ $ref: "#/components/parameters/PageToken" }]
+      responses:
+        "200":
+          description: The payment page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentPage" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/pay/{token}/logo:
+    get:
+      tags: [PaymentPage]
+      operationId: getPaymentPageLogo
+      summary: The website's logo
+      security: []
+      parameters: [{ $ref: "#/components/parameters/PageToken" }]
+      responses:
+        "200":
+          description: PNG or JPEG
+          content:
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        "404": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/pay/{token}/card:
+    post:
+      tags: [PaymentPage]
+      operationId: submitPaymentCard
+      summary: The buyer's card; its scheme sends a one-time code to the cardholder's phone
+      description: Every attempt counts, failed ones too; after the configured number the page closes.
+      security: []
+      parameters: [{ $ref: "#/components/parameters/PageToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentCardRequest" }
+      responses:
+        "200":
+          description: The page, now waiting for the code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentPage" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/pay/{token}/code:
+    post:
+      tags: [PaymentPage]
+      operationId: confirmPaymentCode
+      summary: The one-time code from the cardholder's phone; a right code confirms the card
+      description: Every attempt counts; after the configured number for this card the page closes.
+      security: []
+      parameters: [{ $ref: "#/components/parameters/PageToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentCodeRequest" }
+      responses:
+        "200":
+          description: The page, with the card confirmed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentPage" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearer:
@@ -90,6 +177,12 @@ components:
       bearerFormat: JWT
       description: A Keycloak access token from realm ecom
   parameters:
+    PageToken:
+      name: token
+      in: path
+      required: true
+      description: The one-time token from the payment page link
+      schema: { type: string, pattern: "^[A-Za-z0-9_-]{43}$" }
     PaymentId:
       name: paymentId
       in: path
@@ -137,7 +230,37 @@ components:
         returnUrl: { type: string, maxLength: 2048, pattern: "^https://.+", description: "Where the buyer goes afterwards; one of the website's return addresses" }
     PaymentStatus:
       type: string
-      enum: [CREATED]
+      description: "CREATED: link sent · AWAITING_CODE: a code went to the cardholder · CARD_CONFIRMED: ready to debit · FAILED: the page closed"
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, FAILED]
+    PaymentCardRequest:
+      type: object
+      required: [number, expiry]
+      properties:
+        number: { type: string, pattern: "^[0-9]{16}$" }
+        expiry: { type: string, pattern: "^[0-9]{4}$", description: YYMM }
+    PaymentCodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, pattern: "^[0-9]{4,8}$" }
+    PaymentPage:
+      type: object
+      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft, returnUrl]
+      properties:
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        amount: { type: integer, format: int64, description: In tiyin }
+        orderId: { type: string }
+        description: { type: string }
+        merchantName: { type: string, description: The website's name }
+        hasLogo: { type: boolean }
+        schemes: { type: array, items: { type: string, enum: [UZCARD, HUMO] }, description: Cards this website accepts }
+        expiresAt: { type: string, format: date-time }
+        cardAttemptsLeft: { type: integer }
+        codeAttemptsLeft: { type: integer, description: For the card in use }
+        maskedCard: { type: string, description: "Set once a card is in use, e.g. 860014******7890" }
+        cardScheme: { type: string, enum: [UZCARD, HUMO] }
+        cardBank: { type: string, description: "The bank that issued the card, in the buyer's language, when known" }
+        returnUrl: { type: string, description: Back to the shop }
     PaymentResponse:
       type: object
       required: [id, salesPointId, orderId, amount, status, createdAt]

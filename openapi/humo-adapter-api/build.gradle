@@ -1,0 +1,7 @@
+// The Humo adapter's contract: humo-adapter-v1.yaml → server interfaces for the adapter and
+// @HttpExchange client interfaces for anyone who calls it.
+plugins {
+    id 'ecom.contract'
+}
+
+contract { client = true }

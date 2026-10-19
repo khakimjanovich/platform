@@ -1,0 +1,205 @@
+# Uzcard adapter: SV-Gate (JSON-RPC 2.0) behind plain REST. Any service or project may call it.
+openapi: 3.0.3
+info:
+  title: Uzcard Adapter
+  version: "1"
+  description: |
+    Every answer is an envelope {requestId, status, data}. `status` says what SV-Gate decided;
+    HTTP errors mean the adapter couldn't get an answer (502 SV-Gate error, 504 no answer in time):
+    the caller must treat those as unknown, never as declined.
+
+paths:
+  /v1/cards/new-otp:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsNewOtp
+      summary: Sends a binding code to the cardholder's phone (cards.new.otp)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsNewOtpRequest" }
+      responses:
+        "200": { description: Code sent, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewOtpResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/cards/new-verify:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsNewVerify
+      summary: Checks the code and returns the card's token (cards.new.verify)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsNewVerifyRequest" }
+      responses:
+        "200": { description: The card's token, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewVerifyResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/cards/bin-list:
+    get:
+      tags: [UzcardCardService]
+      operationId: binList
+      summary: Uzcard's BIN ranges (get.bin.list)
+      responses:
+        "200": { description: BIN ranges, content: { application/json: { schema: { $ref: "#/components/schemas/BinListResult" } } } }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/trans/pay-purpose:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: transPayPurpose
+      summary: Debits a card by its token in one step (trans.pay.purpose); a repeated ext is looked up, not paid twice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransPayPurposeRequest" }
+      responses:
+        "200": { description: The transaction, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/trans/reverse:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: transReverse
+      summary: Reverses a transaction (trans.reverse)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransReverseRequest" }
+      responses:
+        "200": { description: The reversal, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/trans/ext:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: transExt
+      summary: Finds a transaction by the caller's own reference (trans.ext)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransExtRequest" }
+      responses:
+        "200": { description: "The transaction, or status NOT_FOUND", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+components:
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    UzcardStatusCode:
+      type: string
+      description: SUCCESS done · DECLINED refused by the card's bank · NOT_FOUND no such transaction
+      enum: [SUCCESS, DECLINED, NOT_FOUND]
+    DeclineReason:
+      type: string
+      description: Why the card's bank refused, the same words for every scheme
+      enum: [INSUFFICIENT_FUNDS, EXPIRED_CARD, LIMIT_EXCEEDED, OTHER]
+    CardsNewOtpRequest:
+      type: object
+      required: [pan, expiry]
+      properties:
+        pan: { type: string, pattern: "^[0-9]{16}$" }
+        expiry: { type: string, pattern: "^[0-9]{4}$", description: YYMM }
+    CardsNewOtpResponse:
+      type: object
+      required: [otpId]
+      properties:
+        otpId: { type: string }
+    CardsNewOtpResult:
+      type: object
+      required: [requestId, status, data]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        data: { $ref: "#/components/schemas/CardsNewOtpResponse" }
+    CardsNewVerifyRequest:
+      type: object
+      required: [otpId, code]
+      properties:
+        otpId: { type: string }
+        code: { type: string, pattern: "^[0-9]{4,8}$" }
+    CardsNewVerifyResponse:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, description: "Uzcard's token for the card; debits use it instead of the number" }
+    CardsNewVerifyResult:
+      type: object
+      required: [requestId, status, data]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        data: { $ref: "#/components/schemas/CardsNewVerifyResponse" }
+    BinResponse:
+      type: object
+      required: [bin]
+      properties:
+        bin: { type: string }
+        instId: { type: string, description: The issuing bank at Uzcard }
+    BinListResult:
+      type: object
+      required: [requestId, status, data]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BinResponse" }
+    TransPayPurposeRequest:
+      type: object
+      required: [cardToken, amount, ext, merchantId, terminalId]
+      properties:
+        cardToken: { type: string }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        ext: { type: string, maxLength: 64, description: "The caller's id for the payment; makes the call idempotent" }
+        merchantId: { type: string }
+        terminalId: { type: string }
+    TransReverseRequest:
+      type: object
+      required: [tranId]
+      properties:
+        tranId: { type: string }
+    TransExtRequest:
+      type: object
+      required: [ext]
+      properties:
+        ext: { type: string }
+    TransactionResponse:
+      type: object
+      properties:
+        tranId: { type: string }
+        rrn: { type: string, description: 12 digits }
+        responseCode: { type: string, description: "SV-Gate's respSV, as received" }
+        declineReason: { $ref: "#/components/schemas/DeclineReason" }
+    TransactionResult:
+      type: object
+      required: [requestId, status]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        data: { $ref: "#/components/schemas/TransactionResponse" }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }

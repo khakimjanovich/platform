@@ -1,0 +1,7 @@
+// The Uzcard adapter's contract: uzcard-adapter-v1.yaml → server interfaces for the adapter and
+// @HttpExchange client interfaces for anyone who calls it.
+plugins {
+    id 'ecom.contract'
+}
+
+contract { client = true }

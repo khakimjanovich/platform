@@ -1,0 +1,213 @@
+# Humo adapter: the Payment Server (SOAP) and the middleware (REST) behind plain REST.
+openapi: 3.0.3
+info:
+  title: Humo Adapter
+  version: "1"
+  description: |
+    Every answer is an envelope {requestId, status, data}. `status` says what Humo decided;
+    HTTP errors mean the adapter couldn't get an answer (502 Humo error, 504 no answer in time):
+    the caller must treat those as unknown, never as declined. A debit is authorize (a hold), then
+    capture.
+
+paths:
+  /v1/send/sms:
+    post:
+      tags: [HumoMiddlewareService]
+      operationId: sendSms
+      summary: Sends a binding code to the cardholder's phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SmsRequest" }
+      responses:
+        "200": { description: Code sent, content: { application/json: { schema: { $ref: "#/components/schemas/SmsResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/send/code:
+    post:
+      tags: [HumoMiddlewareService]
+      operationId: confirmSms
+      summary: Checks the code and returns the card's token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConfirmSmsRequest" }
+      responses:
+        "200": { description: The card's token, content: { application/json: { schema: { $ref: "#/components/schemas/ConfirmSmsResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v2/pm/bins:
+    get:
+      tags: [HumoMiddlewareService]
+      operationId: listBins
+      summary: Humo's BIN ranges
+      responses:
+        "200": { description: BIN ranges, content: { application/json: { schema: { $ref: "#/components/schemas/BinListResult" } } } }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/payment/authorize:
+    post:
+      tags: [HumoPaymentService]
+      operationId: authorizePayment
+      summary: Holds the amount on the card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthorizePaymentRequest" }
+      responses:
+        "200": { description: The hold, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/payment/capture:
+    post:
+      tags: [HumoPaymentService]
+      operationId: capturePayment
+      summary: Takes the held amount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentIdRequest" }
+      responses:
+        "200": { description: The capture, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/payment/cancel:
+    post:
+      tags: [HumoPaymentService]
+      operationId: cancelPayment
+      summary: Cancels a hold or a captured payment before settlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentIdRequest" }
+      responses:
+        "200": { description: The cancellation, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/payment/status:
+    get:
+      tags: [HumoPaymentService]
+      operationId: getPaymentStatus
+      summary: What Humo knows about a payment, by the caller's own reference
+      parameters:
+        - { name: paymentRef, in: query, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "The payment, or status NOT_FOUND", content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+components:
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    HumoStatusCode:
+      type: string
+      description: SUCCESS done · DECLINED refused by the card's bank · NOT_FOUND no such payment
+      enum: [SUCCESS, DECLINED, NOT_FOUND]
+    PaymentStatus:
+      type: string
+      description: HELD the amount is on hold · CAPTURED taken · CANCELLED given back
+      enum: [HELD, CAPTURED, CANCELLED]
+    DeclineReason:
+      type: string
+      description: Why the card's bank refused, the same words for every scheme
+      enum: [INSUFFICIENT_FUNDS, EXPIRED_CARD, LIMIT_EXCEEDED, OTHER]
+    SmsRequest:
+      type: object
+      required: [pan, expiry]
+      properties:
+        pan: { type: string, pattern: "^[0-9]{16}$" }
+        expiry: { type: string, pattern: "^[0-9]{4}$", description: YYMM }
+    SmsResult:
+      type: object
+      required: [requestId, status]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/HumoStatusCode" }
+    ConfirmSmsRequest:
+      type: object
+      required: [pan, code]
+      properties:
+        pan: { type: string, pattern: "^[0-9]{16}$" }
+        code: { type: string, pattern: "^[0-9]{4,8}$" }
+    ConfirmSmsResponse:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    ConfirmSmsResult:
+      type: object
+      required: [requestId, status, data]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/HumoStatusCode" }
+        data: { $ref: "#/components/schemas/ConfirmSmsResponse" }
+    BinRecord:
+      type: object
+      required: [bin]
+      properties:
+        bin: { type: string }
+        bankCode: { type: string, description: The issuing bank at Humo }
+    BinListResult:
+      type: object
+      required: [requestId, status, data]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/HumoStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BinRecord" }
+    AuthorizePaymentRequest:
+      type: object
+      required: [paymentRef, pan, expiry, amount, merchantId, terminalId]
+      properties:
+        paymentRef: { type: string, maxLength: 64, description: "The caller's id for the payment; status looks it up" }
+        pan: { type: string, pattern: "^[0-9]{16}$" }
+        expiry: { type: string, pattern: "^[0-9]{4}$" }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        merchantId: { type: string }
+        terminalId: { type: string }
+    PaymentIdRequest:
+      type: object
+      required: [paymentId]
+      properties:
+        paymentId: { type: string }
+    PaymentResponse:
+      type: object
+      properties:
+        paymentId: { type: string }
+        paymentStatus: { $ref: "#/components/schemas/PaymentStatus" }
+        rrn: { type: string, description: 12 digits }
+        responseCode: { type: string, description: "Humo's action code, as received" }
+        declineReason: { $ref: "#/components/schemas/DeclineReason" }
+    PaymentResult:
+      type: object
+      required: [requestId, status]
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/HumoStatusCode" }
+        data: { $ref: "#/components/schemas/PaymentResponse" }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }

@@ -58,6 +58,10 @@ ecom-commission-api = { module = "uz.heeypay.ecom:commission-api", version.ref =
 ecom-terminal-api = { module = "uz.heeypay.ecom:terminal-api", version.ref = "ecom-platform" }
 ecom-card-api = { module = "uz.heeypay.ecom:card-api", version.ref = "ecom-platform" }
 ecom-payment-api = { module = "uz.heeypay.ecom:payment-api", version.ref = "ecom-platform" }
+ecom-uzcard-adapter-api = { module = "uz.heeypay.ecom:uzcard-adapter-api", version.ref = "ecom-platform" }
+ecom-uzcard-adapter-client = { module = "uz.heeypay.ecom:uzcard-adapter-client", version.ref = "ecom-platform" }
+ecom-humo-adapter-api = { module = "uz.heeypay.ecom:humo-adapter-api", version.ref = "ecom-platform" }
+ecom-humo-adapter-client = { module = "uz.heeypay.ecom:humo-adapter-client", version.ref = "ecom-platform" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }
@@ -66,6 +70,11 @@ shedlock-jdbc = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-templ
 openapi-generator-gradle = { module = "org.openapitools:openapi-generator-gradle-plugin", version.ref = "openapi-generator" }
 wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 spotless-gradle = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+
+[bundles]
+# A service's contract and its client, which is how other services call it.
+uzcard-adapter-client = ["ecom-uzcard-adapter-api", "ecom-uzcard-adapter-client"]
+humo-adapter-client = ["ecom-humo-adapter-api", "ecom-humo-adapter-client"]
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

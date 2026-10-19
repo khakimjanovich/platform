@@ -12,10 +12,13 @@ info:
     The payment page calls (`/api/v1/pay/{token}`) need no login: the one-time token in the link is
     the only credential, and it works until the page expires.
 
-    Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW) the bank POSTs it as JSON
-    to the website's webhook URL, signed with the API client's key the same way, with X-Event-Id in
-    place of X-Nonce. The same event may arrive more than once; drop repeats by X-Event-Id. Anything
-    but a 2xx is retried, waiting longer each time.
+    Payment links (`/api/v1/partner/payment-links`) are made by a merchant's user in the portal: the
+    same page, for buyers reached in a chat, with no website checkout and no return address.
+
+    Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW, EXPIRED) the bank POSTs it
+    as JSON to the website's webhook URL, signed with the API client's key the same way, with
+    X-Event-Id in place of X-Nonce. The same event may arrive more than once; drop repeats by
+    X-Event-Id. Anything but a 2xx is retried, waiting longer each time.
 security:
   - bearer: []
 
@@ -70,6 +73,44 @@ paths:
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/payment-links:
+    post:
+      tags: [PaymentLink]
+      operationId: createPaymentLink
+      summary: A payment link for one of the merchant's live websites, to send to a buyer in a chat
+      description: The link opens the bank's payment page. It is shown only in this response; the bank keeps only its hash.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentLinkRequest" }
+      responses:
+        "201":
+          description: The payment behind the link, with the link
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentLinkResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [PaymentLink]
+      operationId: listPaymentLinks
+      summary: The merchant's latest payment links, newest first
+      parameters:
+        - { name: salesPointId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Up to 100 links
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentLinkResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
 
   /api/v1/admin/payments:
     get:
@@ -240,8 +281,35 @@ components:
         debit · DEBITING: the scheme is being asked · PAID: the money moved · DECLINED: the scheme
         refused (declineCode says why) · UNKNOWN: the scheme didn't answer, so the money may have
         moved; never treat it as declined; the bank keeps asking the scheme · MANUAL_REVIEW: still no
-        answer after the configured time, a person decides · FAILED: the page closed before any debit
-      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED]
+        answer after the configured time, a person decides · FAILED: the page closed before any debit ·
+        EXPIRED: nobody paid before the page expired
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED]
+    PaymentSource:
+      type: string
+      description: "API: created by the merchant's server · LINK: a payment link from the merchant's portal"
+      enum: [API, LINK]
+    PaymentLinkRequest:
+      type: object
+      required: [salesPointId, amount, description, validForHours]
+      properties:
+        salesPointId: { type: string, format: uuid }
+        amount: { type: integer, format: int64, minimum: 100, maximum: 100000000000, description: In tiyin (1 so'm = 100 tiyin) }
+        description: { type: string, minLength: 1, maxLength: 255, description: What the buyer pays for }
+        validForHours: { type: integer, minimum: 1, description: "How long the link works; at most the bank's configured limit" }
+    PaymentLinkResponse:
+      type: object
+      required: [id, salesPointId, orderId, amount, description, status, expiresAt, createdAt]
+      properties:
+        id: { type: string, format: uuid, description: The payment behind the link }
+        salesPointId: { type: string, format: uuid }
+        orderId: { type: string }
+        amount: { type: integer, format: int64 }
+        description: { type: string }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        url: { type: string, description: "Only in the response that created the link: send it to the buyer" }
+        expiresAt: { type: string, format: date-time }
+        paidAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
     PaymentCardRequest:
       type: object
       required: [number, expiry]
@@ -255,7 +323,7 @@ components:
         code: { type: string, pattern: "^[0-9]{4,8}$" }
     PaymentPage:
       type: object
-      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft, returnUrl]
+      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft]
       properties:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         amount: { type: integer, format: int64, description: In tiyin }
@@ -273,7 +341,7 @@ components:
         rrn: { type: string, description: The scheme's reference number for a paid payment }
         declineCode: { type: string, description: "Why the scheme declined, e.g. CARD_INSUFFICIENT_FUNDS" }
         paidAt: { type: string, format: date-time }
-        returnUrl: { type: string, description: Back to the shop }
+        returnUrl: { type: string, description: "Back to the shop; none for a payment link" }
     PaymentResponse:
       type: object
       required: [id, salesPointId, orderId, amount, status, createdAt]
@@ -294,12 +362,13 @@ components:
         createdAt: { type: string, format: date-time }
     PaymentAdminResponse:
       type: object
-      required: [id, partnerId, salesPointId, clientId, orderId, amount, status, createdAt]
+      required: [id, partnerId, salesPointId, source, orderId, amount, status, createdAt]
       properties:
         id: { type: string, format: uuid }
         partnerId: { type: string, format: uuid }
         salesPointId: { type: string, format: uuid }
-        clientId: { type: string }
+        source: { $ref: "#/components/schemas/PaymentSource" }
+        clientId: { type: string, description: "The API client that created it; none for a payment link" }
         orderId: { type: string }
         amount: { type: integer, format: int64 }
         description: { type: string }

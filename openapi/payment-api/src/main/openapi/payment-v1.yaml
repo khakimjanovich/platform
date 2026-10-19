@@ -159,6 +159,42 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/partner/reports:
+    get:
+      tags: [PaymentReport]
+      operationId: listDailyReports
+      summary: The merchant's daily reports, newest first, one row per website and business day
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date }, description: "First business day; default 30 days ago" }
+        - { name: to, in: query, schema: { type: string, format: date }, description: "Last business day; default yesterday" }
+      responses:
+        "200":
+          description: Up to 100 rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DailyReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/reports/{day}/payments.csv:
+    get:
+      tags: [PaymentReport]
+      operationId: downloadDailyPayments
+      summary: Every payment and refund behind one business day's reports, as CSV
+      parameters:
+        - { name: day, in: path, required: true, schema: { type: string, format: date } }
+      responses:
+        "200":
+          description: "UTF-8 CSV: kind, payment id, order, website, amount, fee, net, card, RRN, time"
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /api/v1/admin/payments:
     get:
       tags: [PaymentAdmin]
@@ -410,6 +446,24 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time, description: When the money went back to the card }
         createdAt: { type: string, format: date-time }
+    DailyReport:
+      type: object
+      description: >-
+        One website's business day, in the settlement time zone. Paid counts payments paid that day
+        and not reversed; refunded counts refunds made that day, whenever the payment was. The
+        payout is the net of what was paid less what was refunded; the bank keeps its fee on a
+        refund.
+      required: [businessDay, salesPointId, paidCount, paidAmount, fee, net, refundedCount, refundedAmount, payout]
+      properties:
+        businessDay: { type: string, format: date }
+        salesPointId: { type: string, format: uuid }
+        paidCount: { type: integer }
+        paidAmount: { type: integer, format: int64, description: In tiyin }
+        fee: { type: integer, format: int64 }
+        net: { type: integer, format: int64 }
+        refundedCount: { type: integer }
+        refundedAmount: { type: integer, format: int64 }
+        payout: { type: integer, format: int64, description: "net − refundedAmount; negative when refunds outweigh the day" }
     PaymentAdminResponse:
       type: object
       required: [id, partnerId, salesPointId, source, orderId, amount, status, createdAt]

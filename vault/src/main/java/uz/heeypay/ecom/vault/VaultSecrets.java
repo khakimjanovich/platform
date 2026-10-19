@@ -10,25 +10,12 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import tools.jackson.databind.JsonNode;
 
-/** Key-value secrets in Vault. A new write replaces the secret; Vault keeps the old versions. */
+/** Reads key-value secrets from Vault. Writing them is the bank's job, outside the app. */
 @RequiredArgsConstructor
 public class VaultSecrets {
 
   private final RestClient vault;
   private final String mount;
-
-  public void put(String path, Map<String, String> values) {
-    try {
-      vault
-          .post()
-          .uri(VaultConstantUtils.DATA_PATH, mount, path)
-          .body(Map.of(VaultConstantUtils.DATA, values))
-          .retrieve()
-          .toBodilessEntity();
-    } catch (RestClientException e) {
-      throw new VaultUnavailableException(e);
-    }
-  }
 
   /** The secret, or empty if there is none at this path. */
   public Optional<Map<String, String>> get(String path) {

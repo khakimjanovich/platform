@@ -1,4 +1,4 @@
-// Secrets in HashiCorp Vault (KV version 2) for any module: write once, read when needed.
+// Secrets from HashiCorp Vault (KV version 2) for any module: read only, failing closed.
 plugins {
     id("ecom.library")
     id("ecom.integration-test")

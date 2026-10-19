@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -24,12 +25,23 @@ class VaultSecretsIT {
           .waitingFor(Wait.forHttp("/v1/sys/health").forPort(8200));
 
   @Test
-  void aSecretIsWrittenReplacedAndRead() {
+  void theLatestVersionOfASecretIsRead() {
     var secrets = secrets("test");
     assertThat(secrets.get("merchants/none")).isEmpty();
-    secrets.put("merchants/shop-1", Map.of("signingKey", "one"));
-    secrets.put("merchants/shop-1", Map.of("signingKey", "two"));
+    put("merchants/shop-1", "one");
+    put("merchants/shop-1", "two");
     assertThat(secrets.get("merchants/shop-1")).contains(Map.of("signingKey", "two"));
+  }
+
+  /** As the bank does it: straight into Vault, e.g. {@code vault kv put}. */
+  private static void put(String path, String key) {
+    RestClient.create(url())
+        .post()
+        .uri("/v1/secret/data/" + path)
+        .header("X-Vault-Token", "test")
+        .body(Map.of("data", Map.of("signingKey", key)))
+        .retrieve()
+        .toBodilessEntity();
   }
 
   @Test
@@ -39,7 +51,10 @@ class VaultSecretsIT {
   }
 
   private static VaultSecrets secrets(String token) {
-    var url = "http://" + VAULT.getHost() + ":" + VAULT.getMappedPort(8200);
-    return new VaultAutoConfiguration().vaultSecrets(new VaultProperties(url, token, "secret"));
+    return new VaultAutoConfiguration().vaultSecrets(new VaultProperties(url(), token, "secret"));
+  }
+
+  private static String url() {
+    return "http://" + VAULT.getHost() + ":" + VAULT.getMappedPort(8200);
   }
 }

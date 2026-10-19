@@ -40,7 +40,7 @@ paths:
     get:
       tags: [PartnerSelf]
       operationId: listClients
-      summary: The partner's API clients; secrets and signing keys are never shown again
+      summary: The partner's API clients; secrets are never shown again
       responses:
         "200":
           description: API clients
@@ -639,18 +639,18 @@ components:
         expiresAt: { type: string, format: date-time }
     ApiClientResponse:
       type: object
-      required: [clientId, createdAt]
+      required: [clientId, createdAt, signingKeyConfigured]
       properties:
         clientId: { type: string }
         createdAt: { type: string, format: date-time }
+        signingKeyConfigured: { type: boolean, description: "Whether the bank has put this client's request-signing key into Vault; payments need it" }
         secretRotatedAt: { type: string, format: date-time }
     ApiClientSecretResponse:
       type: object
-      required: [clientId, clientSecret, signingKey]
+      required: [clientId, clientSecret]
       properties:
         clientId: { type: string }
         clientSecret: { type: string, description: Gets the access token (client credentials) }
-        signingKey: { type: string, description: "Base64 key for the HMAC-SHA256 request signature; shown once" }
     CardScheme:
       type: string
       enum: [UZCARD, HUMO]

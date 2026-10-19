@@ -22,6 +22,7 @@ starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data
 starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase" }
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+micrometer-core = { module = "io.micrometer:micrometer-core" }
 starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }

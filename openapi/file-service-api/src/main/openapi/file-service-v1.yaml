@@ -1,0 +1,110 @@
+# File service: stores files in buckets (an S3-compatible store) for other services. Callers keep only
+# the file id. Internal: reachable only inside the bank's network.
+openapi: 3.0.3
+info:
+  title: File Service
+  version: "1"
+  description: |
+    Each bucket allows certain file types and a maximum size. The type is read from the file's own
+    bytes, never from its name or the declared content type.
+
+paths:
+  /v1/buckets/{bucket}/files:
+    post:
+      tags: [FileService]
+      operationId: uploadFile
+      summary: Stores a file and returns its id, type, size and SHA-256
+      parameters: [{ $ref: "#/components/parameters/Bucket" }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: The stored file
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileResponse" }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/buckets/{bucket}/files/{fileId}:
+    get:
+      tags: [FileService]
+      operationId: downloadFile
+      summary: The file's bytes, with its content type
+      parameters: [{ $ref: "#/components/parameters/Bucket" }, { $ref: "#/components/parameters/FileId" }]
+      responses:
+        "200":
+          description: The file
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "4XX": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [FileService]
+      operationId: deleteFile
+      parameters: [{ $ref: "#/components/parameters/Bucket" }, { $ref: "#/components/parameters/FileId" }]
+      responses:
+        "204": { description: "Deleted, or already gone" }
+        "4XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/buckets/{bucket}/files/{fileId}/info:
+    get:
+      tags: [FileService]
+      operationId: fileInfo
+      parameters: [{ $ref: "#/components/parameters/Bucket" }, { $ref: "#/components/parameters/FileId" }]
+      responses:
+        "200":
+          description: What is stored
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FileResponse" }
+        "4XX": { $ref: "#/components/responses/Problem" }
+
+components:
+  parameters:
+    Bucket:
+      name: bucket
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[a-z0-9-]{3,63}$" }
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    FileResponse:
+      type: object
+      required: [id, bucket, fileName, contentType, size, sha256, uploadedAt]
+      properties:
+        id: { type: string, format: uuid }
+        bucket: { type: string }
+        fileName: { type: string, description: The name the uploader gave; for display only }
+        contentType: { type: string, description: Read from the file's bytes }
+        size: { type: integer, format: int64 }
+        sha256: { type: string }
+        uploadedAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }

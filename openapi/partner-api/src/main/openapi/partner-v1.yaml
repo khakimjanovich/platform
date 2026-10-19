@@ -877,6 +877,8 @@ components:
         refundWindowDays: { type: integer, minimum: 0, description: Days after a payment when it can still be refunded }
         extendedRefundDays: { type: integer, minimum: 1, description: Extra days agreed with the bank; needs a reason }
         extendedRefundReason: { type: string, minLength: 3, maxLength: 500 }
+        maxPaymentAmount: { type: integer, format: int64, minimum: 100, description: "The most one payment may be, in tiyin; none means no limit" }
+        dailyLimit: { type: integer, format: int64, minimum: 100, description: "The most the website may take in one business day, in tiyin; none means no limit" }
     SalesPointResponse:
       type: object
       required: [id, partnerId, name, websiteUrl, returnUrls, status, schemes, refundWindowDays, createdAt]
@@ -899,6 +901,8 @@ components:
         lastSiteCheck: { $ref: "#/components/schemas/SiteCheckResponse" }
         logoUpdatedAt: { type: string, format: date-time, description: Set once the website has a logo }
         webhookUrl: { type: string, description: Where the bank tells the website how each payment ended }
+        maxPaymentAmount: { type: integer, format: int64, description: "The most one payment may be, in tiyin" }
+        dailyLimit: { type: integer, format: int64, description: "The most the website may take in one business day, in tiyin" }
         createdAt: { type: string, format: date-time }
     DocumentType:
       type: string

@@ -1,0 +1,18 @@
+// A platform library: published to local Maven, with sources, under the platform's group and version.
+plugins {
+    id 'ecom.java'
+    id 'maven-publish'
+}
+
+def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
+
+group = 'uz.heeypay.ecom'
+version = libs.findVersion('ecom-platform').get().requiredVersion
+
+java { withSourcesJar() }
+
+publishing {
+    publications {
+        library(MavenPublication) { from components.java }
+    }
+}

@@ -1,0 +1,17 @@
+// Keycloak's admin API for any module: users, realm roles and machine-to-machine clients.
+// The client logs in with its own client credentials and refreshes its token when needed.
+plugins {
+    id 'ecom.library'
+    id 'ecom.integration-test'
+}
+
+dependencies {
+    api platform(libs.spring.boot.bom)
+    api libs.spring.web
+    implementation libs.spring.security.oauth2.client
+    implementation libs.spring.boot.autoconfigure
+    implementation libs.jackson3.databind
+
+    integrationTestImplementation libs.testcontainers.core
+    integrationTestImplementation libs.testcontainers.junit
+}

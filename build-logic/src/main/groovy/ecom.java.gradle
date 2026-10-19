@@ -1,0 +1,33 @@
+// Every Java build: Java from the catalog, the Spring Boot BOM, Lombok, JUnit 5,
+// parameter names for Spring binding, and one code format checked by `check`.
+plugins {
+    id 'java-library'
+    id 'com.diffplug.spotless'
+}
+
+def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(libs.findVersion('java').get().requiredVersion)
+}
+
+// Keep parameter names so Spring can bind query and request parameters by name.
+tasks.withType(JavaCompile).configureEach { options.compilerArgs.add('-parameters') }
+
+dependencies {
+    implementation platform(libs.findLibrary('spring-boot-bom').get())
+    testImplementation platform(libs.findLibrary('spring-boot-bom').get())
+    testImplementation libs.findLibrary('starter-test').get()
+    testRuntimeOnly libs.findLibrary('junit-launcher').get()
+    compileOnly libs.findLibrary('lombok').get()
+    annotationProcessor libs.findLibrary('lombok').get()
+}
+
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat(libs.findVersion('google-java-format').get().requiredVersion)
+    }
+}

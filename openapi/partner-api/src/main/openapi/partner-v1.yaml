@@ -506,6 +506,146 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/partner/documents:
+    get:
+      tags: [PartnerDocuments]
+      operationId: listMyDocuments
+      summary: The company documents the merchant uploaded, and what is still needed to be switched on
+      responses:
+        "200": { $ref: "#/components/responses/Documents" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [PartnerDocuments]
+      operationId: uploadMyDocument
+      summary: Uploads a document; one of the same type waiting or rejected is replaced
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type, file]
+              properties:
+                type: { $ref: "#/components/schemas/DocumentType" }
+                file: { type: string, format: binary, description: "PDF, PNG or JPEG, up to 10 MB" }
+                description: { type: string, maxLength: 500 }
+      responses:
+        "201":
+          description: The document, waiting for review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/documents/{documentId}/file:
+    get:
+      tags: [PartnerDocuments]
+      operationId: downloadMyDocument
+      parameters: [{ $ref: "#/components/parameters/DocumentId" }]
+      responses:
+        "200": { $ref: "#/components/responses/File" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/sales-points/{salesPointId}/logo:
+    get:
+      tags: [SalesPoints]
+      operationId: getMySalesPointLogo
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Image" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [SalesPoints]
+      operationId: uploadMySalesPointLogo
+      summary: The logo buyers see on the payment page; PNG or JPEG, up to 1 MB
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200": { $ref: "#/components/responses/SalesPoint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/documents:
+    get:
+      tags: [PartnerDocumentsAdmin]
+      operationId: listPartnerDocuments
+      summary: Every document the merchant uploaded, newest first, and where KYB stands
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Documents" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/documents/{documentId}/file:
+    get:
+      tags: [PartnerDocumentsAdmin]
+      operationId: downloadPartnerDocument
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/DocumentId" }]
+      responses:
+        "200": { $ref: "#/components/responses/File" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/documents/{documentId}/verify:
+    post:
+      tags: [PartnerDocumentsAdmin]
+      operationId: verifyPartnerDocument
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/DocumentId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Document" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/partners/{id}/documents/{documentId}/reject:
+    post:
+      tags: [PartnerDocumentsAdmin]
+      operationId: rejectPartnerDocument
+      parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/DocumentId" }]
+      requestBody: { $ref: "#/components/requestBodies/Reason" }
+      responses:
+        "200": { $ref: "#/components/responses/Document" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/sales-points/{salesPointId}/logo:
+    get:
+      tags: [SalesPointAdmin]
+      operationId: getSalesPointLogo
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Image" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearer:
@@ -529,6 +669,11 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   requestBodies:
     Reason:
       required: true
@@ -536,6 +681,26 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    Documents:
+      description: The documents and where KYB stands
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/PartnerDocumentsResponse" }
+    Document:
+      description: The document after the change
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/DocumentResponse" }
+    File:
+      description: The file, as an attachment
+      content:
+        application/octet-stream:
+          schema: { type: string, format: binary }
+    Image:
+      description: The image
+      content:
+        image/*:
+          schema: { type: string, format: binary }
     SalesPoint:
       description: The sales point after the change
       content:
@@ -709,7 +874,61 @@ components:
         extendedRefundReason: { type: string }
         statusReason: { type: string }
         lastSiteCheck: { $ref: "#/components/schemas/SiteCheckResponse" }
+        logoUpdatedAt: { type: string, format: date-time, description: Set once the website has a logo }
         createdAt: { type: string, format: date-time }
+    DocumentType:
+      type: string
+      description: "CHARTER the company's charter · LICENSE a licence for regulated activity · PASSPORT the director's ID · POWER_OF_ATTORNEY for someone acting for the director"
+      enum: [CHARTER, LICENSE, PASSPORT, POWER_OF_ATTORNEY]
+    DocumentStatus:
+      type: string
+      description: UPLOADED waits for the bank · VERIFIED checked · REJECTED needs a new upload · REPLACED superseded by a newer upload
+      enum: [UPLOADED, VERIFIED, REJECTED, REPLACED]
+    DocumentResponse:
+      type: object
+      required: [id, type, status, fileName, contentType, size, sha256, uploadedBy, uploadedAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: "#/components/schemas/DocumentType" }
+        status: { $ref: "#/components/schemas/DocumentStatus" }
+        fileName: { type: string }
+        contentType: { type: string }
+        size: { type: integer, format: int64 }
+        sha256: { type: string }
+        description: { type: string }
+        uploadedBy: { type: string }
+        uploadedAt: { type: string, format: date-time }
+        reviewedBy: { type: string }
+        reviewedAt: { type: string, format: date-time }
+        rejectReason: { type: string }
+    KybStatus:
+      type: string
+      description: "APPROVED every required document is verified · IN_REVIEW all are uploaded, some wait for the bank · ACTION_REQUIRED some are missing or rejected"
+      enum: [ACTION_REQUIRED, IN_REVIEW, APPROVED]
+    KybResponse:
+      type: object
+      required: [status, required, missing, waiting]
+      properties:
+        status: { $ref: "#/components/schemas/KybStatus" }
+        required:
+          type: array
+          items: { $ref: "#/components/schemas/DocumentType" }
+        missing:
+          type: array
+          description: Required types with no document, or only a rejected one
+          items: { $ref: "#/components/schemas/DocumentType" }
+        waiting:
+          type: array
+          description: Required types uploaded and waiting for the bank
+          items: { $ref: "#/components/schemas/DocumentType" }
+    PartnerDocumentsResponse:
+      type: object
+      required: [kyb, documents]
+      properties:
+        kyb: { $ref: "#/components/schemas/KybResponse" }
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/DocumentResponse" }
     SiteCheckResult:
       type: string
       enum: [PASSED, FAILED]

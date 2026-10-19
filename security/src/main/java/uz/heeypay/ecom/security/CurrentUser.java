@@ -2,12 +2,24 @@ package uz.heeypay.ecom.security;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-/** The signed-in person's name from the access token: an admin's username or a partner's email. */
+/**
+ * Who is calling, from the access token: a person's name (an admin's username or a partner's
+ * email), or the API client a merchant's server uses.
+ */
 @UtilityClass
 public class CurrentUser {
 
   public static String name() {
     return SecurityContextHolder.getContext().getAuthentication().getName();
+  }
+
+  /** The API client's id, or {@code null} without a token. */
+  public static String clientId() {
+    return SecurityContextHolder.getContext().getAuthentication()
+            instanceof JwtAuthenticationToken token
+        ? token.getToken().getClaimAsString(SecurityConstantUtils.CLIENT_CLAIM)
+        : null;
   }
 }

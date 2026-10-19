@@ -69,8 +69,11 @@ public class KeycloakAdmin {
         .toBodilessEntity();
   }
 
-  /** A confidential client that can only use client credentials. */
-  public IssuedClient createConfidentialClient(String clientId) {
+  /**
+   * A confidential client that can only use client credentials. Its tokens carry the given realm
+   * roles.
+   */
+  public IssuedClient createConfidentialClient(String clientId, String... realmRoles) {
     var client =
         Map.of(
             KeycloakConstantUtils.CLIENT_ID, clientId,
@@ -92,6 +95,17 @@ public class KeycloakAdmin {
                 })
             .toBodilessEntity();
     var id = idOf(created.getHeaders().getLocation());
+    if (realmRoles.length > 0) {
+      var serviceAccount =
+          (String)
+              keycloak
+                  .get()
+                  .uri(KeycloakConstantUtils.CLIENT_SERVICE_ACCOUNT, id)
+                  .retrieve()
+                  .body(JSON)
+                  .get(KeycloakConstantUtils.ID);
+      for (var role : realmRoles) grantRealmRole(serviceAccount, role);
+    }
     return new IssuedClient(
         id, secretOf(keycloak.get().uri(KeycloakConstantUtils.CLIENT_SECRET, id)));
   }

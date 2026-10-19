@@ -18,6 +18,8 @@ public class KeycloakConstantUtils {
   public static final String ROLE = "/roles/{name}";
   public static final String CLIENTS = "/clients";
   public static final String CLIENT_SECRET = "/clients/{id}/client-secret";
+  public static final String CLIENT_SERVICE_ACCOUNT = "/clients/{id}/service-account-user";
+  public static final String ID = "id";
 
   /* ------- representation fields ------- */
   public static final String USERNAME = "username";

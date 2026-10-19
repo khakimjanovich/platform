@@ -1,0 +1,184 @@
+# Payment API: a merchant's server creates payments; the bank's admins see them.
+openapi: 3.0.3
+info:
+  title: Payment API
+  version: "1"
+  description: |
+    Merchant calls need an access token from the merchant's API client (client credentials) and an
+    HMAC-SHA256 signature. Sign, with the API client's signing key (base64-decoded), the text
+    `METHOD\nPATH\nX-Timestamp\nX-Nonce\nhex(SHA-256(body))`, where PATH includes the query string
+    and an empty body hashes the empty string; send the base64 result as X-Signature.
+security:
+  - bearer: []
+
+paths:
+  /api/v1/payments:
+    post:
+      tags: [Payment]
+      operationId: createPayment
+      summary: Creates a payment and a one-time link to the bank's payment page
+      description: Retrying with the same Idempotency-Key and body returns the first response; no second payment is made.
+      parameters:
+        - { $ref: "#/components/parameters/IdempotencyKey" }
+        - { $ref: "#/components/parameters/Timestamp" }
+        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/Signature" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreatePaymentRequest" }
+      responses:
+        "201":
+          description: The payment, with its payment page link
+          headers:
+            Idempotent-Replayed: { description: "true when this is the stored response to an earlier request", schema: { type: boolean } }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentResponse" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/{paymentId}:
+    get:
+      tags: [Payment]
+      operationId: getPayment
+      summary: One of the merchant's payments
+      parameters:
+        - { $ref: "#/components/parameters/PaymentId" }
+        - { $ref: "#/components/parameters/Timestamp" }
+        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/Signature" }
+      responses:
+        "200":
+          description: The payment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/payments:
+    get:
+      tags: [PaymentAdmin]
+      operationId: listPayments
+      summary: The latest payments, newest first
+      parameters:
+        - { name: partnerId, in: query, schema: { type: string, format: uuid } }
+        - { name: salesPointId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Up to 100 payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentAdminResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: A Keycloak access token from realm ecom
+  parameters:
+    PaymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: The merchant's own key for this request, e.g. the order number plus an attempt
+      schema: { type: string, pattern: "^[A-Za-z0-9_-]{8,64}$" }
+    Timestamp:
+      name: X-Timestamp
+      in: header
+      required: true
+      description: Unix time in seconds; must be within the configured window of the bank's clock
+      schema: { type: string, pattern: "^[0-9]{10}$" }
+    Nonce:
+      name: X-Nonce
+      in: header
+      required: true
+      description: Random and used only once
+      schema: { type: string, pattern: "^[A-Za-z0-9-]{16,64}$" }
+    Signature:
+      name: X-Signature
+      in: header
+      required: true
+      description: Base64 HMAC-SHA256 of the signed text
+      schema: { type: string }
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required: [salesPointId, orderId, amount, returnUrl]
+      properties:
+        salesPointId: { type: string, format: uuid }
+        orderId: { type: string, minLength: 1, maxLength: 64, pattern: "^[A-Za-z0-9._-]+$", description: "The merchant's order number; one payment per order and website" }
+        amount: { type: integer, format: int64, minimum: 100, maximum: 100000000000, description: In tiyin (1 so'm = 100 tiyin) }
+        description: { type: string, maxLength: 255 }
+        returnUrl: { type: string, maxLength: 2048, pattern: "^https://.+", description: "Where the buyer goes afterwards; one of the website's return addresses" }
+    PaymentStatus:
+      type: string
+      enum: [CREATED]
+    PaymentResponse:
+      type: object
+      required: [id, salesPointId, orderId, amount, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        orderId: { type: string }
+        amount: { type: integer, format: int64 }
+        description: { type: string }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        paymentUrl: { type: string, description: "Only in the response that created the payment: send the buyer here" }
+        pageExpiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    PaymentAdminResponse:
+      type: object
+      required: [id, partnerId, salesPointId, clientId, orderId, amount, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        partnerId: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        clientId: { type: string }
+        orderId: { type: string }
+        amount: { type: integer, format: int64 }
+        description: { type: string }
+        status: { $ref: "#/components/schemas/PaymentStatus" }
+        createdAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }

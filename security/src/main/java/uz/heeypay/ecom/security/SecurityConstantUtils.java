@@ -9,6 +9,10 @@ public class SecurityConstantUtils {
 
   /* ------- Keycloak token ------- */
   public static final String USERNAME_CLAIM = "preferred_username";
+
+  /** The client the token was issued to; for an API client, its client id. */
+  public static final String CLIENT_CLAIM = "azp";
+
   public static final String REALM_ACCESS_CLAIM = "realm_access";
   public static final String ROLES = "roles";
   public static final String ROLE_PREFIX = "ROLE_";

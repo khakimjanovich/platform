@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
@@ -63,8 +64,11 @@ class KeycloakAdminIT {
   @Test
   void aClientSecretWorksUntilItIsRotated() {
     var clientId = "partner-" + UUID.randomUUID().toString().substring(0, 8);
-    var issued = admin.createConfidentialClient(clientId);
+    var issued = admin.createConfidentialClient(clientId, "partner");
     assertThat(clientCredentials(clientId, issued.secret())).isEqualTo(200);
+    var token = clientToken(clientId, issued.secret());
+    var claims = new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]));
+    assertThat(claims).as("the client's tokens carry its role").contains("\"partner\"");
 
     var rotated = admin.rotateSecret(issued.id());
     assertThat(clientCredentials(clientId, issued.secret())).isEqualTo(401);
@@ -77,6 +81,22 @@ class KeycloakAdminIT {
     form.add("client_id", "portal");
     form.add("username", username);
     form.add("password", password);
+    return (String)
+        RestClient.create()
+            .post()
+            .uri(url() + "/realms/test/protocol/openid-connect/token")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .body(form)
+            .retrieve()
+            .body(JSON)
+            .get("access_token");
+  }
+
+  private static String clientToken(String clientId, String secret) {
+    var form = new LinkedMultiValueMap<String, String>();
+    form.add("grant_type", "client_credentials");
+    form.add("client_id", clientId);
+    form.add("client_secret", secret);
     return (String)
         RestClient.create()
             .post()

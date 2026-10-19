@@ -55,6 +55,38 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /api/v1/admin/terminals:
+    get:
+      tags: [TerminalAdmin]
+      operationId: searchTerminals
+      summary: Every terminal, newest first, filtered and a page at a time
+      parameters:
+        - { name: salesPointId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: scheme, in: query, required: false, schema: { $ref: "#/components/schemas/CardScheme" } }
+        - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/TerminalStatus" } }
+        - { name: q, in: query, required: false, description: "Part of a MID or TID", schema: { type: string, maxLength: 30 } }
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 20 } }
+      responses:
+        "200":
+          description: A page of terminals
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TerminalPage" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/admin/terminals/{terminalId}:
+    get:
+      tags: [TerminalAdmin]
+      operationId: getTerminal
+      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /api/v1/admin/terminals/{terminalId}/suspend:
     post:
       tags: [TerminalAdmin]
@@ -179,6 +211,17 @@ components:
         status: { $ref: "#/components/schemas/TerminalStatus" }
         registeredBy: { type: string }
         createdAt: { type: string, format: date-time }
+    TerminalPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TerminalResponse" }
+        page: { type: integer }
+        size: { type: integer }
+        totalItems: { type: integer, format: int64 }
+        totalPages: { type: integer }
     TerminalAuditResponse:
       type: object
       required: [action, actor, occurredAt]

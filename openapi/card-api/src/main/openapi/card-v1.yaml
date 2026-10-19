@@ -104,7 +104,7 @@ components:
       type: object
       required: [action, actor, occurredAt]
       properties:
-        action: { type: string, enum: [BINDING_STARTED, BOUND, DEBITED, LOOKED_UP] }
+        action: { type: string, enum: [BINDING_STARTED, BOUND, DEBITED, STATUS_ASKED, LOOKED_UP] }
         actor: { type: string }
         reference: { type: string, description: The payment a debit belongs to }
         occurredAt: { type: string, format: date-time }

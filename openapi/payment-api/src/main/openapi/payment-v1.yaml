@@ -234,8 +234,9 @@ components:
         CREATED: link sent · AWAITING_CODE: a code went to the cardholder · CARD_CONFIRMED: ready to
         debit · DEBITING: the scheme is being asked · PAID: the money moved · DECLINED: the scheme
         refused (declineCode says why) · UNKNOWN: the scheme didn't answer, so the money may have
-        moved; never treat it as declined · FAILED: the page closed before any debit
-      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, FAILED]
+        moved; never treat it as declined; the bank keeps asking the scheme · MANUAL_REVIEW: still no
+        answer after the configured time, a person decides · FAILED: the page closed before any debit
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED]
     PaymentCardRequest:
       type: object
       required: [number, expiry]

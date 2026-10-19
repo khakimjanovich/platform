@@ -1,6 +1,7 @@
 # Every version in one place. Published to local Maven as uz.heeypay.ecom:versioning.
 # Pinned exactly; upgrades get their own commit.
 [versions]
+temporal = "1.40.0"
 java = "25"
 spring-boot = "4.1.1"
 spring-modulith = "2.1.1"
@@ -23,6 +24,8 @@ starter-validation = { module = "org.springframework.boot:spring-boot-starter-va
 starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase" }
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 micrometer-core = { module = "io.micrometer:micrometer-core" }
+temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
+temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }
 starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }

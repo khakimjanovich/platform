@@ -11,6 +11,11 @@ info:
 
     The payment page calls (`/api/v1/pay/{token}`) need no login: the one-time token in the link is
     the only credential, and it works until the page expires.
+
+    Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW) the bank POSTs it as JSON
+    to the website's webhook URL, signed with the API client's key the same way, with X-Event-Id in
+    place of X-Nonce. The same event may arrive more than once; drop repeats by X-Event-Id. Anything
+    but a 2xx is retried, waiting longer each time.
 security:
   - bearer: []
 

@@ -28,6 +28,7 @@ temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
 temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }
 starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
+starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
 starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }
 starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-client" }
 starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
@@ -38,6 +39,7 @@ spring-jdbc = { module = "org.springframework:spring-jdbc" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-core = { module = "org.testcontainers:testcontainers" }
+testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
 modulith-core = { module = "org.springframework.modulith:spring-modulith-core" }
 springdoc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 spring-web = { module = "org.springframework:spring-web" }

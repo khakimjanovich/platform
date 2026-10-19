@@ -479,8 +479,8 @@ components:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         cardMask: { type: string }
         cardScheme: { type: string }
-        merchantId: { type: string, description: The terminal's MID the debit went through }
-        terminalId: { type: string, description: The terminal's TID }
+        merchantId: { type: string, description: The e-POS terminal's MID the debit went through }
+        terminalId: { type: string, description: The e-POS terminal's TID }
         fee: { type: integer, format: int64 }
         net: { type: integer, format: int64 }
         rrn: { type: string }

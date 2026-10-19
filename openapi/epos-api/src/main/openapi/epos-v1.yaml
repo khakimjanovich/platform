@@ -1,138 +1,138 @@
-# Terminal API: the bank's terminals (MID/TID) each website's payments go through.
+# e-POS API: the bank's e-POS terminals (a MID and a TID) each website's payments go through.
 openapi: 3.0.3
 info:
-  title: Terminal API
+  title: e-POS API
   version: "1"
 security:
   - bearer: []
 
 paths:
-  /api/v1/admin/sales-points/{salesPointId}/terminals:
+  /api/v1/admin/sales-points/{salesPointId}/epos:
     get:
-      tags: [TerminalAdmin]
-      operationId: listTerminals
-      summary: A website's terminals, newest first
+      tags: [EposAdmin]
+      operationId: listEpos
+      summary: A website's e-POS terminals, newest first
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       responses:
         "200":
-          description: Terminals
+          description: e-POS terminals
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/TerminalResponse" }
+                items: { $ref: "#/components/schemas/EposResponse" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
     post:
-      tags: [TerminalAdmin]
-      operationId: registerTerminal
-      summary: Registers a terminal the processing center issued; it is live at once
+      tags: [EposAdmin]
+      operationId: registerEpos
+      summary: Registers an e-POS terminal the processing center issued; it is live at once
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/TerminalRequest" }
+            schema: { $ref: "#/components/schemas/EposRequest" }
       responses:
-        "201": { $ref: "#/components/responses/Terminal" }
+        "201": { $ref: "#/components/responses/Epos" }
         "400": { $ref: "#/components/responses/Problem" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/sales-points/{salesPointId}/terminals/route:
+  /api/v1/admin/sales-points/{salesPointId}/epos/route:
     get:
-      tags: [TerminalAdmin]
-      operationId: routeTerminal
-      summary: The terminal a payment with this card scheme would go through now
+      tags: [EposAdmin]
+      operationId: routeEpos
+      summary: The e-POS terminal a payment with this card scheme would go through now
       parameters:
         - { $ref: "#/components/parameters/SalesPointId" }
         - { name: scheme, in: query, required: true, schema: { $ref: "#/components/schemas/CardScheme" } }
       responses:
-        "200": { $ref: "#/components/responses/Terminal" }
+        "200": { $ref: "#/components/responses/Epos" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/terminals:
+  /api/v1/admin/epos:
     get:
-      tags: [TerminalAdmin]
-      operationId: searchTerminals
-      summary: Every terminal, newest first, filtered and a page at a time
+      tags: [EposAdmin]
+      operationId: searchEpos
+      summary: Every e-POS terminal, newest first, filtered and a page at a time
       parameters:
         - { name: salesPointId, in: query, required: false, schema: { type: string, format: uuid } }
         - { name: scheme, in: query, required: false, schema: { $ref: "#/components/schemas/CardScheme" } }
-        - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/TerminalStatus" } }
+        - { name: status, in: query, required: false, schema: { $ref: "#/components/schemas/EposStatus" } }
         - { name: q, in: query, required: false, description: "Part of a MID or TID", schema: { type: string, maxLength: 30 } }
         - { name: page, in: query, required: false, schema: { type: integer, minimum: 0, default: 0 } }
         - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 20 } }
       responses:
         "200":
-          description: A page of terminals
+          description: A page of e-POS terminals
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TerminalPage" }
+              schema: { $ref: "#/components/schemas/EposPage" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/terminals/{terminalId}:
+  /api/v1/admin/epos/{eposId}:
     get:
-      tags: [TerminalAdmin]
-      operationId: getTerminal
-      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      tags: [EposAdmin]
+      operationId: getEpos
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
       responses:
-        "200": { $ref: "#/components/responses/Terminal" }
+        "200": { $ref: "#/components/responses/Epos" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/terminals/{terminalId}/suspend:
+  /api/v1/admin/epos/{eposId}/suspend:
     post:
-      tags: [TerminalAdmin]
-      operationId: suspendTerminal
-      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      tags: [EposAdmin]
+      operationId: suspendEpos
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
-        "200": { $ref: "#/components/responses/Terminal" }
+        "200": { $ref: "#/components/responses/Epos" }
         "400": { $ref: "#/components/responses/Problem" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/terminals/{terminalId}/resume:
+  /api/v1/admin/epos/{eposId}/resume:
     post:
-      tags: [TerminalAdmin]
-      operationId: resumeTerminal
-      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      tags: [EposAdmin]
+      operationId: resumeEpos
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
       responses:
-        "200": { $ref: "#/components/responses/Terminal" }
+        "200": { $ref: "#/components/responses/Epos" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/terminals/{terminalId}/revoke:
+  /api/v1/admin/epos/{eposId}/revoke:
     post:
-      tags: [TerminalAdmin]
-      operationId: revokeTerminal
-      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      tags: [EposAdmin]
+      operationId: revokeEpos
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
-        "200": { $ref: "#/components/responses/Terminal" }
+        "200": { $ref: "#/components/responses/Epos" }
         "400": { $ref: "#/components/responses/Problem" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/v1/admin/terminals/{terminalId}/audit:
+  /api/v1/admin/epos/{eposId}/audit:
     get:
-      tags: [TerminalAdmin]
-      operationId: terminalAudit
-      summary: Every change to the terminal, oldest first
-      parameters: [{ $ref: "#/components/parameters/TerminalId" }]
+      tags: [EposAdmin]
+      operationId: eposAudit
+      summary: Every change to the e-POS terminal, oldest first
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
       responses:
         "200":
           description: Audit entries
@@ -140,7 +140,7 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/TerminalAuditResponse" }
+                items: { $ref: "#/components/schemas/EposAuditResponse" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
@@ -158,8 +158,8 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
-    TerminalId:
-      name: terminalId
+    EposId:
+      name: eposId
       in: path
       required: true
       schema: { type: string, format: uuid }
@@ -170,11 +170,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
-    Terminal:
-      description: The terminal
+    Epos:
+      description: The e-POS terminal
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/TerminalResponse" }
+          schema: { $ref: "#/components/schemas/EposResponse" }
     Problem:
       description: RFC 9457 problem detail with a stable error code
       content:
@@ -189,17 +189,17 @@ components:
       required: [reason]
       properties:
         reason: { type: string, minLength: 3, maxLength: 500 }
-    TerminalStatus:
+    EposStatus:
       type: string
       enum: [ACTIVE, SUSPENDED, REVOKED]
-    TerminalRequest:
+    EposRequest:
       type: object
       required: [scheme, merchantId, terminalId]
       properties:
         scheme: { $ref: "#/components/schemas/CardScheme" }
         merchantId: { type: string, minLength: 1, maxLength: 30, pattern: "^[A-Za-z0-9]+$", description: MID from the processing center }
         terminalId: { type: string, minLength: 1, maxLength: 30, pattern: "^[A-Za-z0-9]+$", description: TID from the processing center }
-    TerminalResponse:
+    EposResponse:
       type: object
       required: [id, salesPointId, scheme, merchantId, terminalId, status, registeredBy, createdAt]
       properties:
@@ -208,21 +208,21 @@ components:
         scheme: { $ref: "#/components/schemas/CardScheme" }
         merchantId: { type: string }
         terminalId: { type: string }
-        status: { $ref: "#/components/schemas/TerminalStatus" }
+        status: { $ref: "#/components/schemas/EposStatus" }
         registeredBy: { type: string }
         createdAt: { type: string, format: date-time }
-    TerminalPage:
+    EposPage:
       type: object
       required: [items, page, size, totalItems, totalPages]
       properties:
         items:
           type: array
-          items: { $ref: "#/components/schemas/TerminalResponse" }
+          items: { $ref: "#/components/schemas/EposResponse" }
         page: { type: integer }
         size: { type: integer }
         totalItems: { type: integer, format: int64 }
         totalPages: { type: integer }
-    TerminalAuditResponse:
+    EposAuditResponse:
       type: object
       required: [action, actor, occurredAt]
       properties:

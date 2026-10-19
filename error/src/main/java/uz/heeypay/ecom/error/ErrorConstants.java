@@ -3,7 +3,7 @@ package uz.heeypay.ecom.error;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class ErrorConstantUtils {
+public class ErrorConstants {
 
   public static final String PROPERTIES_PREFIX = "exception.starter";
 

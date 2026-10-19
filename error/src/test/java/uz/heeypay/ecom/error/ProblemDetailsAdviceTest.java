@@ -156,7 +156,7 @@ class ProblemDetailsAdviceTest {
     properties.put(
         "exception.starter.error.EMAIL_TAKEN.message-uz", "{0} allaqachon roʻyxatdan oʻtgan.");
     return new Binder(new MapConfigurationPropertySource(properties))
-        .bind(ErrorConstantUtils.PROPERTIES_PREFIX, ErrorStarterProperties.class)
+        .bind(ErrorConstants.PROPERTIES_PREFIX, ErrorStarterProperties.class)
         .get();
   }
 }

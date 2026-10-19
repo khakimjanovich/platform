@@ -19,7 +19,7 @@ import org.springframework.web.client.RestClient;
  * it expires.
  */
 @AutoConfiguration
-@ConditionalOnProperty(prefix = KeycloakConstantUtils.PROPERTIES_PREFIX, name = "url")
+@ConditionalOnProperty(prefix = KeycloakConstants.PROPERTIES_PREFIX, name = "url")
 @EnableConfigurationProperties(KeycloakProperties.class)
 public class KeycloakAutoConfiguration {
 
@@ -27,21 +27,21 @@ public class KeycloakAutoConfiguration {
   @ConditionalOnMissingBean
   KeycloakAdmin keycloakAdmin(KeycloakProperties keycloak) {
     var registration =
-        ClientRegistration.withRegistrationId(KeycloakConstantUtils.REGISTRATION_ID)
+        ClientRegistration.withRegistrationId(KeycloakConstants.REGISTRATION_ID)
             .clientId(keycloak.clientId())
             .clientSecret(keycloak.clientSecret())
             .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-            .tokenUri(keycloak.url() + KeycloakConstantUtils.TOKEN_PATH.formatted(keycloak.realm()))
+            .tokenUri(keycloak.url() + KeycloakConstants.TOKEN_PATH.formatted(keycloak.realm()))
             .build();
     var registrations = new InMemoryClientRegistrationRepository(registration);
     var login =
         new OAuth2ClientHttpRequestInterceptor(
             new AuthorizedClientServiceOAuth2AuthorizedClientManager(
                 registrations, new InMemoryOAuth2AuthorizedClientService(registrations)));
-    login.setClientRegistrationIdResolver(request -> KeycloakConstantUtils.REGISTRATION_ID);
+    login.setClientRegistrationIdResolver(request -> KeycloakConstants.REGISTRATION_ID);
     return new KeycloakAdmin(
         RestClient.builder()
-            .baseUrl(keycloak.url() + KeycloakConstantUtils.ADMIN_PATH.formatted(keycloak.realm()))
+            .baseUrl(keycloak.url() + KeycloakConstants.ADMIN_PATH.formatted(keycloak.realm()))
             .requestInterceptor(login)
             .build());
   }

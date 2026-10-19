@@ -9,7 +9,7 @@ import org.springframework.web.client.RestClient;
 
 /** Setting {@code ecom.vault.url} gives the app {@link VaultSecrets}. */
 @AutoConfiguration
-@ConditionalOnProperty(prefix = VaultConstantUtils.PROPERTIES_PREFIX, name = "url")
+@ConditionalOnProperty(prefix = VaultConstants.PROPERTIES_PREFIX, name = "url")
 @EnableConfigurationProperties(VaultProperties.class)
 public class VaultAutoConfiguration {
 
@@ -19,7 +19,7 @@ public class VaultAutoConfiguration {
     return new VaultSecrets(
         RestClient.builder()
             .baseUrl(properties.url())
-            .defaultHeader(VaultConstantUtils.TOKEN_HEADER, properties.token())
+            .defaultHeader(VaultConstants.TOKEN_HEADER, properties.token())
             .build(),
         properties.mount());
   }

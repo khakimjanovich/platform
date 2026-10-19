@@ -23,11 +23,11 @@ public class VaultSecrets {
       var values =
           vault
               .get()
-              .uri(VaultConstantUtils.DATA_PATH, mount, path)
+              .uri(VaultConstants.DATA_PATH, mount, path)
               .retrieve()
               .body(JsonNode.class)
-              .path(VaultConstantUtils.DATA)
-              .path(VaultConstantUtils.DATA);
+              .path(VaultConstants.DATA)
+              .path(VaultConstants.DATA);
       var secret = new LinkedHashMap<String, String>();
       values.properties().forEach(e -> secret.put(e.getKey(), e.getValue().asString()));
       return Optional.of(secret);

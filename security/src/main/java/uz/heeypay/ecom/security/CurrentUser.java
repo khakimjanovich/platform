@@ -19,7 +19,7 @@ public class CurrentUser {
   public static String clientId() {
     return SecurityContextHolder.getContext().getAuthentication()
             instanceof JwtAuthenticationToken token
-        ? token.getToken().getClaimAsString(SecurityConstantUtils.CLIENT_CLAIM)
+        ? token.getToken().getClaimAsString(SecurityConstants.CLIENT_CLAIM)
         : null;
   }
 }

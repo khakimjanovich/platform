@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Every error's definition by its type, from the services' {@code properties/*-exception.yaml}
  * files under {@code exception.starter.error}.
  */
-@ConfigurationProperties(ErrorConstantUtils.PROPERTIES_PREFIX)
+@ConfigurationProperties(ErrorConstants.PROPERTIES_PREFIX)
 public record ErrorStarterProperties(Map<String, ErrorDefinition> error) {
 
   public ErrorStarterProperties {

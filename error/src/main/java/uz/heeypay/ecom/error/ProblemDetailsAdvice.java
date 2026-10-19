@@ -45,24 +45,24 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   ResponseEntity<ProblemDetail> unexpected(Exception ex) {
-    log.error(ErrorConstantUtils.LOG_UNEXPECTED_ERROR, ex);
+    log.error(ErrorConstants.LOG_UNEXPECTED_ERROR, ex);
     return general(new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR));
   }
 
   private ProblemDetail problem(StatusThrowable status, Object... params) {
     var definition = errors.error().get(status.getType());
     if (definition == null) {
-      log.error(ErrorConstantUtils.LOG_NO_DEFINITION.replace("{}", status.getType()));
+      log.error(ErrorConstants.LOG_NO_DEFINITION.replace("{}", status.getType()));
       status = ErrorExceptionStatus.INTERNAL_ERROR;
       params = new Object[0];
-      definition = errors.error().getOrDefault(status.getType(), ErrorConstantUtils.LAST_RESORT);
+      definition = errors.error().getOrDefault(status.getType(), ErrorConstants.LAST_RESORT);
     }
     var detail = definition.message(LocaleContextHolder.getLocale(), params);
     if (definition.isLoggable()) log.warn(status.getType() + " | " + detail);
     var problem =
         ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(definition.httpCode()), detail);
     problem.setTitle(definition.title());
-    problem.setProperty(ErrorConstantUtils.CODE_PROPERTY, status.getType());
+    problem.setProperty(ErrorConstants.CODE_PROPERTY, status.getType());
     return problem;
   }
 
@@ -93,9 +93,9 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
                         .map(
                             error ->
                                 Map.of(
-                                    ErrorConstantUtils.FIELD,
+                                    ErrorConstants.FIELD,
                                     String.valueOf(result.getMethodParameter().getParameterName()),
-                                    ErrorConstantUtils.MESSAGE,
+                                    ErrorConstants.MESSAGE,
                                     String.valueOf(error.getDefaultMessage()))))
             .toList();
     return invalid(ex, ex.getBody(), errors, headers, status, request);
@@ -114,10 +114,10 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     }
     if (body instanceof ProblemDetail problem
         && (problem.getProperties() == null
-            || !problem.getProperties().containsKey(ErrorConstantUtils.CODE_PROPERTY))) {
+            || !problem.getProperties().containsKey(ErrorConstants.CODE_PROPERTY))) {
       var named = HttpStatus.resolve(status.value());
       problem.setProperty(
-          ErrorConstantUtils.CODE_PROPERTY,
+          ErrorConstants.CODE_PROPERTY,
           named == null ? String.valueOf(status.value()) : named.name());
     }
     return super.handleExceptionInternal(ex, body, headers, status, request);
@@ -134,16 +134,16 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     problem.setTitle(invalid.getTitle());
     problem.setDetail(invalid.getDetail());
     problem.setProperty(
-        ErrorConstantUtils.CODE_PROPERTY, ErrorExceptionStatus.VALIDATION_FAILED.getType());
-    problem.setProperty(ErrorConstantUtils.ERRORS_PROPERTY, errors);
+        ErrorConstants.CODE_PROPERTY, ErrorExceptionStatus.VALIDATION_FAILED.getType());
+    problem.setProperty(ErrorConstants.ERRORS_PROPERTY, errors);
     return handleExceptionInternal(ex, problem, headers, status, request);
   }
 
   private static Map<String, String> fieldError(FieldError error) {
     return Map.of(
-        ErrorConstantUtils.FIELD,
+        ErrorConstants.FIELD,
         error.getField(),
-        ErrorConstantUtils.MESSAGE,
+        ErrorConstants.MESSAGE,
         String.valueOf(error.getDefaultMessage()));
   }
 }

@@ -23,9 +23,9 @@ public class OtpService {
 
   private static final SecureRandom RANDOM = new SecureRandom();
   private static final RedisScript<Long> ISSUE =
-      RedisScript.of(new ClassPathResource(OtpConstantUtils.ISSUE_SCRIPT), Long.class);
+      RedisScript.of(new ClassPathResource(OtpConstants.ISSUE_SCRIPT), Long.class);
   private static final RedisScript<Long> VERIFY =
-      RedisScript.of(new ClassPathResource(OtpConstantUtils.VERIFY_SCRIPT), Long.class);
+      RedisScript.of(new ClassPathResource(OtpConstants.VERIFY_SCRIPT), Long.class);
 
   private final StringRedisTemplate redis;
   private final OtpProperties properties;
@@ -33,13 +33,13 @@ public class OtpService {
 
   public OtpService(StringRedisTemplate redis, OtpProperties properties) {
     if (properties.secret() == null || properties.secret().isBlank()) {
-      throw new IllegalStateException(OtpConstantUtils.SECRET_MISSING);
+      throw new IllegalStateException(OtpConstants.SECRET_MISSING);
     }
     this.redis = redis;
     this.properties = properties;
     this.key =
         new SecretKeySpec(
-            properties.secret().getBytes(StandardCharsets.UTF_8), OtpConstantUtils.HASH_ALGORITHM);
+            properties.secret().getBytes(StandardCharsets.UTF_8), OtpConstants.HASH_ALGORITHM);
   }
 
   /**
@@ -53,9 +53,9 @@ public class OtpService {
             keys(
                 flow,
                 subject,
-                OtpConstantUtils.KEY_SENDS,
-                OtpConstantUtils.KEY_CODE,
-                OtpConstantUtils.KEY_ATTEMPTS),
+                OtpConstants.KEY_SENDS,
+                OtpConstants.KEY_CODE,
+                OtpConstants.KEY_ATTEMPTS),
             String.valueOf(properties.maxSends()),
             String.valueOf(properties.sendWindow().toMillis()),
             hash(code),
@@ -71,7 +71,7 @@ public class OtpService {
     var result =
         redis.execute(
             VERIFY,
-            keys(flow, subject, OtpConstantUtils.KEY_CODE, OtpConstantUtils.KEY_ATTEMPTS),
+            keys(flow, subject, OtpConstants.KEY_CODE, OtpConstants.KEY_ATTEMPTS),
             String.valueOf(properties.maxAttempts()),
             String.valueOf(properties.ttl().toMillis()),
             hash(code));
@@ -87,7 +87,7 @@ public class OtpService {
   private List<String> keys(String flow, String subject, String... parts) {
     var hashedSubject = hash(subject);
     return java.util.Arrays.stream(parts)
-        .map(part -> OtpConstantUtils.KEY_FORMAT.formatted(flow, hashedSubject, part))
+        .map(part -> OtpConstants.KEY_FORMAT.formatted(flow, hashedSubject, part))
         .toList();
   }
 
@@ -101,7 +101,7 @@ public class OtpService {
 
   private String hash(String value) {
     try {
-      var mac = Mac.getInstance(OtpConstantUtils.HASH_ALGORITHM);
+      var mac = Mac.getInstance(OtpConstants.HASH_ALGORITHM);
       mac.init(key);
       return HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
     } catch (NoSuchAlgorithmException | InvalidKeyException e) {

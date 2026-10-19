@@ -39,12 +39,12 @@ public class Crypto {
     this.blindIndexKey =
         new SecretKeySpec(
             decodeKey("blind-index-key", properties.blindIndexKey()),
-            CryptoConstantUtils.BLIND_INDEX_ALGORITHM);
+            CryptoConstants.BLIND_INDEX_ALGORITHM);
   }
 
   public String encrypt(String plain) {
     try {
-      var nonce = new byte[CryptoConstantUtils.NONCE_BYTES];
+      var nonce = new byte[CryptoConstants.NONCE_BYTES];
       RANDOM.nextBytes(nonce);
       var cipher = cipher(Cipher.ENCRYPT_MODE, activeKeyId, nonce);
       var sealed = cipher.doFinal(plain.getBytes(StandardCharsets.UTF_8));
@@ -52,8 +52,8 @@ public class Crypto {
       System.arraycopy(nonce, 0, out, 0, nonce.length);
       System.arraycopy(sealed, 0, out, nonce.length, sealed.length);
       return String.join(
-          CryptoConstantUtils.SEPARATOR,
-          CryptoConstantUtils.VERSION,
+          CryptoConstants.SEPARATOR,
+          CryptoConstants.VERSION,
           activeKeyId,
           Base64.getEncoder().encodeToString(out));
     } catch (GeneralSecurityException e) {
@@ -62,13 +62,13 @@ public class Crypto {
   }
 
   public String decrypt(String envelope) {
-    var parts = envelope.split(CryptoConstantUtils.SEPARATOR, 3);
-    if (parts.length != 3 || !CryptoConstantUtils.VERSION.equals(parts[0])) {
+    var parts = envelope.split(CryptoConstants.SEPARATOR, 3);
+    if (parts.length != 3 || !CryptoConstants.VERSION.equals(parts[0])) {
       throw new IllegalArgumentException("not an encrypted value");
     }
     try {
       var data = Base64.getDecoder().decode(parts[2]);
-      var nonce = new byte[CryptoConstantUtils.NONCE_BYTES];
+      var nonce = new byte[CryptoConstants.NONCE_BYTES];
       System.arraycopy(data, 0, nonce, 0, nonce.length);
       var cipher = cipher(Cipher.DECRYPT_MODE, parts[1], nonce);
       return new String(
@@ -81,10 +81,10 @@ public class Crypto {
   /** Whether the value was sealed with a key other than the active one, and should be rewrapped. */
   public boolean isStale(String envelope) {
     return !envelope.startsWith(
-        CryptoConstantUtils.VERSION
-            + CryptoConstantUtils.SEPARATOR
+        CryptoConstants.VERSION
+            + CryptoConstants.SEPARATOR
             + activeKeyId
-            + CryptoConstantUtils.SEPARATOR);
+            + CryptoConstants.SEPARATOR);
   }
 
   /** Re-encrypts under the active key, for key rotation. */
@@ -97,7 +97,7 @@ public class Crypto {
    */
   public String blindIndex(String plain) {
     try {
-      var mac = Mac.getInstance(CryptoConstantUtils.BLIND_INDEX_ALGORITHM);
+      var mac = Mac.getInstance(CryptoConstants.BLIND_INDEX_ALGORITHM);
       mac.init(blindIndexKey);
       return HexFormat.of().formatHex(mac.doFinal(plain.getBytes(StandardCharsets.UTF_8)));
     } catch (GeneralSecurityException e) {
@@ -108,23 +108,23 @@ public class Crypto {
   private Cipher cipher(int mode, String keyId, byte[] nonce) throws GeneralSecurityException {
     var key = keys.get(keyId);
     if (key == null) throw new IllegalArgumentException("unknown key id " + keyId);
-    var cipher = Cipher.getInstance(CryptoConstantUtils.CIPHER);
-    cipher.init(mode, key, new GCMParameterSpec(CryptoConstantUtils.TAG_BITS, nonce));
+    var cipher = Cipher.getInstance(CryptoConstants.CIPHER);
+    cipher.init(mode, key, new GCMParameterSpec(CryptoConstants.TAG_BITS, nonce));
     cipher.updateAAD(keyId.getBytes(StandardCharsets.UTF_8));
     return cipher;
   }
 
   private static SecretKey key(String id, String base64) {
-    if (!id.matches(CryptoConstantUtils.KEY_ID_PATTERN))
+    if (!id.matches(CryptoConstants.KEY_ID_PATTERN))
       throw new IllegalStateException("bad key id " + id);
-    return new SecretKeySpec(decodeKey(id, base64), CryptoConstantUtils.KEY_ALGORITHM);
+    return new SecretKeySpec(decodeKey(id, base64), CryptoConstants.KEY_ALGORITHM);
   }
 
   private static byte[] decodeKey(String name, String base64) {
     var bytes = base64 == null ? new byte[0] : Base64.getDecoder().decode(base64);
-    if (bytes.length != CryptoConstantUtils.KEY_BYTES) {
+    if (bytes.length != CryptoConstants.KEY_BYTES) {
       throw new IllegalStateException(
-          name + " must be " + CryptoConstantUtils.KEY_BYTES + " bytes, base64");
+          name + " must be " + CryptoConstants.KEY_BYTES + " bytes, base64");
     }
     return bytes;
   }

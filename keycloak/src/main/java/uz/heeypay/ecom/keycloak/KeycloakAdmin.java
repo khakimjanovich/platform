@@ -24,23 +24,23 @@ public class KeycloakAdmin {
   public String createUser(String username, String email, String password, boolean emailVerified) {
     var user =
         Map.of(
-            KeycloakConstantUtils.USERNAME, username,
-            KeycloakConstantUtils.EMAIL, email,
-            KeycloakConstantUtils.ENABLED, true,
-            KeycloakConstantUtils.EMAIL_VERIFIED, emailVerified,
-            KeycloakConstantUtils.CREDENTIALS,
+            KeycloakConstants.USERNAME, username,
+            KeycloakConstants.EMAIL, email,
+            KeycloakConstants.ENABLED, true,
+            KeycloakConstants.EMAIL_VERIFIED, emailVerified,
+            KeycloakConstants.CREDENTIALS,
                 List.of(
                     Map.of(
-                        KeycloakConstantUtils.TYPE,
-                        KeycloakConstantUtils.PASSWORD,
-                        KeycloakConstantUtils.VALUE,
+                        KeycloakConstants.TYPE,
+                        KeycloakConstants.PASSWORD,
+                        KeycloakConstants.VALUE,
                         password,
-                        KeycloakConstantUtils.TEMPORARY,
+                        KeycloakConstants.TEMPORARY,
                         false)));
     var created =
         keycloak
             .post()
-            .uri(KeycloakConstantUtils.USERS)
+            .uri(KeycloakConstants.USERS)
             .body(user)
             .retrieve()
             .onStatus(
@@ -54,16 +54,16 @@ public class KeycloakAdmin {
 
   public void markEmailVerified(String userId) {
     // Keycloak replaces the whole user on update, so change the field on the full representation.
-    var user = keycloak.get().uri(KeycloakConstantUtils.USER, userId).retrieve().body(JSON);
-    user.put(KeycloakConstantUtils.EMAIL_VERIFIED, true);
-    keycloak.put().uri(KeycloakConstantUtils.USER, userId).body(user).retrieve().toBodilessEntity();
+    var user = keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON);
+    user.put(KeycloakConstants.EMAIL_VERIFIED, true);
+    keycloak.put().uri(KeycloakConstants.USER, userId).body(user).retrieve().toBodilessEntity();
   }
 
   public void grantRealmRole(String userId, String role) {
-    var representation = keycloak.get().uri(KeycloakConstantUtils.ROLE, role).retrieve().body(JSON);
+    var representation = keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON);
     keycloak
         .post()
-        .uri(KeycloakConstantUtils.USER_REALM_ROLES, userId)
+        .uri(KeycloakConstants.USER_REALM_ROLES, userId)
         .body(List.of(representation))
         .retrieve()
         .toBodilessEntity();
@@ -76,16 +76,16 @@ public class KeycloakAdmin {
   public IssuedClient createConfidentialClient(String clientId, String... realmRoles) {
     var client =
         Map.of(
-            KeycloakConstantUtils.CLIENT_ID, clientId,
-            KeycloakConstantUtils.ENABLED, true,
-            KeycloakConstantUtils.PUBLIC_CLIENT, false,
-            KeycloakConstantUtils.SERVICE_ACCOUNTS_ENABLED, true,
-            KeycloakConstantUtils.STANDARD_FLOW_ENABLED, false,
-            KeycloakConstantUtils.DIRECT_ACCESS_GRANTS_ENABLED, false);
+            KeycloakConstants.CLIENT_ID, clientId,
+            KeycloakConstants.ENABLED, true,
+            KeycloakConstants.PUBLIC_CLIENT, false,
+            KeycloakConstants.SERVICE_ACCOUNTS_ENABLED, true,
+            KeycloakConstants.STANDARD_FLOW_ENABLED, false,
+            KeycloakConstants.DIRECT_ACCESS_GRANTS_ENABLED, false);
     var created =
         keycloak
             .post()
-            .uri(KeycloakConstantUtils.CLIENTS)
+            .uri(KeycloakConstants.CLIENTS)
             .body(client)
             .retrieve()
             .onStatus(
@@ -100,23 +100,22 @@ public class KeycloakAdmin {
           (String)
               keycloak
                   .get()
-                  .uri(KeycloakConstantUtils.CLIENT_SERVICE_ACCOUNT, id)
+                  .uri(KeycloakConstants.CLIENT_SERVICE_ACCOUNT, id)
                   .retrieve()
                   .body(JSON)
-                  .get(KeycloakConstantUtils.ID);
+                  .get(KeycloakConstants.ID);
       for (var role : realmRoles) grantRealmRole(serviceAccount, role);
     }
-    return new IssuedClient(
-        id, secretOf(keycloak.get().uri(KeycloakConstantUtils.CLIENT_SECRET, id)));
+    return new IssuedClient(id, secretOf(keycloak.get().uri(KeycloakConstants.CLIENT_SECRET, id)));
   }
 
   /** Issues a new secret; the old one stops working at once. */
   public String rotateSecret(String clientInternalId) {
-    return secretOf(keycloak.post().uri(KeycloakConstantUtils.CLIENT_SECRET, clientInternalId));
+    return secretOf(keycloak.post().uri(KeycloakConstants.CLIENT_SECRET, clientInternalId));
   }
 
   private static String secretOf(RestClient.RequestHeadersSpec<?> request) {
-    return (String) request.retrieve().body(JSON).get(KeycloakConstantUtils.VALUE);
+    return (String) request.retrieve().body(JSON).get(KeycloakConstants.VALUE);
   }
 
   /** Keycloak answers a create with the new resource's URL; its last segment is the id. */

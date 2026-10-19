@@ -4,7 +4,7 @@ import lombok.experimental.UtilityClass;
 
 /** Keycloak admin REST paths and representation fields. */
 @UtilityClass
-public class KeycloakConstantUtils {
+public class KeycloakConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.keycloak";
   public static final String REGISTRATION_ID = "keycloak-admin";

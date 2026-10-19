@@ -3,7 +3,7 @@ package uz.heeypay.ecom.otp;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class OtpConstantUtils {
+public class OtpConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.otp";
 

@@ -28,7 +28,7 @@ public class ErrorAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     ProblemSecurityHandler problemSecurityHandler(
-        @Qualifier(ErrorConstantUtils.EXCEPTION_RESOLVER) HandlerExceptionResolver resolver) {
+        @Qualifier(ErrorConstants.EXCEPTION_RESOLVER) HandlerExceptionResolver resolver) {
       return new ProblemSecurityHandler(resolver);
     }
   }

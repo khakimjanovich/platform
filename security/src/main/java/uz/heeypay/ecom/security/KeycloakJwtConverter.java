@@ -21,14 +21,14 @@ public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticati
   @Override
   public AbstractAuthenticationToken convert(Jwt jwt) {
     return new JwtAuthenticationToken(
-        jwt, roles(jwt), jwt.getClaimAsString(SecurityConstantUtils.USERNAME_CLAIM));
+        jwt, roles(jwt), jwt.getClaimAsString(SecurityConstants.USERNAME_CLAIM));
   }
 
   private static Collection<GrantedAuthority> roles(Jwt jwt) {
     Map<String, Object> realmAccess =
-        Optional.ofNullable(jwt.getClaimAsMap(SecurityConstantUtils.REALM_ACCESS_CLAIM))
+        Optional.ofNullable(jwt.getClaimAsMap(SecurityConstants.REALM_ACCESS_CLAIM))
             .orElse(Map.of());
-    if (!(realmAccess.get(SecurityConstantUtils.ROLES) instanceof List<?> roles)) {
+    if (!(realmAccess.get(SecurityConstants.ROLES) instanceof List<?> roles)) {
       return List.of();
     }
     return roles.stream()
@@ -36,8 +36,7 @@ public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticati
             role ->
                 (GrantedAuthority)
                     new SimpleGrantedAuthority(
-                        SecurityConstantUtils.ROLE_PREFIX
-                            + role.toString().toUpperCase(Locale.ROOT)))
+                        SecurityConstants.ROLE_PREFIX + role.toString().toUpperCase(Locale.ROOT)))
         .toList();
   }
 }

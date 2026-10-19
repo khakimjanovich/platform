@@ -23,7 +23,7 @@ public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessD
   @Override
   public void commence(
       HttpServletRequest request, HttpServletResponse response, AuthenticationException ex) {
-    response.setHeader(HttpHeaders.WWW_AUTHENTICATE, ErrorConstantUtils.BEARER_CHALLENGE);
+    response.setHeader(HttpHeaders.WWW_AUTHENTICATE, ErrorConstants.BEARER_CHALLENGE);
     resolver.resolveException(
         request, response, null, new GeneralException(ErrorExceptionStatus.UNAUTHORIZED));
   }

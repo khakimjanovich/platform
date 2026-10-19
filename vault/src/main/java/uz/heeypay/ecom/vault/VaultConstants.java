@@ -3,7 +3,7 @@ package uz.heeypay.ecom.vault;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class VaultConstantUtils {
+public class VaultConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.vault";
   public static final String TOKEN_HEADER = "X-Vault-Token";

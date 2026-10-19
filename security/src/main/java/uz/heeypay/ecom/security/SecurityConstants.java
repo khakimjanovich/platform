@@ -3,7 +3,7 @@ package uz.heeypay.ecom.security;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class SecurityConstantUtils {
+public class SecurityConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.security";
 

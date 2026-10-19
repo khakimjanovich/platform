@@ -21,9 +21,9 @@ import uz.heeypay.ecom.error.ProblemSecurityHandler;
  */
 @AutoConfiguration(
     beforeName = {
-      SecurityConstantUtils.BOOT_WEB_SECURITY,
-      SecurityConstantUtils.BOOT_MANAGEMENT_SECURITY,
-      SecurityConstantUtils.BOOT_RESOURCE_SERVER_SECURITY
+      SecurityConstants.BOOT_WEB_SECURITY,
+      SecurityConstants.BOOT_MANAGEMENT_SECURITY,
+      SecurityConstants.BOOT_RESOURCE_SERVER_SECURITY
     })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(SecurityProperties.class)
@@ -67,7 +67,7 @@ public class SecurityAutoConfiguration {
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
           routes,
       String route) {
-    var parts = route.trim().split(SecurityConstantUtils.METHOD_SEPARATOR, 2);
+    var parts = route.trim().split(SecurityConstants.METHOD_SEPARATOR, 2);
     return parts.length == 2
         ? routes.requestMatchers(HttpMethod.valueOf(parts[0]), parts[1].trim())
         : routes.requestMatchers(parts[0]);

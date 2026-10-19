@@ -3,7 +3,7 @@ package uz.heeypay.ecom.crypto;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class CryptoConstantUtils {
+public class CryptoConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.crypto";
   public static final String CIPHER = "AES/GCM/NoPadding";

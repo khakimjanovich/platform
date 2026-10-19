@@ -10,6 +10,6 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * role it needs, checked in the order written. Any route not listed is refused. A route may start
  * with an HTTP method: {@code "POST /api/v1/registrations/**"}.
  */
-@ConfigurationProperties(SecurityConstantUtils.PROPERTIES_PREFIX)
+@ConfigurationProperties(SecurityConstants.PROPERTIES_PREFIX)
 public record SecurityProperties(
     @DefaultValue List<String> publicRoutes, @DefaultValue LinkedHashMap<String, String> roles) {}

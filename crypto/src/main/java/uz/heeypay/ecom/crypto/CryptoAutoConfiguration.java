@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
  * Setting {@code ecom.crypto.active-key-id} gives the app a {@link Crypto}; bad keys stop startup.
  */
 @AutoConfiguration
-@ConditionalOnProperty(prefix = CryptoConstantUtils.PROPERTIES_PREFIX, name = "active-key-id")
+@ConditionalOnProperty(prefix = CryptoConstants.PROPERTIES_PREFIX, name = "active-key-id")
 @EnableConfigurationProperties(CryptoProperties.class)
 public class CryptoAutoConfiguration {
 

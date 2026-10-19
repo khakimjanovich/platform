@@ -15,10 +15,11 @@ info:
     Payment links (`/api/v1/partner/payment-links`) are made by a merchant's user in the portal: the
     same page, for buyers reached in a chat, with no website checkout and no return address.
 
-    Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW, EXPIRED) the bank POSTs it
-    as JSON to the website's webhook URL, signed with the API client's key the same way, with
-    X-Event-Id in place of X-Nonce. The same event may arrive more than once; drop repeats by
-    X-Event-Id. Anything but a 2xx is retried, waiting longer each time.
+    Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW, EXPIRED) or its money goes
+    back (REVERSED, REFUNDED), the bank POSTs it as JSON to the website's webhook URL, signed with
+    the API client's key the same way, with X-Event-Id in place of X-Nonce. The same event may
+    arrive more than once; drop repeats by X-Event-Id. Anything but a 2xx is retried, waiting
+    longer each time.
 security:
   - bearer: []
 
@@ -111,6 +112,52 @@ paths:
                 items: { $ref: "#/components/schemas/PaymentLinkResponse" }
         "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/payments/{paymentId}/refund:
+    post:
+      tags: [Payment]
+      operationId: refundPayment
+      summary: Gives a paid payment back to the card, all of it
+      description: >-
+        On the day it was paid (in the bank's settlement time zone) the debit is reversed before
+        settlement (REVERSED); later, within the website's refund window, it is refunded (REFUNDED).
+        No answer from the scheme leaves it RETURNING until the bank has checked; it is never sent
+        twice.
+      parameters:
+        - { $ref: "#/components/parameters/PaymentId" }
+        - { $ref: "#/components/parameters/Timestamp" }
+        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/Signature" }
+      responses:
+        "200":
+          description: The payment, REVERSED, REFUNDED or RETURNING
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/v1/partner/payment-links/{paymentId}/refund:
+    post:
+      tags: [PaymentLink]
+      operationId: refundPaymentLink
+      summary: Gives a paid payment link back to the card, by the same rules as refundPayment
+      parameters:
+        - { $ref: "#/components/parameters/PaymentId" }
+      responses:
+        "200":
+          description: The link, REVERSED, REFUNDED or RETURNING
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentLinkResponse" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
 
   /api/v1/admin/payments:
     get:
@@ -282,8 +329,9 @@ components:
         refused (declineCode says why) · UNKNOWN: the scheme didn't answer, so the money may have
         moved; never treat it as declined; the bank keeps asking the scheme · MANUAL_REVIEW: still no
         answer after the configured time, a person decides · FAILED: the page closed before any debit ·
-        EXPIRED: nobody paid before the page expired
-      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED]
+        EXPIRED: nobody paid before the page expired · RETURNING: the money is being given back ·
+        REVERSED: given back before settlement · REFUNDED: given back after it
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED]
     PaymentSource:
       type: string
       description: "API: created by the merchant's server · LINK: a payment link from the merchant's portal"
@@ -309,6 +357,7 @@ components:
         url: { type: string, description: "Only in the response that created the link: send it to the buyer" }
         expiresAt: { type: string, format: date-time }
         paidAt: { type: string, format: date-time }
+        returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
     PaymentCardRequest:
       type: object
@@ -359,6 +408,7 @@ components:
         fee: { type: integer, format: int64, description: "The bank's fee in tiyin, fixed when the debit started" }
         net: { type: integer, format: int64, description: "What the merchant receives, in tiyin" }
         paidAt: { type: string, format: date-time }
+        returnedAt: { type: string, format: date-time, description: When the money went back to the card }
         createdAt: { type: string, format: date-time }
     PaymentAdminResponse:
       type: object
@@ -382,6 +432,7 @@ components:
         rrn: { type: string }
         declineCode: { type: string }
         paidAt: { type: string, format: date-time }
+        returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
     Problem:
       type: object

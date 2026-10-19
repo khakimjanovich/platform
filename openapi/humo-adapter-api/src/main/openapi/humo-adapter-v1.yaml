@@ -94,6 +94,21 @@ paths:
         "4XX": { $ref: "#/components/responses/Problem" }
         "5XX": { $ref: "#/components/responses/Problem" }
 
+  /v1/payment/return:
+    post:
+      tags: [HumoPaymentService]
+      operationId: returnPayment
+      summary: Returns a finished payment to the card after settlement (ReturnPayment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentIdRequest" }
+      responses:
+        "200": { description: The return, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
   /v1/payment/status:
     get:
       tags: [HumoPaymentService]
@@ -119,8 +134,8 @@ components:
       enum: [SUCCESS, DECLINED, NOT_FOUND]
     PaymentStatus:
       type: string
-      description: HELD the amount is on hold · CAPTURED taken · CANCELLED given back
-      enum: [HELD, CAPTURED, CANCELLED]
+      description: HELD the amount is on hold · CAPTURED taken · CANCELLED given back before settlement · RETURNED given back after it
+      enum: [HELD, CAPTURED, CANCELLED, RETURNED]
     DeclineReason:
       type: string
       description: Why the card's bank refused, the same words for every scheme

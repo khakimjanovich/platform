@@ -5,9 +5,14 @@ info:
   version: "1"
   description: |
     Merchant calls need an access token from the merchant's API client (client credentials) and an
-    HMAC-SHA256 signature. Sign, with the API client's signing key (base64-decoded), the text
-    `METHOD\nPATH\nX-Timestamp\nX-Nonce\nhex(SHA-256(body))`, where PATH includes the query string
-    and an empty body hashes the empty string; send the base64 result as X-Signature.
+    RFC 9421 HTTP Message Signature with the algorithm hmac-sha256, keyed with the API client's
+    signing key (base64-decoded). The signature covers "@method", "@target-uri", "authorization",
+    and "content-digest" when there is a body, with the parameters created (Unix seconds, within
+    the configured window), nonce (random, used once), keyid (the API client's id) and
+    alg="hmac-sha256". The body's hash goes in Content-Digest (RFC 9530) as sha-256=:<base64>:.
+    Example: Signature-Input: sig1=("@method" "@target-uri" "authorization" "content-digest");
+    created=1760000000;nonce="3f2a…";keyid="ecom-1a2b…";alg="hmac-sha256", and
+    Signature: sig1=:<base64 HMAC of the signature base>:. Any RFC 9421 library builds the base.
 
     The payment page calls (`/api/v1/pay/{token}`) need no login: the one-time token in the link is
     the only credential, and it works until the page expires.
@@ -34,9 +39,9 @@ paths:
       description: Retrying with the same Idempotency-Key and body returns the first response; no second payment is made.
       parameters:
         - { $ref: "#/components/parameters/IdempotencyKey" }
-        - { $ref: "#/components/parameters/Timestamp" }
-        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/SignatureInput" }
         - { $ref: "#/components/parameters/Signature" }
+        - { $ref: "#/components/parameters/ContentDigest" }
       requestBody:
         required: true
         content:
@@ -64,9 +69,9 @@ paths:
       summary: One of the merchant's payments
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }
-        - { $ref: "#/components/parameters/Timestamp" }
-        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/SignatureInput" }
         - { $ref: "#/components/parameters/Signature" }
+        - { $ref: "#/components/parameters/ContentDigest" }
       responses:
         "200":
           description: The payment
@@ -127,9 +132,9 @@ paths:
         twice.
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }
-        - { $ref: "#/components/parameters/Timestamp" }
-        - { $ref: "#/components/parameters/Nonce" }
+        - { $ref: "#/components/parameters/SignatureInput" }
         - { $ref: "#/components/parameters/Signature" }
+        - { $ref: "#/components/parameters/ContentDigest" }
       responses:
         "200":
           description: The payment, REVERSED, REFUNDED or RETURNING
@@ -325,23 +330,23 @@ components:
       required: true
       description: The merchant's own key for this request, e.g. the order number plus an attempt
       schema: { type: string, pattern: "^[A-Za-z0-9_-]{8,64}$" }
-    Timestamp:
-      name: X-Timestamp
+    SignatureInput:
+      name: Signature-Input
       in: header
       required: true
-      description: Unix time in seconds; must be within the configured window of the bank's clock
-      schema: { type: string, pattern: "^[0-9]{10}$" }
-    Nonce:
-      name: X-Nonce
-      in: header
-      required: true
-      description: Random and used only once
-      schema: { type: string, pattern: "^[A-Za-z0-9-]{16,64}$" }
+      description: 'RFC 9421: what the signature covers, with created, nonce, keyid and alg="hmac-sha256"'
+      schema: { type: string }
     Signature:
-      name: X-Signature
+      name: Signature
       in: header
       required: true
-      description: Base64 HMAC-SHA256 of the signed text
+      description: "RFC 9421: the base64 HMAC-SHA256 of the signature base, e.g. sig1=:…:"
+      schema: { type: string }
+    ContentDigest:
+      name: Content-Digest
+      in: header
+      required: false
+      description: "RFC 9530: the body's SHA-256, sha-256=:<base64>:; required when there is a body"
       schema: { type: string }
   responses:
     Problem:

@@ -1,6 +1,7 @@
 package uz.heeypay.ecom.uzcardadapterclient.config;
 
 import java.net.http.HttpClient;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -22,7 +23,8 @@ public class UzcardAdapterClientAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(name = "uzcardAdapterRestClient")
-  RestClient uzcardAdapterRestClient(UzcardAdapterProperties properties) {
+  RestClient uzcardAdapterRestClient(
+      UzcardAdapterProperties properties, ObjectProvider<RestClient.Builder> builders) {
     var factory =
         new JdkClientHttpRequestFactory(
             HttpClient.newBuilder()
@@ -30,7 +32,11 @@ public class UzcardAdapterClientAutoConfiguration {
                 .connectTimeout(properties.connectTimeout())
                 .build());
     factory.setReadTimeout(properties.readTimeout());
-    return RestClient.builder().baseUrl(properties.baseUrl()).requestFactory(factory).build();
+    return builders
+        .getIfAvailable(RestClient::builder)
+        .baseUrl(properties.baseUrl())
+        .requestFactory(factory)
+        .build();
   }
 
   @Bean

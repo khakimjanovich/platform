@@ -1,5 +1,6 @@
 package uz.heeypay.ecom.vault;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,9 +16,11 @@ public class VaultAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  VaultSecrets vaultSecrets(VaultProperties properties) {
+  VaultSecrets vaultSecrets(
+      VaultProperties properties, ObjectProvider<RestClient.Builder> builders) {
     return new VaultSecrets(
-        RestClient.builder()
+        builders
+            .getIfAvailable(RestClient::builder)
             .baseUrl(properties.url())
             .defaultHeader(VaultConstants.TOKEN_HEADER, properties.token())
             .build(),

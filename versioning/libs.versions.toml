@@ -25,6 +25,11 @@ starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data
 starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase" }
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry" }
+starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient" }
+micrometer-tracing = { module = "io.micrometer:micrometer-tracing" }
+temporal-opentracing = { module = "io.temporal:temporal-opentracing", version.ref = "temporal" }
+opentelemetry-opentracing-shim = { module = "io.opentelemetry:opentelemetry-opentracing-shim" }
 micrometer-core = { module = "io.micrometer:micrometer-core" }
 temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
 temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }

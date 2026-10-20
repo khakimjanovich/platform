@@ -1,5 +1,6 @@
 package uz.heeypay.ecom.keycloak;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,7 +26,8 @@ public class KeycloakAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  KeycloakAdmin keycloakAdmin(KeycloakProperties keycloak) {
+  KeycloakAdmin keycloakAdmin(
+      KeycloakProperties keycloak, ObjectProvider<RestClient.Builder> builders) {
     var registration =
         ClientRegistration.withRegistrationId(KeycloakConstants.REGISTRATION_ID)
             .clientId(keycloak.clientId())
@@ -40,7 +42,8 @@ public class KeycloakAutoConfiguration {
                 registrations, new InMemoryOAuth2AuthorizedClientService(registrations)));
     login.setClientRegistrationIdResolver(request -> KeycloakConstants.REGISTRATION_ID);
     return new KeycloakAdmin(
-        RestClient.builder()
+        builders
+            .getIfAvailable(RestClient::builder)
             .baseUrl(keycloak.url() + KeycloakConstants.ADMIN_PATH.formatted(keycloak.realm()))
             .requestInterceptor(login)
             .build());

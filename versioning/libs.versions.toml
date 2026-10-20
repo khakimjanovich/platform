@@ -16,6 +16,7 @@ wiremock = "3.13.2"
 aws-sdk = "2.54.0"
 google-java-format = "1.30.0" # newer releases fail inside Spotless 8.10 (missing commonmark extension)
 ecom-platform = "0.1.0"
+opentelemetry-instrumentation = "2.28.1-alpha" # the release built on the OpenTelemetry Boot manages (1.62)
 
 [libraries]
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -27,6 +28,7 @@ starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liq
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry" }
 starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient" }
+opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetry-instrumentation" }
 micrometer-tracing = { module = "io.micrometer:micrometer-tracing" }
 temporal-opentracing = { module = "io.temporal:temporal-opentracing", version.ref = "temporal" }
 opentelemetry-opentracing-shim = { module = "io.opentelemetry:opentelemetry-opentracing-shim" }

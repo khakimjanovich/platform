@@ -2,6 +2,7 @@
 # Pinned exactly; upgrades get their own commit.
 [versions]
 temporal = "1.40.0"
+standard-webhooks = "1.2.0"
 java = "25"
 spring-boot = "4.1.1"
 spring-modulith = "2.1.1"
@@ -26,6 +27,7 @@ starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actu
 micrometer-core = { module = "io.micrometer:micrometer-core" }
 temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
 temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }
+standard-webhooks = { module = "com.standardwebhooks:standardwebhooks", version.ref = "standard-webhooks" }
 starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }

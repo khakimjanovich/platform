@@ -17,9 +17,11 @@ info:
 
     Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW, EXPIRED) or its money goes
     back (REVERSED, REFUNDED), the bank POSTs it as JSON to the website's webhook URL, signed with
-    the API client's key the same way, with X-Event-Id in place of X-Nonce. The same event may
-    arrive more than once; drop repeats by X-Event-Id. Anything but a 2xx is retried, waiting
-    longer each time.
+    the API client's key the Standard Webhooks way (standardwebhooks.com): webhook-id is the event's
+    id, webhook-timestamp the Unix time it was sent, and webhook-signature is "v1," and the base64
+    HMAC-SHA256 of "webhook-id.webhook-timestamp.body". Any Standard Webhooks library verifies it
+    with the key. The same event may arrive more than once; drop repeats by webhook-id. Anything
+    but a 2xx is retried, waiting longer each time.
 security:
   - bearer: []
 

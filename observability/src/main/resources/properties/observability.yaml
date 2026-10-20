@@ -1,0 +1,49 @@
+# Logs, traces and metrics, the same in every service that imports this file.
+# Structured JSON logs in the ECS format.
+logging:
+  # Hibernate Validator warns (HV000271) about @Valid on lists in the code generated from the
+  # contracts; the validation itself works, so only that warning is silenced.
+  level:
+    org.hibernate.validator.internal.metadata.aggregated.CascadingMetaDataBuilder: ERROR
+  structured:
+    format:
+      console: ecs
+    # ECS names for the trace: every line a request writes carries its trace.id and span.id.
+    json:
+      rename:
+        traceId: trace.id
+        spanId: span.id
+
+management:
+  # One trace per request, carried to every call it makes (W3C traceparent) and onto every log line.
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  opentelemetry:
+    # Each running copy is its own instance, so the metrics of replicas never mix.
+    resource-attributes:
+      service.instance.id: ${random.uuid}
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+    # Every log line goes over OTLP too (the OpenTelemetry appender in logback-spring.xml).
+    logging:
+      export:
+        otlp:
+          endpoint: ${OTLP_LOGS_ENDPOINT:http://localhost:4318/v1/logs}
+  otlp:
+    metrics:
+      export:
+        url: ${OTLP_METRICS_ENDPOINT:http://localhost:4318/v1/metrics}
+  # Request times and, where there is a database, pool waits go out as histograms, so a dashboard
+  # can show their p95.
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        hikaricp.connections.acquire: true
+  endpoints:
+    web:
+      exposure:
+        include: health

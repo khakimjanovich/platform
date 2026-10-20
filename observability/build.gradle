@@ -9,5 +9,7 @@ dependencies {
     api platform(libs.spring.boot.bom)
     api libs.starter.opentelemetry
     api libs.opentelemetry.logback.appender
+    api libs.starter.restclient
+    implementation libs.jackson3.databind
     implementation libs.spring.boot.autoconfigure
 }

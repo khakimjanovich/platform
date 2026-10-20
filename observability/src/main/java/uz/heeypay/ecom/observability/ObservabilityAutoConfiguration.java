@@ -8,11 +8,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Sends every log line over OTLP with its trace, beside the console. The console stays Spring
- * Boot's own: readable text, or ECS JSON where logging.structured.format.console=ecs is set.
+ * Sends every log line over OTLP with its trace, beside the console (Spring Boot's own: readable
+ * text, or ECS JSON where logging.structured.format.console=ecs is set), and logs every outgoing
+ * call of every client built from Boot's RestClient.Builder, with masked bodies.
  */
 @AutoConfiguration
 public class ObservabilityAutoConfiguration {
@@ -30,5 +32,10 @@ public class ObservabilityAutoConfiguration {
               context.getLogger(Logger.ROOT_LOGGER_NAME).addAppender(appender);
               OpenTelemetryAppender.install(otel);
             });
+  }
+
+  @Bean
+  RestClientCustomizer httpClientLogging() {
+    return builder -> builder.requestInterceptor(new HttpClientLogging());
   }
 }

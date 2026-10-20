@@ -17,6 +17,8 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
@@ -26,6 +28,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * from its definition (status, title, message in the caller's language), Spring's own errors with a
  * code named after their status. Invalid input lists the failing fields. Anything unexpected
  * becomes a plain 500 with a code, never a stack trace.
+ *
+ * <p>Every error response is logged once, with its request: a 5xx as an error, one whose definition
+ * says {@code is-loggable} as a warning, anything else (a caller's mistake) as info.
  */
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -38,6 +43,8 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   @ExceptionHandler(GeneralException.class)
   ResponseEntity<ProblemDetail> general(GeneralException ex) {
     var problem = problem(ex.getStatus(), ex.getParams());
+    var definition = errors.error().get(ex.getStatus().getType());
+    log(problem, definition != null && definition.isLoggable());
     return ResponseEntity.status(problem.getStatus())
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
         .body(problem);
@@ -58,7 +65,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
       definition = errors.error().getOrDefault(status.getType(), ErrorConstants.LAST_RESORT);
     }
     var detail = definition.message(LocaleContextHolder.getLocale(), params);
-    if (definition.isLoggable()) log.warn(status.getType() + " | " + detail);
     var problem =
         ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(definition.httpCode()), detail);
     problem.setTitle(definition.title());
@@ -120,6 +126,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
           ErrorConstants.CODE_PROPERTY,
           named == null ? String.valueOf(status.value()) : named.name());
     }
+    if (body instanceof ProblemDetail problem) log(problem, false);
     return super.handleExceptionInternal(ex, body, headers, status, request);
   }
 
@@ -145,5 +152,27 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
         error.getField(),
         ErrorConstants.MESSAGE,
         String.valueOf(error.getDefaultMessage()));
+  }
+
+  /** One line per error response; invalid input names its fields. */
+  private static void log(ProblemDetail problem, boolean loggable) {
+    var properties = problem.getProperties() == null ? Map.of() : problem.getProperties();
+    var detail =
+        properties.containsKey(ErrorConstants.ERRORS_PROPERTY)
+            ? problem.getDetail() + " " + properties.get(ErrorConstants.ERRORS_PROPERTY)
+            : problem.getDetail();
+    var line =
+        ErrorConstants.LOG_PROBLEM.formatted(
+            problem.getStatus(), properties.get(ErrorConstants.CODE_PROPERTY), request(), detail);
+    if (problem.getStatus() >= 500) log.error(line);
+    else if (loggable) log.warn(line);
+    else log.info(line);
+  }
+
+  /** "GET /api/v1/…" for the request being answered, or "-" outside one. */
+  private static String request() {
+    return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes current
+        ? current.getRequest().getMethod() + " " + current.getRequest().getRequestURI()
+        : "-";
   }
 }

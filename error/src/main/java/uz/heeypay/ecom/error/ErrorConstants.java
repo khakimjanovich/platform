@@ -13,6 +13,9 @@ public class ErrorConstants {
   public static final String LOG_UNEXPECTED_ERROR = "Unexpected error";
   public static final String LOG_NO_DEFINITION = "No definition for error {}; answering 500";
 
+  /** Every error response, once: status, code, the request, and why. */
+  public static final String LOG_PROBLEM = "✗ %d %s | %s | %s";
+
   /** Used only when a service forgot to import properties/error-exception.yaml. */
   public static final ErrorStarterProperties.ErrorDefinition LAST_RESORT =
       new ErrorStarterProperties.ErrorDefinition(

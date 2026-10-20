@@ -1,11 +1,11 @@
-# Uzcard adapter: SV-Gate (JSON-RPC 2.0) behind plain REST. Any service or project may call it.
+# Uzcard adapter: Uzcard's SV-Gate API (JSON-RPC 2.0) behind plain REST. Any service or project may call it.
 openapi: 3.0.3
 info:
   title: Uzcard Adapter
   version: "1"
   description: |
-    Every answer is an envelope {requestId, status, data}. `status` says what SV-Gate decided;
-    HTTP errors mean the adapter couldn't get an answer (502 SV-Gate error, 504 no answer in time):
+    Every answer is an envelope {requestId, status, data}. `status` says what Uzcard decided;
+    HTTP errors mean the adapter couldn't get an answer (502 Uzcard error, 504 no answer in time):
     the caller must treat those as unknown, never as declined.
 
 paths:
@@ -183,7 +183,7 @@ components:
       properties:
         tranId: { type: string }
         rrn: { type: string, description: 12 digits }
-        responseCode: { type: string, description: "SV-Gate's respSV, as received" }
+        responseCode: { type: string, description: "Uzcard's respSV, as received" }
         declineReason: { $ref: "#/components/schemas/DeclineReason" }
     TransactionResult:
       type: object

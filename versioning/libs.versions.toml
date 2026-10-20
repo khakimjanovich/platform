@@ -70,8 +70,7 @@ ecom-uzcard-adapter-api = { module = "uz.heeypay.ecom:uzcard-adapter-api", versi
 ecom-uzcard-adapter-client = { module = "uz.heeypay.ecom:uzcard-adapter-client", version.ref = "ecom-platform" }
 ecom-humo-adapter-api = { module = "uz.heeypay.ecom:humo-adapter-api", version.ref = "ecom-platform" }
 ecom-humo-adapter-client = { module = "uz.heeypay.ecom:humo-adapter-client", version.ref = "ecom-platform" }
-ecom-file-service-api = { module = "uz.heeypay.ecom:file-service-api", version.ref = "ecom-platform" }
-ecom-file-service-client = { module = "uz.heeypay.ecom:file-service-client", version.ref = "ecom-platform" }
+ecom-file-store = { module = "uz.heeypay.ecom:file-store", version.ref = "ecom-platform" }
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }
@@ -88,7 +87,6 @@ spotless-gradle = { module = "com.diffplug.spotless:spotless-plugin-gradle", ver
 # A service's contract and its client, which is how other services call it.
 uzcard-adapter-client = ["ecom-uzcard-adapter-api", "ecom-uzcard-adapter-client"]
 humo-adapter-client = ["ecom-humo-adapter-api", "ecom-humo-adapter-client"]
-file-service-client = ["ecom-file-service-api", "ecom-file-service-client"]
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

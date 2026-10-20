@@ -12,6 +12,28 @@ security:
   - bearer: []
 
 paths:
+  /internal/v1/bins/resolve:
+    get:
+      tags: [BinInternal]
+      operationId: resolveBin
+      summary: The scheme and bank of a card's first digits, for other modules; empty means unknown
+      description: Inside the app only; never routed from outside.
+      parameters:
+        - name: digits
+          in: query
+          required: true
+          description: A card's first 6 to 8 digits (its issuer identification number, ISO/IEC 7812), never the whole number
+          schema: { type: string, pattern: "^[0-9]{6,8}$" }
+      responses:
+        "200":
+          description: The matching range, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/BinResponse" }
+
   /api/v1/admin/bins:
     get:
       tags: [BinAdmin]

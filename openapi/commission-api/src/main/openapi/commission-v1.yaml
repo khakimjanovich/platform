@@ -7,6 +7,26 @@ security:
   - bearer: []
 
 paths:
+  /internal/v1/commissions/quote:
+    post:
+      tags: [CommissionInternal]
+      operationId: quoteFee
+      summary: The fee a payment pays, and the rule that sets it, for other modules
+      description: Inside the app only; never routed from outside.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/QuoteRequest" }
+      responses:
+        "200":
+          description: The fee
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuoteResponse" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
   /api/v1/admin/commissions:
     get:
       tags: [CommissionAdmin]

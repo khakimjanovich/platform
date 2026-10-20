@@ -1,7 +1,0 @@
-// The file service's contract: file-service-v1.yaml → server interfaces for the service and
-// @HttpExchange client interfaces for anyone who stores files.
-plugins {
-    id 'ecom.contract'
-}
-
-contract { client = true }

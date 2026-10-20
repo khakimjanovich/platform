@@ -7,6 +7,131 @@ security:
   - bearer: []
 
 paths:
+  /internal/v1/cards/bindings:
+    post:
+      tags: [CardInternal]
+      operationId: startCardBinding
+      summary: Checks the number (Luhn, a known BIN), stores it encrypted and asks the scheme to send a code to the cardholder; the same card always gets the same token
+      description: Inside the app only; never routed from outside.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BindingRequest" }
+      responses:
+        "200":
+          description: The binding, waiting for the code
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BindingResponse" }
+
+  /internal/v1/cards/bindings/{bindingId}/confirm:
+    post:
+      tags: [CardInternal]
+      operationId: confirmCardBinding
+      summary: The code the cardholder typed; the card can be debited from now on
+      description: Inside the app only; never routed from outside.
+      parameters: [{ name: bindingId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CodeRequest" }
+      responses:
+        "200":
+          description: The card
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CardResponse" }
+
+  /internal/v1/cards/{cardToken}:
+    get:
+      tags: [CardInternal]
+      operationId: findCard
+      summary: The card by its token, for other modules; empty means none
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/CardToken" }]
+      responses:
+        "200":
+          description: The card, or an empty list
+          content:
+            application/json:
+              schema: 
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/CardResponse" }
+
+  /internal/v1/cards/{cardToken}/debit:
+    post:
+      tags: [CardInternal]
+      operationId: debitCard
+      summary: Takes the money from a bound card through its scheme; paymentRef makes the call idempotent at the scheme
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/CardToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DebitRequest" }
+      responses:
+        "200":
+          description: The scheme's answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationResult" }
+
+  /internal/v1/cards/{cardToken}/payments/{paymentRef}:
+    get:
+      tags: [CardInternal]
+      operationId: cardPaymentStatus
+      summary: "What the card's scheme knows about a payment we sent, by our id for it: asked when a debit got no answer"
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/CardToken" }, { name: paymentRef, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          description: The scheme's answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationResult" }
+
+  /internal/v1/cards/{cardToken}/reversal:
+    post:
+      tags: [CardInternal]
+      operationId: reverseCardPayment
+      summary: "Gives a debit back before the scheme's settlement: the whole amount, as if it never happened"
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/CardToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReturnRequest" }
+      responses:
+        "200":
+          description: The scheme's answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationResult" }
+
+  /internal/v1/cards/{cardToken}/refund:
+    post:
+      tags: [CardInternal]
+      operationId: refundCardPayment
+      summary: "Returns a settled debit to the card: the whole amount"
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/CardToken" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReturnRequest" }
+      responses:
+        "200":
+          description: The scheme's answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationResult" }
+
   /api/v1/admin/cards/search:
     post:
       tags: [CardAdmin]
@@ -104,10 +229,56 @@ components:
       type: object
       required: [action, actor, occurredAt]
       properties:
-        action: { type: string, enum: [BINDING_STARTED, BOUND, DEBITED, STATUS_ASKED, LOOKED_UP] }
+        action: { type: string, enum: [BINDING_STARTED, BOUND, DEBITED, STATUS_ASKED, REVERSED, REFUNDED, LOOKED_UP] }
         actor: { type: string }
         reference: { type: string, description: The payment a debit belongs to }
         occurredAt: { type: string, format: date-time }
+    BindingRequest:
+      type: object
+      required: [number, expiry]
+      properties:
+        number: { type: string, pattern: "^[0-9]{16}$" }
+        expiry: { type: string, pattern: "^[0-9]{2}(0[1-9]|1[0-2])$", description: YYMM }
+    BindingResponse:
+      type: object
+      required: [bindingId, cardToken, scheme, maskedNumber]
+      description: A code is on its way; bindingId is what confirming it needs
+      properties:
+        bindingId: { type: string, format: uuid }
+        cardToken: { type: string }
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        maskedNumber: { type: string }
+    CodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string }
+    DebitRequest:
+      type: object
+      required: [paymentRef, amount, merchantId, terminalId]
+      properties:
+        paymentRef: { type: string, description: Our id for the payment }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        merchantId: { type: string }
+        terminalId: { type: string }
+    ReturnRequest:
+      type: object
+      required: [paymentRef, processorRef]
+      properties:
+        paymentRef: { type: string, description: Our id for the payment }
+        processorRef: { type: string, description: "The scheme's id for the debit" }
+    Outcome:
+      type: string
+      description: "APPROVED or DECLINED are final. UNKNOWN means the scheme didn't say (a timeout, a server error): never treat it as a decline, the money may have moved."
+      enum: [APPROVED, DECLINED, UNKNOWN]
+    OperationResult:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { $ref: "#/components/schemas/Outcome" }
+        declineCode: { type: string }
+        processorRef: { type: string }
+        rrn: { type: string }
     Problem:
       type: object
       description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.

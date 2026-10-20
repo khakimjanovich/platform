@@ -1,0 +1,18 @@
+// Files for any module, in buckets of an S3-compatible store (SeaweedFS locally, any S3 elsewhere).
+// A module keeps only the file's id; what the file is travels with the object as its metadata.
+plugins {
+    id 'ecom.library'
+    id 'ecom.integration-test'
+}
+
+dependencies {
+    api platform(libs.spring.boot.bom)
+    api platform(libs.aws.sdk.bom)
+    api libs.spring.web
+    api libs.ecom.error
+    implementation libs.spring.boot.autoconfigure
+    implementation libs.aws.s3
+
+    integrationTestImplementation libs.testcontainers.core
+    integrationTestImplementation libs.testcontainers.junit
+}

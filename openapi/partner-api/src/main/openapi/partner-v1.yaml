@@ -7,6 +7,92 @@ security:
   - bearer: []
 
 paths:
+  /internal/v1/sales-points:
+    get:
+      tags: [PartnerInternal]
+      operationId: listSalesPointsOwnedBy
+      summary: Every sales point of the merchant this portal user belongs to, for other modules; empty for anyone else
+      description: Inside the app only; never routed from outside.
+      parameters:
+        - { name: ownerEmail, in: query, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Sales points, newest first, in any status
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SalesPointResponse" }
+
+  /internal/v1/sales-points/{salesPointId}:
+    get:
+      tags: [PartnerInternal]
+      operationId: findSalesPoint
+      summary: The sales point in any status, for other modules; empty means none
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200":
+          description: The sales point, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/SalesPointResponse" }
+
+  /internal/v1/sales-points/{salesPointId}/payable:
+    get:
+      tags: [PartnerInternal]
+      operationId: findPayableSalesPoint
+      summary: The sales point if it may take a payment now (it and its partner are active), for other modules; empty otherwise
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200":
+          description: The sales point, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/SalesPointResponse" }
+
+  /internal/v1/sales-points/{salesPointId}/logo:
+    get:
+      tags: [PartnerInternal]
+      operationId: findSalesPointLogo
+      summary: The website's logo for the payment page, for other modules; empty if it has none
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200":
+          description: The logo, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/SalesPointLogo" }
+
+  /internal/v1/api-clients/{clientId}/partner:
+    get:
+      tags: [PartnerInternal]
+      operationId: findApiClientPartner
+      summary: The partner that owns this API client, for other modules; empty means none
+      description: Inside the app only; never routed from outside.
+      parameters:
+        - { name: clientId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The partner's id, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { type: string, format: uuid }
+
   /api/v1/partners/{id}:
     get:
       tags: [Partners]
@@ -904,6 +990,12 @@ components:
         maxPaymentAmount: { type: integer, format: int64, description: "The most one payment may be, in tiyin" }
         dailyLimit: { type: integer, format: int64, description: "The most the website may take in one business day, in tiyin" }
         createdAt: { type: string, format: date-time }
+    SalesPointLogo:
+      type: object
+      required: [contentType, content]
+      properties:
+        contentType: { type: string }
+        content: { type: string, format: byte }
     DocumentType:
       type: string
       description: "CHARTER the company's charter · LICENSE a licence for regulated activity · PASSPORT the director's ID · POWER_OF_ATTORNEY for someone acting for the director"

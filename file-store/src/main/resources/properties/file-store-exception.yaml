@@ -1,0 +1,47 @@
+# Errors of the file store: HTTP status, title and message in English, Russian and Uzbek.
+# {0}, {1}… are filled with the exception's parameters.
+exception:
+  starter:
+    error:
+      FILE_STORE_BUCKET_UNKNOWN:
+        http-code: 404
+        title: file-store-bucket-unknown
+        is-loggable: false
+        message-en: "There is no bucket {0}."
+        message-ru: "Хранилища {0} нет."
+        message-uz: "{0} ombori yoʻq."
+      FILE_STORE_FILE_EMPTY:
+        http-code: 400
+        title: file-store-file-empty
+        is-loggable: false
+        message-en: "The file is empty."
+        message-ru: "Файл пустой."
+        message-uz: "Fayl boʻsh."
+      FILE_STORE_FILE_TOO_LARGE:
+        http-code: 413
+        title: file-store-file-too-large
+        is-loggable: false
+        message-en: "The file is larger than {0}."
+        message-ru: "Файл больше {0}."
+        message-uz: "Fayl {0} dan katta."
+      FILE_STORE_TYPE_NOT_ALLOWED:
+        http-code: 415
+        title: file-store-type-not-allowed
+        is-loggable: false
+        message-en: "This kind of file isn't accepted here. Allowed: {0}."
+        message-ru: "Такой тип файла здесь не принимается. Можно: {0}."
+        message-uz: "Bu turdagi fayl bu yerda qabul qilinmaydi. Mumkin: {0}."
+      FILE_STORE_FILE_NOT_FOUND:
+        http-code: 404
+        title: file-store-file-not-found
+        is-loggable: false
+        message-en: "There is no file {0}."
+        message-ru: "Файла {0} нет."
+        message-uz: "{0} fayli yoʻq."
+      FILE_STORE_STORAGE_UNAVAILABLE:
+        http-code: 503
+        title: file-store-storage-unavailable
+        is-loggable: true
+        message-en: "Files can't be stored or read right now. Try again in a minute."
+        message-ru: "Сейчас нельзя сохранить или прочитать файл. Попробуйте через минуту."
+        message-uz: "Hozir faylni saqlab yoki oʻqib boʻlmaydi. Bir daqiqadan soʻng urinib koʻring."

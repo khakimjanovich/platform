@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestClient;
 
-/** Setting {@code ecom.vault.url} gives the app {@link VaultSecrets}. */
+/** Setting {@code ecom.vault.url} gives the app {@link VaultSecrets} and {@link SigningKeys}. */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = VaultConstants.PROPERTIES_PREFIX, name = "url")
 @EnableConfigurationProperties(VaultProperties.class)
@@ -22,5 +22,11 @@ public class VaultAutoConfiguration {
             .defaultHeader(VaultConstants.TOKEN_HEADER, properties.token())
             .build(),
         properties.mount());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  SigningKeys signingKeys(VaultSecrets vaultSecrets) {
+    return new SigningKeys(vaultSecrets);
   }
 }

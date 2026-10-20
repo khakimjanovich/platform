@@ -2,3 +2,8 @@
 plugins {
     id 'ecom.contract'
 }
+
+contract {
+    client = true
+    useResponseEntity = false
+}

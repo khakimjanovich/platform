@@ -12,4 +12,7 @@ public class VaultConstants {
   public static final String DATA_PATH = "/v1/{mount}/data/{path}";
 
   public static final String DATA = "data";
+
+  public static final String SIGNING_KEY_PATH = "merchants/%s";
+  public static final String SIGNING_KEY = "signingKey";
 }

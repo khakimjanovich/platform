@@ -1,228 +1,1512 @@
-# Humo adapter: the Payment Server (SOAP) and the middleware (REST) behind plain REST.
+# Humo adapter: the open_banking humo-adapter contract, its e-commerce operations (no SMS3, card2 or PINFL lookups).
 openapi: 3.0.3
 info:
   title: Humo Adapter
-  version: "1"
-  description: |
-    Every answer is an envelope {requestId, status, data}. `status` says what Humo decided;
-    HTTP errors mean the adapter couldn't get an answer (502 Humo error, 504 no answer in time):
-    the caller must treat those as unknown, never as declined. A debit is authorize (a hold), then
-    capture.
-
+  version: '1'
+  description: 'Adapter between our services and HUMO: the Payment Server (SOAP) and the Middleware (REST), proxied
+    operation by operation. Every answer is an envelope {requestId, status, data}; a HUMO error is a problem detail
+    whose `code` names the status and whose subErrors[0] carries HUMO''s own code.'
+tags:
+- name: HumoPaymentService
+  description: Payment operations service endpoints
+- name: HumoMiddlewareService
+  description: HUMO Middleware endpoints — SMS permissions, IIACS card information and CS services
 paths:
-  /v1/send/sms:
-    post:
-      tags: [HumoMiddlewareService]
-      operationId: sendSms
-      summary: Sends a binding code to the cardholder's phone
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/SmsRequest" }
-      responses:
-        "200": { description: Code sent, content: { application/json: { schema: { $ref: "#/components/schemas/SmsResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
-  /v1/send/code:
-    post:
-      tags: [HumoMiddlewareService]
-      operationId: confirmSms
-      summary: Checks the code and returns the card's token
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ConfirmSmsRequest" }
-      responses:
-        "200": { description: The card's token, content: { application/json: { schema: { $ref: "#/components/schemas/ConfirmSmsResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
-  /v2/pm/bins:
-    get:
-      tags: [HumoMiddlewareService]
-      operationId: listBins
-      summary: Humo's BIN ranges
-      responses:
-        "200": { description: BIN ranges, content: { application/json: { schema: { $ref: "#/components/schemas/BinListResult" } } } }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
   /v1/payment/authorize:
     post:
-      tags: [HumoPaymentService]
+      summary: Authorize DMS card debit payment
+      description: 'Authorizes a card debit payment via the SOAP_DMS biller. Funds are held (blocked) on the cardholder''s
+        account but not yet debited. Adapter proxies the request to the HUMO Payment Server SOAP method Payment
+        (urn:PaymentServer). A response with action = 4 means the hold was placed successfully and the payment must
+        subsequently be confirmed or cancelled.
+
+        '
       operationId: authorizePayment
-      summary: Holds the amount on the card
+      tags:
+      - HumoPaymentService
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/AuthorizePaymentRequest" }
+            schema:
+              $ref: '#/components/schemas/AuthorizePaymentRequest'
       responses:
-        "200": { description: The hold, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
+        '200':
+          description: Payment authorized (funds held) successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorizePaymentResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
   /v1/payment/capture:
     post:
-      tags: [HumoPaymentService]
+      summary: Capture (confirm) an authorized DMS card debit payment
+      description: 'Confirms a previously authorized SOAP_DMS card debit payment with the unchanged (originally
+        authorized) amount, causing the held funds to be debited from the cardholder''s account. paymentRef must
+        be the same one used in the authorize request. Adapter proxies the request to the HUMO Payment Server SOAP
+        method Payment (urn:PaymentServer) with confirmed = true and finished = true. If the cardholder cancels
+        the payment instead, CancelRequest must be used.
+
+        '
       operationId: capturePayment
-      summary: Takes the held amount
+      tags:
+      - HumoPaymentService
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PaymentIdRequest" }
+            schema:
+              $ref: '#/components/schemas/CapturePaymentRequest'
       responses:
-        "200": { description: The capture, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
+        '200':
+          description: Payment captured (funds debited) successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapturePaymentResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
   /v1/payment/cancel:
     post:
-      tags: [HumoPaymentService]
+      summary: Cancel an active DMS card debit payment
+      description: 'Cancels a payment identified by paymentId or paymentRef. Usable only for payments in "active"
+        status; the held funds are released back to the cardholder''s account instantly. Adapter proxies the request
+        to the HUMO Payment Server SOAP method CancelRequest (urn:PaymentServer). Cancellation must be performed
+        within 14 days of the payment; otherwise the response returns auth_action_code_final "914 - Decline reason
+        message: not able to trace back to original transaction", in which case the refund must be requested via
+        the "№1 Reversal form" and the payment is cancelled by the HUMO Processing Center.
+
+        '
       operationId: cancelPayment
-      summary: Cancels a hold or a captured payment before settlement
+      tags:
+      - HumoPaymentService
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PaymentIdRequest" }
+            schema:
+              $ref: '#/components/schemas/CancelPaymentRequest'
       responses:
-        "200": { description: The cancellation, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
-  /v1/payment/return:
+        '200':
+          description: Payment cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelPaymentResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v1/payment/refund:
     post:
-      tags: [HumoPaymentService]
-      operationId: returnPayment
-      summary: Returns a finished payment to the card after settlement (ReturnPayment)
+      summary: Return (refund) a finished DMS card debit payment
+      description: 'Returns (refunds) a payment identified by paymentId or paymentRef. Usable only for payments
+        in "finished" status. Funds are returned to the cardholder after the nearest clearing cycle. Adapter proxies
+        the request to the HUMO Payment Server SOAP method ReturnPayment (urn:PaymentServer).
+
+        '
+      operationId: refundPayment
+      tags:
+      - HumoPaymentService
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PaymentIdRequest" }
+            schema:
+              $ref: '#/components/schemas/RefundPaymentRequest'
       responses:
-        "200": { description: The return, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        '200':
+          description: Payment returned (refunded) successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundPaymentResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v1/reconciliation/authorize:
+    post:
+      summary: Authorize virtual terminal reconciliation (RECO)
+      description: 'Starts a reconciliation (RECO) of the virtual terminal''s totals via the SOAP_RECO biller, required
+        to finalize e-pos operations and build transaction files. It is recommended to run reconciliation at least
+        3 times a day, 15 minutes before each clearing session, with a mandatory run between 23:45 and 00:00. A
+        RECO must always be performed after a refundPayment, otherwise the funds will not be returned on time. Adapter
+        proxies the request to the HUMO Payment Server SOAP method Payment (urn:PaymentServer). A response with
+        action = 4 means the reconciliation must subsequently be confirmed via reconcileConfirm. Unlike authorizePayment
+        and capturePayment, the reconciliation operations do not turn a non-approved answer into an error: a successful
+        RECO legitimately carries auth_action_code_final values in the 500-504 range, so the adapter always answers
+        200 with the raw action and the caller decides. Treat action = 4 as the only success and any other value
+        as a failed RECO.
 
+        '
+      operationId: reconcileAuthorize
+      tags:
+      - HumoPaymentService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconcileAuthorizeRequest'
+      responses:
+        '200':
+          description: Reconciliation authorized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconcileAuthorizeResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v1/reconciliation/confirm:
+    post:
+      summary: Confirm virtual terminal reconciliation (RECO)
+      description: 'Confirms a previously authorized reconciliation (RECO). paymentRef must be the same one used
+        in the reconcileAuthorize request. Adapter proxies the request to the HUMO Payment Server SOAP method Payment
+        (urn:PaymentServer) with confirmed = true and finished = true. A response with action = 10 means the reconciliation
+        totals were finalized successfully.
+
+        '
+      operationId: reconcileConfirm
+      tags:
+      - HumoPaymentService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconcileConfirmRequest'
+      responses:
+        '200':
+          description: Reconciliation confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconcileConfirmResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
   /v1/payment/status:
     get:
-      tags: [HumoPaymentService]
-      operationId: getPaymentStatus
-      summary: What Humo knows about a payment, by the caller's own reference
-      parameters:
-        - { name: paymentRef, in: query, required: true, schema: { type: string } }
-      responses:
-        "200": { description: "The payment, or status NOT_FOUND", content: { application/json: { schema: { $ref: "#/components/schemas/PaymentResult" } } } }
-        "5XX": { $ref: "#/components/responses/Problem" }
+      summary: Get payment status
+      description: 'Returns information about a payment and its status in the Processing Center. Adapter proxies
+        the request to the HUMO Payment Server SOAP method GetPayment (urn:PaymentServer). Either paymentId or paymentRef
+        must be supplied to identify the payment.
 
+        '
+      operationId: getPaymentStatus
+      tags:
+      - HumoPaymentService
+      parameters:
+      - name: paymentId
+        in: query
+        description: Unique payment identifier in the Payment Server
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: paymentRef
+        in: query
+        description: Payment reference number
+        required: false
+        schema:
+          type: string
+          maxLength: 64
+      - name: paymentOriginator
+        in: query
+        description: Code of the system that originated the payment
+        required: true
+        schema:
+          type: string
+          maxLength: 32
+      responses:
+        '200':
+          description: Payment information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPaymentResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v1/send/sms:
+    post:
+      summary: Send an SMS confirmation code to the given phone number
+      description: 'Sends a one-time confirmation code to the supplied phone number for the given card, starting
+        the flow that grants a permanent debit permission. The SMS is sent only for cards in statuses 000 and 125.
+        Adapter proxies the request to the HUMO Middleware method /v1/send/sms and wraps the result into an envelope
+        whose top-level status reflects how the call finished.
+
+        '
+      operationId: sendSms
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmsSendRequest'
+      responses:
+        '200':
+          description: SMS sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmsSendResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v1/send/code:
+    post:
+      summary: Confirm the SMS code sent to the phone number
+      description: 'Confirms the code previously sent via /v1/send/sms and, on success, grants a permanent debit
+        permission for the card. The code is valid for 1 minute; after 3 incorrect codes the cardholder is blocked
+        for 24 hours. Adapter proxies the request to the HUMO Middleware method /v1/send/code.
+
+        '
+      operationId: confirmSms
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmsCodeRequest'
+      responses:
+        '200':
+          description: Code confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SmsCodeResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v3/iiacs/card:
+    post:
+      summary: Get card information with balance and mobile banking status
+      description: 'Retrieves card information, statuses, tied accounts, the calculated balance and, when mbFlag
+        is set, the mobile banking state with the cardholder''s phone number. Works for balance lookup after the
+        SMS confirmation flow and for card status checks. Adapter proxies the request to the HUMO Middleware method
+        /v3/iiacs/card.
+
+        '
+      operationId: iiacsCard
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IiacsCardRequest'
+      responses:
+        '200':
+          description: Card information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IiacsCardResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
+  /v2/pm/bins:
+    get:
+      summary: Get the HUMO BIN list
+      description: 'Returns the registry of HUMO BINs with the owning bank, owner kind and card type flags. Adapter
+        proxies the request to the HUMO Middleware method /v2/pm/bins - the only GET in that API, whose response
+        carries a bare data array instead of the id/result envelope. The registry changes rarely; the caller is
+        expected to cache it rather than call per transaction.
+
+        '
+      operationId: listBins
+      tags:
+      - HumoMiddlewareService
+      responses:
+        '200':
+          description: BIN list returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BinListResult'
+        4XX:
+          $ref: '#/components/responses/Problem'
+        5XX:
+          $ref: '#/components/responses/Problem'
 components:
   responses:
     Problem:
-      description: RFC 9457 problem detail with a stable error code
+      description: RFC 9457 problem detail with a stable error code, and HUMO's own code in subErrors
       content:
         application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
-    HumoStatusCode:
-      type: string
-      description: SUCCESS done · DECLINED refused by the card's bank · NOT_FOUND no such payment
-      enum: [SUCCESS, DECLINED, NOT_FOUND]
-    PaymentStatus:
-      type: string
-      description: HELD the amount is on hold · CAPTURED taken · CANCELLED given back before settlement · RETURNED given back after it
-      enum: [HELD, CAPTURED, CANCELLED, RETURNED]
-    DeclineReason:
-      type: string
-      description: Why the card's bank refused, the same words for every scheme
-      enum: [INSUFFICIENT_FUNDS, EXPIRED_CARD, LIMIT_EXCEEDED, OTHER]
-    SmsRequest:
-      type: object
-      required: [pan, expiry]
-      properties:
-        pan: { type: string, pattern: "^[0-9]{16}$" }
-        expiry: { type: string, pattern: "^[0-9]{4}$", description: YYMM }
-    SmsResult:
-      type: object
-      required: [requestId, status]
-      properties:
-        requestId: { type: string }
-        status: { $ref: "#/components/schemas/HumoStatusCode" }
-    ConfirmSmsRequest:
-      type: object
-      required: [pan, code]
-      properties:
-        pan: { type: string, pattern: "^[0-9]{16}$" }
-        code: { type: string, pattern: "^[0-9]{4,8}$" }
-    ConfirmSmsResponse:
-      type: object
-      required: [token]
-      properties:
-        token: { type: string }
-    ConfirmSmsResult:
-      type: object
-      required: [requestId, status, data]
-      properties:
-        requestId: { type: string }
-        status: { $ref: "#/components/schemas/HumoStatusCode" }
-        data: { $ref: "#/components/schemas/ConfirmSmsResponse" }
-    BinRecord:
-      type: object
-      required: [bin]
-      properties:
-        bin: { type: string }
-        bankCode: { type: string, description: The issuing bank at Humo }
-    BinListResult:
-      type: object
-      required: [requestId, status, data]
-      properties:
-        requestId: { type: string }
-        status: { $ref: "#/components/schemas/HumoStatusCode" }
-        data:
-          type: array
-          items: { $ref: "#/components/schemas/BinRecord" }
     AuthorizePaymentRequest:
       type: object
-      required: [paymentRef, pan, expiry, amount, merchantId, terminalId]
+      description: Request to authorize (hold funds for) a card debit payment via the SOAP_DMS biller
+      required:
+      - language
+      - billerRef
+      - payinstrRef
+      - sessionId
+      - paymentRef
+      - pan
+      - expiry
+      - ccyCode
+      - amount
+      - merchantId
+      - terminalId
+      - paymentOriginator
+      - centreId
       properties:
-        paymentRef: { type: string, maxLength: 64, description: "The caller's id for the payment; status looks it up" }
-        pan: { type: string, pattern: "^[0-9]{16}$" }
-        expiry: { type: string, pattern: "^[0-9]{4}$" }
-        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
-        merchantId: { type: string }
-        terminalId: { type: string }
-    PaymentIdRequest:
+        language:
+          type: string
+          description: Language code
+        billerRef:
+          type: string
+          description: Reference of the biller to start the payment with
+        payinstrRef:
+          type: string
+          description: Reference of the payment instrument to use
+        sessionId:
+          type: string
+          description: Payment Server session identifier
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: 'Payment identifier assigned by the sender of the request. Allows retrieving the payment
+            status in cases when the response to the request was not received.
+
+            '
+        pan:
+          type: string
+          maxLength: 16
+          description: Card PAN (Primary Account Number)
+        expiry:
+          type: string
+          maxLength: 4
+          description: Card expiry date (YYMM)
+        ccyCode:
+          type: string
+          maxLength: 3
+          description: Transaction currency numeric code (ISO 4217). 860 is used for UZS payments
+        amount:
+          type: string
+          maxLength: 12
+          description: 'Transaction amount in minor units (tiyin). Maximum amount: 999999999999. Only digit characters
+            are allowed.
+
+            '
+        merchantId:
+          type: string
+          maxLength: 15
+          description: Merchant identifier
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Terminal identifier
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+        centreId:
+          type: string
+          description: Bank identifier (filled in according to the bank correspondence table)
+    AuthorizePaymentResponse:
       type: object
-      required: [paymentId]
+      description: Result of the DMS card debit authorization (hold) request
+      required:
+      - paymentId
+      - action
       properties:
-        paymentId: { type: string }
-    PaymentResponse:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        action:
+          type: integer
+          description: 'Payment Server action code. 4 means the fields were filled in correctly and the payment
+            requires cardholder confirmation (Confirm) or cancellation (CancelRequest).
+
+            '
+        details:
+          type: object
+          description: Payment attributes returned by the Processing Center
+          properties:
+            pan:
+              type: string
+              description: Card PAN (Primary Account Number)
+            expiry:
+              type: string
+              description: Card expiry date (YYMM)
+            ccyCode:
+              type: string
+              description: Transaction currency numeric code (ISO 4217)
+            amount:
+              type: string
+              description: Transaction amount in minor units
+            merchantId:
+              type: string
+              description: Merchant identifier
+            terminalId:
+              type: string
+              description: Terminal identifier
+            centreId:
+              type: string
+              description: Processing centre identifier
+            internalPanMasked:
+              type: string
+              description: Masked card PAN
+            netswProccode:
+              type: string
+              description: Network switch processing code
+            pointCode:
+              type: string
+              description: Point of service code
+            sli:
+              type: string
+              description: Service level indicator
+            cardholderAmount1a:
+              type: string
+              description: Cardholder billing amount (1A field)
+            cardholderCcyCode:
+              type: string
+              description: Cardholder billing currency code
+            conversionRate:
+              type: string
+              description: Currency conversion rate
+            fld046Resp:
+              type: string
+              description: Raw ISO 8583 field 046 response data
+            authActionCode:
+              type: string
+              description: Authorization action/response code
+            authActionCodeFinal:
+              type: string
+              description: Final authorization action code
+            authApprCode:
+              type: string
+              description: Authorization approval code
+            authApprCode1a:
+              type: string
+              description: Authorization approval code (1A field)
+            authRefNumber:
+              type: string
+              description: Authorization reference number
+            authStan:
+              type: string
+              description: Authorization system trace audit number (STAN)
+            authStan1a:
+              type: string
+              description: Authorization STAN (1A field)
+            authTime:
+              type: string
+              description: Authorization timestamp (YYYYMMDDHHMMSS)
+            stipClientId:
+              type: string
+              description: STIP client identifier
+            cardType:
+              type: string
+              description: Card type code
+            merchantName:
+              type: string
+              description: Merchant name
+            acqInst:
+              type: string
+              description: Acquirer institution code
+            authRowNumb1a:
+              type: string
+              description: Authorization row number (1A field)
+            retRefNumb1a:
+              type: string
+              description: Retrieval reference number (1A field)
+            reconcileInfo:
+              type: string
+              description: Reconciliation information
+            amount1a:
+              type: string
+              description: Transaction amount (1A field)
+            amount1aOriginal:
+              type: string
+              description: Original transaction amount (1A field)
+            issRefData:
+              type: string
+              description: Issuer reference data
+            authMsgRef1a:
+              type: string
+              description: Authorization message reference (1A field)
+    AuthorizePaymentResult:
+      type: object
+      description: Envelope of the authorize payment operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/AuthorizePaymentResponse'
+    BinListResult:
+      type: object
+      description: Envelope of the /v2/pm/bins operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BinRecord'
+    BinRecord:
+      type: object
+      description: One HUMO BIN registry entry
+      properties:
+        bankCode:
+          type: string
+          description: Bank code owning the BIN row (bank_c)
+        bankName:
+          type: string
+          description: Bank name
+        binCode:
+          type: string
+          description: BIN code, eight digits
+        binOwner:
+          type: string
+          description: BIN owner kind, PERSONAL or JURIDICAL
+        virtual:
+          type: boolean
+          description: True when the BIN issues virtual cards (isVirtual "1")
+        cobadge:
+          type: boolean
+          description: True when the BIN issues cobadge cards (isCobadge "1")
+        limitedInEpos:
+          type: string
+          description: Additional information about E-POS limitations, as the centre reports it
+        cardName:
+          type: string
+          description: Additional information about the card type
+    CancelPaymentRequest:
+      type: object
+      description: Request to cancel an active payment identified by paymentId or paymentRef
+      required:
+      - paymentOriginator
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    CancelPaymentResult:
+      type: object
+      description: Envelope of the cancel payment operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+    CapturePaymentRequest:
+      type: object
+      description: 'Request to confirm a previously authorized SOAP_DMS card debit payment with the amount unchanged
+        from the authorization request.
+
+        '
+      required:
+      - paymentRef
+      - confirmed
+      - finished
+      - paymentOriginator
+      properties:
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number used in the authorize request
+        confirmed:
+          type: boolean
+          description: Confirms the payment. Must be true to debit the held funds
+        finished:
+          type: boolean
+          description: Marks the payment as finished
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    CapturePaymentResponse:
+      type: object
+      description: Result of the DMS card debit capture (confirmation) request
+      required:
+      - paymentId
+      - action
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        action:
+          type: integer
+          description: Payment Server action code. 10 means the payment was successfully captured (funds debited)
+        details:
+          type: object
+          description: Payment attributes returned by the Processing Center
+          properties:
+            pan:
+              type: string
+              description: Card PAN (Primary Account Number)
+            expiry:
+              type: string
+              description: Card expiry date (YYMM)
+            ccyCode:
+              type: string
+              description: Transaction currency numeric code (ISO 4217)
+            amount:
+              type: string
+              description: Transaction amount in minor units
+            merchantId:
+              type: string
+              description: Merchant identifier
+            terminalId:
+              type: string
+              description: Terminal identifier
+            centreId:
+              type: string
+              description: Processing centre identifier
+            internalPanMasked:
+              type: string
+              description: Masked card PAN
+            netswProccode:
+              type: string
+              description: Network switch processing code
+            pointCode:
+              type: string
+              description: Point of service code
+            sli:
+              type: string
+              description: Service level indicator
+            cardholderAmount1a:
+              type: string
+              description: Cardholder billing amount (1A field)
+            cardholderCcyCode:
+              type: string
+              description: Cardholder billing currency code
+            conversionRate:
+              type: string
+              description: Currency conversion rate
+            fld046Resp:
+              type: string
+              description: Raw ISO 8583 field 046 response data
+            authActionCode:
+              type: string
+              description: Authorization action/response code
+            authActionCodeFinal:
+              type: string
+              description: Final authorization action code
+            authApprCode:
+              type: string
+              description: Authorization approval code
+            authApprCode1a:
+              type: string
+              description: Authorization approval code (1A field)
+            authRefNumber:
+              type: string
+              description: Authorization reference number
+            authStan:
+              type: string
+              description: Authorization system trace audit number (STAN)
+            authStan1a:
+              type: string
+              description: Authorization STAN (1A field)
+            authTime:
+              type: string
+              description: Authorization timestamp (YYYYMMDDHHMMSS)
+            stipClientId:
+              type: string
+              description: STIP client identifier
+            cardType:
+              type: string
+              description: Card type code
+            merchantName:
+              type: string
+              description: Merchant name
+            acqInst:
+              type: string
+              description: Acquirer institution code
+            authRowNumb1a:
+              type: string
+              description: Authorization row number (1A field)
+            retRefNumb1a:
+              type: string
+              description: Retrieval reference number (1A field)
+            reconcileInfo:
+              type: string
+              description: Reconciliation information
+            amount1a:
+              type: string
+              description: Transaction amount (1A field)
+            amount1aOriginal:
+              type: string
+              description: Original transaction amount (1A field)
+            issRefData:
+              type: string
+              description: Issuer reference data
+            authMsgRef1a:
+              type: string
+              description: Authorization message reference (1A field)
+            transactionAmount:
+              type: string
+              description: Transaction amount
+            authRowNumb1:
+              type: string
+              description: Authorization row number
+            authMsgRef1:
+              type: string
+              description: Authorization message reference
+    CapturePaymentResult:
+      type: object
+      description: Envelope of the capture payment operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/CapturePaymentResponse'
+    GetPaymentResponse:
+      type: object
+      description: Payment information and status returned from the Processing Center
+      required:
+      - paymentId
+      - status
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          description: Payment reference number
+          maxLength: 64
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        details:
+          type: object
+          description: Payment attributes returned by the Processing Center (set of keys depends on payment type)
+          properties:
+            pan:
+              type: string
+              description: Card PAN (Primary Account Number)
+            expiry:
+              type: string
+              description: Card expiry date (YYMM)
+            ccyCode:
+              type: string
+              description: Transaction currency numeric code (ISO 4217)
+            amount:
+              type: string
+              description: Transaction amount in minor units
+            merchantId:
+              type: string
+              description: Merchant identifier
+            terminalId:
+              type: string
+              description: Terminal identifier
+            centreId:
+              type: string
+              description: Processing centre identifier
+            internalPanMasked:
+              type: string
+              description: Masked card PAN
+            netswProccode:
+              type: string
+              description: Network switch processing code
+            pointCode:
+              type: string
+              description: Point of service code
+            sli:
+              type: string
+              description: Service level indicator
+            cardholderAmount1a:
+              type: string
+              description: Cardholder billing amount (1A field)
+            cardholderCcyCode:
+              type: string
+              description: Cardholder billing currency code
+            conversionRate:
+              type: string
+              description: Currency conversion rate
+            fld046Resp:
+              type: string
+              description: Raw ISO 8583 field 046 response data
+            authActionCode:
+              type: string
+              description: Authorization action/response code
+            authActionCodeFinal:
+              type: string
+              description: Final authorization action code
+            authApprCode:
+              type: string
+              description: Authorization approval code
+            authApprCode1a:
+              type: string
+              description: Authorization approval code (1A field)
+            authRefNumber:
+              type: string
+              description: Authorization reference number
+            authStan:
+              type: string
+              description: Authorization system trace audit number (STAN)
+            authStan1a:
+              type: string
+              description: Authorization STAN (1A field)
+            authTime:
+              type: string
+              description: Authorization timestamp (YYYYMMDDHHMMSS)
+            stipClientId:
+              type: string
+              description: STIP client identifier
+            cardType:
+              type: string
+              description: Card type code
+            merchantName:
+              type: string
+              description: Merchant name
+            acqInst:
+              type: string
+              description: Acquirer institution code
+            authRowNumb1a:
+              type: string
+              description: Authorization row number (1A field)
+            retRefNumb1a:
+              type: string
+              description: Retrieval reference number (1A field)
+            reconcileInfo:
+              type: string
+              description: Reconciliation information
+            amount1a:
+              type: string
+              description: Transaction amount (1A field)
+            amount1aOriginal:
+              type: string
+              description: Original transaction amount (1A field)
+            issRefData:
+              type: string
+              description: Issuer reference data
+            transactionAmount:
+              type: string
+              description: Transaction amount
+            authActionCode1pr:
+              type: string
+              description: Authorization action code (1PR field)
+            authRowNumb1pr:
+              type: string
+              description: Authorization row number (1PR field)
+            authRowNumb1:
+              type: string
+              description: Authorization row number
+    GetPaymentResult:
+      type: object
+      description: Envelope of the get payment status operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/GetPaymentResponse'
+    HumoAdapterStatusCode:
+      type: string
+      description: 'Status the HUMO call result has to be treated with. SUCCESS is the only value returned in the
+        200 envelope; the other values name the resolved category of a HUMO error (Middleware error code or Payment
+        Server response code) and are carried in the message of the error response.
+
+        '
+      enum:
+      - SUCCESS
+      - ERROR
+      - UNAUTHORIZED
+      - SERVICE_UNAVAILABLE
+    IiacsAccountRecord:
+      type: object
+      description: Account record tied to the card
+      properties:
+        institutionId:
+          type: string
+          description: Institution identifier of the account
+        accountId:
+          type: string
+          description: Account identifier in the processing centre
+        bankAccountId:
+          type: string
+          description: Bank account number
+        currency:
+          type: string
+          description: Numeric currency code of the account
+        cardholderId:
+          type: string
+          description: Cardholder identifier the account belongs to
+        effectiveDate:
+          type: string
+          description: Account effective date
+        updateDate:
+          type: string
+          description: Account record last update date
+        accountType:
+          type: string
+          description: Account type
+        initialAmount:
+          type: number
+          description: Initial amount in minor units of the account currency
+        lockedBackofficeAmount:
+          type: number
+          description: Amount locked by the back office in minor units
+        lockTime:
+          type: string
+          description: Time of the last lock
+        shadowAmount:
+          type: number
+          description: Shadow amount in minor units
+        priority:
+          type: integer
+          format: int32
+          description: Account priority
+        status:
+          type: string
+          description: Account status, for example Active or Dormant
+        availableAmount:
+          type: number
+          description: Available amount in minor units of the account currency
+    IiacsBalanceRecord:
+      type: object
+      description: Balance record calculated from the tied account balances
+      properties:
+        currency:
+          type: string
+          description: Numeric currency code of the balance
+        initialAmount:
+          type: number
+          description: Initial amount in minor units
+        bonusAmount:
+          type: number
+          description: Bonus amount in minor units
+        creditLimit:
+          type: number
+          description: Credit limit in minor units
+        lockedBackofficeAmount:
+          type: number
+          description: Amount locked by the back office in minor units
+        lockedBackofficeAmountOffline:
+          type: number
+          description: Amount locked by the back office offline in minor units
+        lockedAmount:
+          type: number
+          description: Lock sum from STIP locks in minor units
+        availableAmount:
+          type: number
+          description: Available amount calculated from initial amount, credit limit, bonus amount and locked amounts
+        exponent:
+          type: integer
+          format: int32
+          description: Currency exponent, returned when returnExponent is requested
+    IiacsCardRecord:
+      type: object
+      description: Card record as returned by the HUMO Middleware IIACS service
+      properties:
+        institutionId:
+          type: string
+          description: Institution identifier of the issuing bank
+        pan:
+          type: string
+          description: Card PAN as returned by the processing centre
+        effectiveDate:
+          type: string
+          description: Card effective date
+        updateDate:
+          type: string
+          description: Card record last update date
+        prefixNumber:
+          type: integer
+          format: int32
+          description: Card prefix number
+        expiry:
+          type: string
+          description: Card expiry date (YYMM)
+        cardSequenceNumber:
+          type: integer
+          format: int32
+          description: Card sequence number
+        cardholderId:
+          type: string
+          description: Cardholder identifier in the processing centre
+        nameOnCard:
+          type: string
+          description: Name embossed on the card
+        accountRestrictionsFlag:
+          type: string
+          description: Account restrictions flag
+        commissionGroup:
+          type: string
+          description: Commission group of the card
+        cardUserId:
+          type: string
+          description: Card user identifier, used to derive the mobile banking customer identifier
+        additionalInfo:
+          type: string
+          description: Additional information supplied by the processing centre
+        riskGroup:
+          type: string
+          description: Risk group of the card
+        riskGroup2:
+          type: string
+          description: Secondary risk group of the card
+        bankCode:
+          type: string
+          description: Issuing bank code (BANK_C), digits 5-6 of a HUMO PAN
+        pinTryCount:
+          type: integer
+          format: int32
+          description: Wrong PIN attempts counter
+        statuses:
+          type: array
+          description: Card status items; the card is fully operational only when every item has actionCode 000
+          items:
+            $ref: '#/components/schemas/IiacsCardStatusItem'
+    IiacsCardRequest:
+      type: object
+      description: Request for card information with balance and optional mobile banking status
+      required:
+      - pan
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: Card PAN (Primary Account Number)
+        accountType:
+          type: string
+          description: Account type for filtering tied accounts
+        currency:
+          type: string
+          maxLength: 3
+          description: Currency for filtering tied accounts, for example EUR, RUR, USD
+        returnExponent:
+          type: boolean
+          description: When true the currency exponents for accounts and balance are returned
+        mbFlag:
+          type: boolean
+          description: When true the mobile banking status with the cardholder's phone number is returned
+    IiacsCardResponse:
+      type: object
+      description: Card information with statuses, tied accounts, balance and mobile banking state
+      properties:
+        listSize:
+          type: integer
+          format: int32
+          description: Count of retrieved account records
+        card:
+          $ref: '#/components/schemas/IiacsCardRecord'
+        account:
+          type: array
+          description: List of account records tied to the card
+          items:
+            $ref: '#/components/schemas/IiacsAccountRecord'
+        balance:
+          $ref: '#/components/schemas/IiacsBalanceRecord'
+        mb:
+          $ref: '#/components/schemas/IiacsMobileBankRecord'
+    IiacsCardResult:
+      type: object
+      description: Envelope of the /v3/iiacs/card operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/IiacsCardResponse'
+    IiacsCardStatusItem:
+      type: object
+      description: Single card status item of the IIACS statuses block
+      properties:
+        type:
+          type: string
+          description: Status type, one of card, card2, hot, issuer, user
+        actionCode:
+          type: string
+          description: Action code of the status, 000 means approved
+        actionDescription:
+          type: string
+          description: Human readable description of the action code
+        effectiveDate:
+          type: string
+          description: Date the status became effective
+        note:
+          type: string
+          description: Optional note attached to the status
+    IiacsMobileBankRecord:
+      type: object
+      description: Mobile banking status block, returned when mbFlag is requested
+      properties:
+        state:
+          type: string
+          description: State of the mobile banking agreement, one of on, off, off-phone, no-phone, off-card
+        phone:
+          type: string
+          description: Phone number in international format, present only when the agreement state provides it
+        message:
+          type: string
+          description: Description of the mobile banking state
+    PaymentStatus:
+      type: string
+      description: Payment status
+      enum:
+      - AUTHORIZED
+      - CAPTURED
+      - NOT_FOUND
+    ReconcileAuthorizeRequest:
+      type: object
+      description: Request to authorize a virtual terminal reconciliation (RECO) via the SOAP_RECO biller
+      required:
+      - billerRef
+      - payinstrRef
+      - paymentRef
+      - terminalId
+      - paymentOriginator
+      properties:
+        billerRef:
+          type: string
+          description: Reference of the biller to start the reconciliation with
+        payinstrRef:
+          type: string
+          description: Reference of the payment instrument to use
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment identifier assigned by the sender of the request
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Terminal identifier
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    ReconcileAuthorizeResponse:
+      type: object
+      description: Result of the reconciliation authorization request
+      required:
+      - paymentId
+      - action
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        action:
+          type: integer
+          description: 'Payment Server action code. 4 means the fields were filled in correctly and the reconciliation
+            requires confirmation via reconcileConfirm.
+
+            '
+        details:
+          type: object
+          description: Reconciliation attributes returned by the Processing Center
+          properties:
+            terminalId:
+              type: string
+              description: Terminal identifier
+            ttl:
+              type: string
+              description: Time-to-live of the reconciliation session (minutes)
+            ttlAction:
+              type: string
+              description: Time-to-live action code
+    ReconcileAuthorizeResult:
+      type: object
+      description: Envelope of the reconcile authorize operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/ReconcileAuthorizeResponse'
+    ReconcileConfirmRequest:
+      type: object
+      description: Request to confirm a previously authorized virtual terminal reconciliation (RECO)
+      required:
+      - payinstrRef
+      - paymentRef
+      - confirmed
+      - finished
+      - paymentOriginator
+      properties:
+        payinstrRef:
+          type: string
+          description: Reference of the payment instrument used
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number used in the reconcileAuthorize request
+        confirmed:
+          type: boolean
+          description: Confirms the reconciliation. Must be true to finalize the totals
+        finished:
+          type: boolean
+          description: Marks the reconciliation as finished
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    ReconcileConfirmResponse:
+      type: object
+      description: Result of the reconciliation confirmation request
+      required:
+      - paymentId
+      - action
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        action:
+          type: integer
+          description: Payment Server action code. 10 means the reconciliation totals were finalized successfully
+        details:
+          type: object
+          description: Reconciliation totals returned by the Processing Center
+          properties:
+            terminalId:
+              type: string
+              description: Terminal identifier
+            ttl:
+              type: string
+              description: Time-to-live of the reconciliation session (minutes)
+            ttlAction:
+              type: string
+              description: Time-to-live action code
+            debitsNumber:
+              type: string
+              description: Number of debit transactions included in the reconciliation
+            debitsAmount:
+              type: string
+              description: Total amount of debit transactions included in the reconciliation
+            creditsReversalNumber:
+              type: string
+              description: Number of credit/reversal transactions included in the reconciliation
+            creditsReversalAmount:
+              type: string
+              description: Total amount of credit/reversal transactions included in the reconciliation
+            reconcileInfo:
+              type: string
+              description: Reconciliation information
+    ReconcileConfirmResult:
+      type: object
+      description: Envelope of the reconcile confirm operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/ReconcileConfirmResponse'
+    RefundPaymentRequest:
+      type: object
+      description: Request to return (refund) a finished payment identified by paymentId or paymentRef
+      required:
+      - merchantId
+      - centreId
+      - terminalId
+      - paymentOriginator
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        merchantId:
+          type: string
+          maxLength: 15
+          description: Merchant identifier
+        centreId:
+          type: string
+          description: Bank identifier (filled in according to the bank correspondence table)
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Terminal identifier
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    RefundPaymentResult:
+      type: object
+      description: Envelope of the refund payment operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+    SmsCodeRequest:
+      type: object
+      description: Request to confirm the SMS code previously sent for the given card
+      required:
+      - pan
+      - code
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: Card PAN (Primary Account Number)
+        code:
+          type: string
+          maxLength: 6
+          description: Confirmation code. Valid for 1 minute
+    SmsCodeResponse:
+      type: object
+      description: Result of the SMS code confirmation, carries the permanent permission token
+      required:
+      - message
+      properties:
+        message:
+          type: string
+          maxLength: 256
+          description: Confirmation message
+        token:
+          type: string
+          maxLength: 12
+          description: Permanent permission token without an expiry
+    SmsCodeResult:
+      type: object
+      description: Envelope of the /v1/send/code operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/SmsCodeResponse'
+    SmsSendRequest:
+      type: object
+      description: Request to send an SMS confirmation code to the supplied phone number
+      required:
+      - pan
+      - msisdn
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: Card PAN (Primary Account Number)
+        msisdn:
+          type: string
+          maxLength: 13
+          description: Customer's phone number in international format
+        hash:
+          type: string
+          description: Hash code for auto reading the OTP on the device
+        serviceName:
+          type: string
+          description: Name of the sender shown to the recipient
+        expiry:
+          type: string
+          maxLength: 4
+          description: Card expiry date (YYMM)
+    SmsSendResponse:
+      type: object
+      description: Result of the send SMS request
+      required:
+      - message
+      properties:
+        message:
+          type: string
+          maxLength: 256
+          description: Confirmation message
+        maskedMsisdn:
+          type: string
+          maxLength: 13
+          description: Masked phone number the code was sent to
+    SmsSendResult:
+      type: object
+      description: Envelope of the /v1/send/sms operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/SmsSendResponse'
+    SubError:
       type: object
       properties:
-        paymentId: { type: string }
-        paymentStatus: { $ref: "#/components/schemas/PaymentStatus" }
-        rrn: { type: string, description: 12 digits }
-        responseCode: { type: string, description: "Humo's action code, as received" }
-        declineReason: { $ref: "#/components/schemas/DeclineReason" }
-    PaymentResult:
-      type: object
-      required: [requestId, status]
-      properties:
-        requestId: { type: string }
-        status: { $ref: "#/components/schemas/HumoStatusCode" }
-        data: { $ref: "#/components/schemas/PaymentResponse" }
+        code:
+          type: string
+          description: HUMO's own code
+        message:
+          type: string
     Problem:
       type: object
       description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required: [status, title, code]
+      required:
+      - status
+      - title
+      - code
       properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string }
-        code: { type: string }
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+        subErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubError'

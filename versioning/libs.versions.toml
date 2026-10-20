@@ -28,6 +28,9 @@ starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liq
 starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry" }
 starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient" }
+starter-webservices = { module = "org.springframework.boot:spring-boot-starter-webservices" }
+jaxb-runtime = { module = "org.glassfish.jaxb:jaxb-runtime" }
+saaj-impl = { module = "com.sun.xml.messaging.saaj:saaj-impl" }
 opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "opentelemetry-instrumentation" }
 micrometer-tracing = { module = "io.micrometer:micrometer-tracing" }
 temporal-opentracing = { module = "io.temporal:temporal-opentracing", version.ref = "temporal" }

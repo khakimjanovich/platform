@@ -53,6 +53,12 @@ class ProblemDetailsAdviceTest {
       throw new GeneralException(TestStatus.EMAIL_TAKEN, "aziz@example.uz");
     }
 
+    @GetMapping("/refused")
+    void refused() {
+      throw new GeneralException(TestStatus.EMAIL_TAKEN, "aziz@example.uz")
+          .subError("-240", "Insufficient funds!");
+    }
+
     @GetMapping("/undefined")
     void undefined() {
       throw new GeneralException(TestStatus.NOT_DEFINED);
@@ -89,6 +95,15 @@ class ProblemDetailsAdviceTest {
         .andExpect(jsonPath("$.detail").value("aziz@example.uz is already registered."));
     mvc.perform(get("/taken").header("Accept-Language", "uz"))
         .andExpect(jsonPath("$.detail").value("aziz@example.uz allaqachon roʻyxatdan oʻtgan."));
+  }
+
+  @Test
+  void aThirdPartysOwnCodesTravelAsSubErrors() throws Exception {
+    mvc.perform(get("/refused"))
+        .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"))
+        .andExpect(jsonPath("$.subErrors[0].code").value("-240"))
+        .andExpect(jsonPath("$.subErrors[0].message").value("Insufficient funds!"));
+    mvc.perform(get("/taken")).andExpect(jsonPath("$.subErrors").doesNotExist());
   }
 
   @Test

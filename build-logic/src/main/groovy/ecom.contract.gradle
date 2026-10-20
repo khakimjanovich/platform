@@ -74,6 +74,11 @@ def openApiGenerateClient = tasks.register('openApiGenerateClient', GenerateTask
     }
 }
 
+// inputSpec is a plain string to the generator: declare the file, so an edited spec regenerates
+// instead of being served from the build cache.
+tasks.named('openApiGenerate') { inputs.file(spec).withPathSensitivity(PathSensitivity.RELATIVE) }
+openApiGenerateClient.configure { inputs.file(spec).withPathSensitivity(PathSensitivity.RELATIVE) }
+
 sourceSets.main.java.srcDir(generatedDir.map { it.dir('src/main/java') })
 sourceSets.main.java.srcDir(generatedClientDir.map { it.dir('src/main/java') })
 tasks.named('compileJava') { dependsOn 'openApiGenerate', openApiGenerateClient }

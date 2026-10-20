@@ -1,26 +1,42 @@
-# Uzcard adapter: Uzcard's SV-Gate API (JSON-RPC 2.0) behind plain REST. Any service or project may call it.
+# Uzcard adapter: every operation is proxied to the SV-Gate JSON-RPC method of the same name.
 openapi: 3.0.3
 info:
   title: Uzcard Adapter
   version: "1"
   description: |
-    Every answer is an envelope {requestId, status, data}. `status` says what Uzcard decided;
-    HTTP errors mean the adapter couldn't get an answer (502 Uzcard error, 504 no answer in time):
-    the caller must treat those as unknown, never as declined.
+    Adapter between our services and Uzcard's SV-Gate. Every answer is an envelope {requestId, status, data},
+    with SV-Gate's own field names in `data`.
+
+    Final outcomes of a money operation travel as 200: SUCCESS / REVERSE_SUCCESS when approved, ERROR /
+    REVERSE_ERROR when declined, with the transaction (respSV, refNum) kept. Anything else is a problem detail
+    whose `code` names the status (UZCARD_ADAPTER_SV_GATE_ERROR, UZCARD_ADAPTER_NOT_FOUND, UZCARD_ADAPTER_PENDING,
+    UZCARD_ADAPTER_SERVICE_UNAVAILABLE, UZCARD_ADAPTER_MANUAL_REVIEW, UZCARD_ADAPTER_SV_GATE_CLIENT_ERROR) and whose
+    `subErrors[0]` carries SV-Gate's own code and message. Only SV_GATE_ERROR and NOT_FOUND are final; for the
+    rest the outcome is unknown and trans.ext tells it later.
+
+tags:
+  - name: UzcardCardService
+    description: Cards (SV-Gate cards.* methods)
+  - name: UzcardTransactionService
+    description: Transactions (SV-Gate trans.* methods)
+  - name: UzcardTerminalService
+    description: e-POS terminals (SV-Gate terminal.* methods)
+  - name: UzcardReportService
+    description: Reports for reconciliation (SV-Gate report.* methods)
 
 paths:
   /v1/cards/new-otp:
     post:
       tags: [UzcardCardService]
       operationId: cardsNewOtp
-      summary: Sends a binding code to the cardholder's phone (cards.new.otp)
+      summary: Sends an OTP to the phone attached to the card (cards.new.otp)
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/CardsNewOtpRequest" }
       responses:
-        "200": { description: Code sent, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewOtpResult" } } } }
+        "200": { description: OTP sent, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewOtpResult" } } } }
         "4XX": { $ref: "#/components/responses/Problem" }
         "5XX": { $ref: "#/components/responses/Problem" }
 
@@ -28,14 +44,29 @@ paths:
     post:
       tags: [UzcardCardService]
       operationId: cardsNewVerify
-      summary: Checks the code and returns the card's token (cards.new.verify)
+      summary: Confirms the OTP and returns the registered card; its id is the card's token (cards.new.verify)
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/CardsNewVerifyRequest" }
       responses:
-        "200": { description: The card's token, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewVerifyResult" } } } }
+        "200": { description: The card, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewVerifyResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/cards/remove-token:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsRemoveToken
+      summary: Removes card tokens from SV-Gate, e.g. when a saved card is deleted (cards.remove.token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsRemoveTokenRequest" }
+      responses:
+        "200": { description: Each token and its status, content: { application/json: { schema: { $ref: "#/components/schemas/CardsRemoveTokenResult" } } } }
         "4XX": { $ref: "#/components/responses/Problem" }
         "5XX": { $ref: "#/components/responses/Problem" }
 
@@ -43,38 +74,24 @@ paths:
     get:
       tags: [UzcardCardService]
       operationId: binList
-      summary: Uzcard's BIN ranges (get.bin.list)
+      summary: The BINs with their institution ids (get.bin.list)
       responses:
-        "200": { description: BIN ranges, content: { application/json: { schema: { $ref: "#/components/schemas/BinListResult" } } } }
+        "200": { description: BINs, content: { application/json: { schema: { $ref: "#/components/schemas/BinListResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
         "5XX": { $ref: "#/components/responses/Problem" }
 
   /v1/trans/pay-purpose:
     post:
       tags: [UzcardTransactionService]
       operationId: transPayPurpose
-      summary: Debits a card by its token in one step (trans.pay.purpose); a repeated ext is looked up, not paid twice
+      summary: Debits the card by its token for a payment purpose (trans.pay.purpose)
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/TransPayPurposeRequest" }
       responses:
-        "200": { description: The transaction, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
-
-  /v1/trans/reverse:
-    post:
-      tags: [UzcardTransactionService]
-      operationId: transReverse
-      summary: Reverses a transaction (trans.reverse)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/TransReverseRequest" }
-      responses:
-        "200": { description: The reversal, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
         "4XX": { $ref: "#/components/responses/Problem" }
         "5XX": { $ref: "#/components/responses/Problem" }
 
@@ -82,116 +99,445 @@ paths:
     post:
       tags: [UzcardTransactionService]
       operationId: transExt
-      summary: Finds a transaction by the caller's own reference (trans.ext)
+      summary: The transactions registered under the caller's external id (trans.ext)
+      description: |
+        The REVERSAL row decides when there is one (REVERSE_SUCCESS: the payment was given back). Nothing visible
+        yet is UZCARD_ADAPTER_PENDING; no such transaction (-208, -267, -282) is UZCARD_ADAPTER_NOT_FOUND.
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/TransExtRequest" }
       responses:
-        "200": { description: "The transaction, or status NOT_FOUND", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "200": { description: The transactions, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/trans/reverse:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: transReverse
+      summary: Reverses a whole transaction, once, by its refNum (trans.reverse)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransReverseRequest" }
+      responses:
+        "200": { description: "The debit and its reversal; REVERSE_SUCCESS or REVERSE_ERROR", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/trans/reverse-partial:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: transReversePartial
+      summary: Reverses part of a transaction; may repeat while the total stays within the original (trans.reverse.partial)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransReversePartialRequest" }
+      responses:
+        "200": { description: "The reversal; REVERSE_SUCCESS or REVERSE_ERROR", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/terminals:
+    get:
+      tags: [UzcardTerminalService]
+      operationId: terminalGet
+      summary: The e-POS terminals registered under our login (terminal.get)
+      responses:
+        "200": { description: Terminals, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalListResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [UzcardTerminalService]
+      operationId: terminalAdd
+      summary: Registers an e-POS terminal (MID/TID issued by Uzcard) in SV-Gate (terminal.add)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TerminalAddRequest" }
+      responses:
+        "200": { description: Registered, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalCodeResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/terminals/check:
+    post:
+      tags: [UzcardTerminalService]
+      operationId: terminalCheck
+      summary: One terminal as SV-Gate has it (terminal.check)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TerminalRequest" }
+      responses:
+        "200": { description: The terminal, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalCheckResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/terminals/remove:
+    post:
+      tags: [UzcardTerminalService]
+      operationId: terminalRemove
+      summary: Removes a terminal from SV-Gate (terminal.remove)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TerminalRequest" }
+      responses:
+        "200": { description: Removed, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalCodeResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/reports/sum:
+    post:
+      tags: [UzcardReportService]
+      operationId: reportSum
+      summary: How many transactions and how much in a period (report.sum)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportSumRequest" }
+      responses:
+        "200": { description: Totals, content: { application/json: { schema: { $ref: "#/components/schemas/ReportSumResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/reports/short:
+    post:
+      tags: [UzcardReportService]
+      operationId: reportShort
+      summary: One page of a period's transactions, short (report.short)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportPageRequest" }
+      responses:
+        "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/ReportShortResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
+        "5XX": { $ref: "#/components/responses/Problem" }
+
+  /v1/reports/detail:
+    post:
+      tags: [UzcardReportService]
+      operationId: reportDetail
+      summary: One page of a period's transactions in full (report.detail)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReportPageRequest" }
+      responses:
+        "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
+        "4XX": { $ref: "#/components/responses/Problem" }
         "5XX": { $ref: "#/components/responses/Problem" }
 
 components:
   responses:
     Problem:
-      description: RFC 9457 problem detail with a stable error code
+      description: RFC 9457 problem detail with a stable error code, and SV-Gate's own code in subErrors
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
-    UzcardStatusCode:
+    UzcardSvGateStatusCode:
       type: string
-      description: SUCCESS done · DECLINED refused by the card's bank · NOT_FOUND no such transaction
-      enum: [SUCCESS, DECLINED, NOT_FOUND]
-    DeclineReason:
-      type: string
-      description: Why the card's bank refused, the same words for every scheme
-      enum: [INSUFFICIENT_FUNDS, EXPIRED_CARD, LIMIT_EXCEEDED, OTHER]
+      enum: [SUCCESS, REVERSE_SUCCESS, ERROR, REVERSE_ERROR, PENDING, MANUAL_REVIEW, SERVICE_UNAVAILABLE, NOT_FOUND]
+
     CardsNewOtpRequest:
       type: object
       required: [pan, expiry]
       properties:
-        pan: { type: string, pattern: "^[0-9]{16}$" }
-        expiry: { type: string, pattern: "^[0-9]{4}$", description: YYMM }
+        pan: { type: string, minLength: 16, maxLength: 19 }
+        expiry: { type: string, minLength: 4, maxLength: 4, description: YYMM }
+        requestorPhone: { type: string, maxLength: 12, description: "Must match the card's phone, else -320" }
+        sms: { $ref: "#/components/schemas/CardsNewOtpSmsParam" }
+    CardsNewOtpSmsParam:
+      type: object
+      properties:
+        ussd: { type: string, maxLength: 160 }
+        hash: { type: string, maxLength: 12 }
+        templateId: { type: integer, format: int32 }
+        serviceName: { type: string, maxLength: 20 }
     CardsNewOtpResponse:
       type: object
-      required: [otpId]
       properties:
-        otpId: { type: string }
+        id: { type: string, description: The OTP request's id }
+        phoneMask: { type: string }
+        token: { type: string }
+        verified: { type: boolean, description: "true: the token is already verified and no SMS is sent" }
     CardsNewOtpResult:
       type: object
-      required: [requestId, status, data]
       properties:
         requestId: { type: string }
-        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
         data: { $ref: "#/components/schemas/CardsNewOtpResponse" }
+
     CardsNewVerifyRequest:
       type: object
       required: [otpId, code]
       properties:
         otpId: { type: string }
-        code: { type: string, pattern: "^[0-9]{4,8}$" }
-    CardsNewVerifyResponse:
+        code: { type: string, maxLength: 6 }
+    CardBalanceResponse:
       type: object
-      required: [token]
       properties:
-        token: { type: string, description: "Uzcard's token for the card; debits use it instead of the number" }
+        id: { type: string, description: "The card's token" }
+        username: { type: string }
+        pan: { type: string, description: Masked }
+        status: { type: integer, format: int32, description: "Card status; 0 is a valid card" }
+        expiry: { type: string }
+        phone: { type: string }
+        fullName: { type: string }
+        balance: { type: integer, format: int64 }
+        sms: { type: boolean }
+        pincnt: { type: integer, format: int32 }
+        aacct: { type: string }
+        par: { type: string }
+        cardtype: { type: string }
+        holdAmount: { type: integer, format: int64 }
+        cashbackAmount: { type: integer, format: int64 }
     CardsNewVerifyResult:
       type: object
-      required: [requestId, status, data]
       properties:
         requestId: { type: string }
-        status: { $ref: "#/components/schemas/UzcardStatusCode" }
-        data: { $ref: "#/components/schemas/CardsNewVerifyResponse" }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/CardBalanceResponse" }
+
+    CardsRemoveTokenRequest:
+      type: object
+      required: [tokens]
+      properties:
+        tokens: { type: array, minItems: 1, maxItems: 5, items: { type: string } }
+    CardTokenStatusResponse:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string, description: "1: removed" }
+    CardsRemoveTokenResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardTokenStatusResponse" }
+
     BinResponse:
       type: object
-      required: [bin]
       properties:
+        instId: { type: string }
         bin: { type: string }
-        instId: { type: string, description: The issuing bank at Uzcard }
     BinListResult:
       type: object
-      required: [requestId, status, data]
       properties:
         requestId: { type: string }
-        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
         data:
           type: array
           items: { $ref: "#/components/schemas/BinResponse" }
+
     TransPayPurposeRequest:
       type: object
-      required: [cardToken, amount, ext, merchantId, terminalId]
+      required: [purpose, receiverId, cardId, amount, commission, currency, ext, merchantId, terminalId]
       properties:
-        cardToken: { type: string }
-        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
-        ext: { type: string, maxLength: 64, description: "The caller's id for the payment; makes the call idempotent" }
-        merchantId: { type: string }
-        terminalId: { type: string }
+        purpose: { type: string, maxLength: 20, description: "payment for e-commerce" }
+        receiverId: { type: string, maxLength: 250, description: "The final receiver of the money (anti-money-laundering)" }
+        cardId: { type: string, minLength: 1, maxLength: 32, description: "The card's token" }
+        amount: { type: integer, format: int64, minimum: 1, description: "In tiyin, without the commission" }
+        commission: { type: integer, format: int64, minimum: 0, description: In tiyin }
+        currency: { type: string, maxLength: 3, description: "ISO 4217, 860" }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id for the transaction" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        merchantInfo: { $ref: "#/components/schemas/MerchantInfo" }
+    MerchantInfo:
+      type: object
+      description: "Required from aggregators and payment organisations that settle with merchants themselves"
+      properties:
+        mcc: { type: string, maxLength: 4 }
+        legalName: { type: string, maxLength: 80 }
+        legalType: { type: integer, format: int32 }
+        legalId: { type: string, maxLength: 14 }
+        legalOKED: { type: string, maxLength: 5 }
+    TransExtRequest:
+      type: object
+      required: [extId]
+      properties:
+        extId: { type: string, maxLength: 75 }
     TransReverseRequest:
       type: object
       required: [tranId]
       properties:
-        tranId: { type: string }
-    TransExtRequest:
+        tranId: { type: string, maxLength: 12, description: "The transaction's refNum" }
+    TransReversePartialRequest:
       type: object
-      required: [ext]
+      required: [tranId, reverseAmount, ext]
       properties:
-        ext: { type: string }
+        tranId: { type: string, maxLength: 12, description: "The transaction's refNum" }
+        reverseAmount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id for this reversal" }
     TransactionResponse:
       type: object
       properties:
-        tranId: { type: string }
-        rrn: { type: string, description: 12 digits }
-        responseCode: { type: string, description: "Uzcard's respSV, as received" }
-        declineReason: { $ref: "#/components/schemas/DeclineReason" }
+        id: { type: string }
+        username: { type: string }
+        refNum: { type: string, description: "SV's unique id; reversals take it as tranId" }
+        ext: { type: string }
+        pan: { type: string }
+        pan2: { type: string }
+        expiry: { type: string }
+        tranType: { type: string, description: "DEBIT, REVERSAL, CREDIT…" }
+        date7: { type: string }
+        date12: { type: string }
+        amount: { type: integer, format: int64 }
+        currency: { type: integer, format: int32 }
+        stan: { type: integer, format: int32 }
+        field38: { type: string }
+        field48: { type: string }
+        field91: { type: string }
+        merchantId: { type: string }
+        terminalId: { type: string }
+        resp: { type: integer, format: int32 }
+        respText: { type: string }
+        respSV: { type: string }
+        status: { type: string, description: "OK, ERR, ROK or RER" }
     TransactionResult:
       type: object
-      required: [requestId, status]
       properties:
         requestId: { type: string }
-        status: { $ref: "#/components/schemas/UzcardStatusCode" }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        rrn: { type: string, description: "refNum, zero-padded to 12 digits" }
         data: { $ref: "#/components/schemas/TransactionResponse" }
+    TransactionListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        rrn: { type: string }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/TransactionResponse" }
+
+    TerminalRequest:
+      type: object
+      required: [terminalId, merchantId]
+      properties:
+        terminalId: { type: string, maxLength: 16 }
+        merchantId: { type: string, maxLength: 16 }
+    TerminalAddRequest:
+      type: object
+      required: [terminalId, merchantId, name, type]
+      properties:
+        terminalId: { type: string, maxLength: 16 }
+        merchantId: { type: string, maxLength: 16 }
+        port: { type: integer, format: int32 }
+        name: { type: string, maxLength: 20 }
+        type: { type: integer, format: int32, minimum: 1, maximum: 3, description: "1 debit, 2 credit, 3 P2P" }
+        purpose: { type: string, maxLength: 10, description: "payment when absent" }
+    TerminalCodeResponse:
+      type: object
+      properties:
+        code: { type: integer, format: int32 }
+        message: { type: string }
+    TerminalCodeResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/TerminalCodeResponse" }
+    TerminalCheckResponse:
+      type: object
+      properties:
+        username: { type: string }
+        port: { type: integer, format: int32 }
+        name: { type: string }
+        type: { type: integer, format: int32 }
+        purpose: { type: string }
+    TerminalCheckResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/TerminalCheckResponse" }
+    TerminalGetResponse:
+      type: object
+      properties:
+        pid: { type: string }
+        terminalId: { type: string }
+        merchantId: { type: string }
+        username: { type: string }
+        terminalType: { type: integer, format: int32 }
+        instId: { type: string }
+        name: { type: string }
+        port: { type: integer, format: int32 }
+        purpose: { type: string }
+    TerminalListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/TerminalGetResponse" }
+
+    ReportSumRequest:
+      type: object
+      required: [from, to]
+      properties:
+        from: { type: string, description: "yyyy-MM-ddTHH:mm:ss, Tashkent time" }
+        to: { type: string, description: "yyyy-MM-ddTHH:mm:ss, Tashkent time" }
+    ReportPageRequest:
+      type: object
+      required: [from, to, pageNumber, pageSize]
+      properties:
+        from: { type: string, description: "yyyy-MM-ddTHH:mm:ss, Tashkent time" }
+        to: { type: string, description: "yyyy-MM-ddTHH:mm:ss, Tashkent time" }
+        pageNumber: { type: integer, format: int32, minimum: 0 }
+        pageSize: { type: integer, format: int32, minimum: 1, maximum: 500 }
+    ReportSumResponse:
+      type: object
+      properties:
+        from: { type: string }
+        to: { type: string }
+        count: { type: integer, format: int64 }
+        sum: { type: integer, format: int64, description: In tiyin }
+    ReportSumResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/ReportSumResponse" }
+    ReportShortResponse:
+      type: object
+      properties:
+        amount: { type: integer, format: int64 }
+        date: { type: string, description: yyMMddHHmmss }
+        svId: { type: string, description: refNum }
+        extId: { type: string }
+    ReportShortResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/ReportShortResponse" }
+
+    SubError:
+      type: object
+      properties:
+        code: { type: string, description: "SV-Gate's own code: a JSON-RPC error code or a respSV" }
+        message: { type: string }
     Problem:
       type: object
       description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
@@ -203,3 +549,6 @@ components:
         detail: { type: string }
         instance: { type: string }
         code: { type: string }
+        subErrors:
+          type: array
+          items: { $ref: "#/components/schemas/SubError" }

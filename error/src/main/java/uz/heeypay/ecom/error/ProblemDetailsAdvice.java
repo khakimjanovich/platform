@@ -43,6 +43,9 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   @ExceptionHandler(GeneralException.class)
   ResponseEntity<ProblemDetail> general(GeneralException ex) {
     var problem = problem(ex.getStatus(), ex.getParams());
+    if (!ex.getSubErrors().isEmpty()) {
+      problem.setProperty(ErrorConstants.SUB_ERRORS_PROPERTY, ex.getSubErrors());
+    }
     var definition = errors.error().get(ex.getStatus().getType());
     log(problem, definition != null && definition.isLoggable());
     return ResponseEntity.status(problem.getStatus())

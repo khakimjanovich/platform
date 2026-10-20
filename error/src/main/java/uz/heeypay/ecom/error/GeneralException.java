@@ -1,20 +1,32 @@
 package uz.heeypay.ecom.error;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 
 /**
  * A failure the client should see. The HTTP status and the message in the request's language
  * ({@code Accept-Language}) come from the status's definition; {@code params} fill its {0}, {1}…
+ * Sub-errors carry a third party's own codes and messages (a card scheme's), for programs to read.
  */
 @Getter
 public class GeneralException extends RuntimeException {
 
   private final StatusThrowable status;
   private final transient Object[] params;
+  private final List<SubError> subErrors = new ArrayList<>();
 
   public GeneralException(StatusThrowable status, Object... params) {
     super(status.getType());
     this.status = status;
     this.params = params;
   }
+
+  public GeneralException subError(String code, String message) {
+    subErrors.add(new SubError(code, message));
+    return this;
+  }
+
+  /** A third party's own code and message, as received. */
+  public record SubError(String code, String message) {}
 }

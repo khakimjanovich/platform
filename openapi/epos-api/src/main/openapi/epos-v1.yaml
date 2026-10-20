@@ -26,6 +26,23 @@ paths:
                 maxItems: 1
                 items: { $ref: "#/components/schemas/EposResponse" }
 
+  /internal/v1/epos/terminals:
+    get:
+      tags: [EposInternal]
+      operationId: findSchemeTerminals
+      summary: Every e-POS terminal of a card scheme that may have transactions (active or suspended), for other modules
+      description: Inside the app only; never routed from outside. The card module reconciles each with the scheme.
+      parameters:
+        - { name: scheme, in: query, required: true, schema: { $ref: "#/components/schemas/CardScheme" } }
+      responses:
+        "200":
+          description: The terminals, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EposResponse" }
+
   /api/v1/admin/sales-points/{salesPointId}/epos:
     get:
       tags: [EposAdmin]

@@ -15,9 +15,10 @@ import org.springframework.http.client.ClientHttpResponse;
 /**
  * Every call this service makes, in three readable lines at most: what went out ({@code →}), what
  * came back ({@code ←}) with its status and time, or why it failed ({@code ✗}). Bodies are masked
- * ({@link BodyMasking}); headers are never logged. A 4xx or 5xx answer is a warning.
+ * ({@link BodyMasking}); headers are never logged. A 4xx or 5xx answer is a warning. Every
+ * RestClient gets it; a client built on a ClientHttpRequestFactory (a SOAP one) adds it itself.
  */
-class HttpClientLogging implements ClientHttpRequestInterceptor {
+public class HttpClientLogging implements ClientHttpRequestInterceptor {
 
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
 

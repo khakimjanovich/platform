@@ -24,6 +24,8 @@ public class ErrorConstants {
   /** Extra property on a validation problem: [{ field, message }]. */
   public static final String ERRORS_PROPERTY = "errors";
 
+  public static final String SUB_ERRORS_PROPERTY = "subErrors";
+
   public static final String FIELD = "field";
   public static final String MESSAGE = "message";
 

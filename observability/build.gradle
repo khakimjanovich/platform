@@ -1,4 +1,4 @@
-// Logs, traces and metrics the same way in every service: ECS logs with their trace on the console and
+// Logs, traces and metrics the same way in every service: logs with their trace on the console and
 // over OTLP, traces carried on every call, and metrics over OTLP. A service imports
 // classpath:properties/observability.yaml and gets the rest from this jar.
 plugins {

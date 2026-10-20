@@ -5,9 +5,10 @@ logging:
   # contracts; the validation itself works, so only that warning is silenced.
   level:
     org.hibernate.validator.internal.metadata.aggregated.CascadingMetaDataBuilder: ERROR
+  # The console is readable text with the trace id in brackets; where machines collect it (Docker,
+  # Kubernetes), LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs turns it into ECS JSON. Loki gets every line
+  # over OTLP either way.
   structured:
-    format:
-      console: ecs
     # ECS names for the trace: every line a request writes carries its trace.id and span.id.
     json:
       rename:

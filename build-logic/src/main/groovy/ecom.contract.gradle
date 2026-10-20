@@ -15,6 +15,7 @@ def lib = { String alias -> libs.findLibrary(alias).get() }
 
 def contract = extensions.create('contract', OpenApiContractExtension)
 contract.client.convention(false)
+contract.useResponseEntity.convention(true)
 
 def name = project.name - '-api'
 def basePackage = "uz.heeypay.ecom.${name.replace('-', '')}.api"
@@ -59,14 +60,18 @@ def openApiGenerateClient = tasks.register('openApiGenerateClient', GenerateTask
     apiPackage = "${basePackage}.client"
     modelPackage = "${basePackage}.model"
     globalProperties = [apis: '']
-    configOptions = [
-        useJakartaEe         : 'true',
-        useTags              : 'true',
-        useBeanValidation    : 'false',
-        openApiNullable      : 'false',
-        documentationProvider: 'none',
-        annotationLibrary    : 'none',
-    ]
+    // Read when the task runs, after the contract's own `contract { }` block.
+    configOptions = contract.useResponseEntity.map { useResponseEntity ->
+        [
+            useJakartaEe         : 'true',
+            useTags              : 'true',
+            useBeanValidation    : 'false',
+            openApiNullable      : 'false',
+            documentationProvider: 'none',
+            annotationLibrary    : 'none',
+            useResponseEntity    : useResponseEntity.toString(),
+        ]
+    }
 }
 
 sourceSets.main.java.srcDir(generatedDir.map { it.dir('src/main/java') })

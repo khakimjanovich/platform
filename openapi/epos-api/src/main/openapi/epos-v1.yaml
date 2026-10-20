@@ -7,6 +7,25 @@ security:
   - bearer: []
 
 paths:
+  /internal/v1/epos/live:
+    get:
+      tags: [EposInternal]
+      operationId: findLiveEpos
+      summary: The live e-POS terminal for a website and card scheme, for other modules; empty means none
+      description: Inside the app only; never routed from outside.
+      parameters:
+        - { name: salesPointId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: scheme, in: query, required: true, schema: { $ref: "#/components/schemas/CardScheme" } }
+      responses:
+        "200":
+          description: The live e-POS terminal, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/EposResponse" }
+
   /api/v1/admin/sales-points/{salesPointId}/epos:
     get:
       tags: [EposAdmin]

@@ -1,0 +1,80 @@
+# The one problem detail (RFC 9457) every contract answers with, and the error responses they share.
+# A contract refers to it by relative path; the build generates no class for it (it is Spring's
+# ProblemDetail) and ships it beside each spec for Swagger UI.
+openapi: 3.0.3
+info:
+  title: Problem details
+  version: "1"
+paths: {}
+components:
+  responses:
+    Problem:
+      description: RFC 9457 problem detail with a stable error code
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    BadRequest:
+      description: The request is malformed or some fields are invalid (VALIDATION_FAILED lists them)
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Unauthorized:
+      description: No valid access token (UNAUTHORIZED)
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Forbidden:
+      description: The token's roles don't allow this (FORBIDDEN)
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: Nothing with this id
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Conflict:
+      description: The current state doesn't allow this
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    TooManyRequests:
+      description: A limit was reached; Retry-After says when to try again
+      headers:
+        Retry-After:
+          description: Seconds to wait (RFC 9110 §10.2.3)
+          schema: { type: integer }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
+      required: [status, title, code]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, description: In the caller's language (Accept-Language) }
+        instance: { type: string, description: The path of the request this problem answers }
+        code: { type: string, example: VALIDATION_FAILED }
+        requestId: { type: string, description: The request's trace id, as in X-Request-Id; quote it to support }
+        errors:
+          type: array
+          description: Only for VALIDATION_FAILED, one entry per invalid field
+          items: { $ref: "#/components/schemas/ProblemFieldError" }
+        subErrors:
+          type: array
+          description: A third party's own codes and messages (a card scheme's), as received
+          items: { $ref: "#/components/schemas/ProblemSubError" }
+    ProblemFieldError:
+      type: object
+      properties:
+        field: { type: string }
+        message: { type: string }
+    ProblemSubError:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }

@@ -145,10 +145,10 @@ paths:
             schema: { $ref: "#/components/schemas/CardSearchRequest" }
       responses:
         "200": { $ref: "#/components/responses/Card" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/cards/{cardToken}:
     get:
@@ -157,9 +157,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/CardToken" }]
       responses:
         "200": { $ref: "#/components/responses/Card" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/cards/{cardToken}/audit:
     get:
@@ -175,9 +175,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/CardAuditResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
   securitySchemes:
@@ -198,11 +198,6 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/CardResponse" }
-    Problem:
-      description: RFC 9457 problem detail with a stable error code
-      content:
-        application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
     CardScheme:
       type: string
@@ -279,21 +274,3 @@ components:
         declineCode: { type: string }
         processorRef: { type: string }
         rrn: { type: string }
-    Problem:
-      type: object
-      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required: [status, title, code]
-      properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string }
-        code: { type: string }
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              field: { type: string }
-              message: { type: string }

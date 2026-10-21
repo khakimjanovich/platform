@@ -52,6 +52,7 @@ class ContractPluginTest {
                   content:
                     application/json:
                       schema: { $ref: '#/components/schemas/Demo' }
+                '404': { $ref: '../../../../common/problem-v1.yaml#/components/responses/Problem' }
         components:
           schemas:
             Demo:
@@ -60,7 +61,10 @@ class ContractPluginTest {
                 tags: { type: array, uniqueItems: true, items: { type: string } }
         """);
 
-    var result = gradle("compileJava", ":demo-api:dependencies", "--configuration", "runtimeClasspath");
+    Files.createDirectories(build.resolve("common"));
+    Files.copy(Path.of(System.getProperty("sharedProblem")), build.resolve("common/problem-v1.yaml"));
+
+    var result = gradle("compileJava", "processResources", ":demo-api:dependencies", "--configuration", "runtimeClasspath");
 
     var generated = build.resolve("demo-api/build/generated");
     assertTrue(Files.exists(generated.resolve("openapi/src/main/java/uz/heeypay/ecom/demo/api/DemoApi.java")));
@@ -76,6 +80,17 @@ class ContractPluginTest {
         result.contains("com.fasterxml.jackson.core:jackson-databind"),
         "what the jar brings has no Jackson 2 databind");
     assertTrue(result.contains("com.fasterxml.jackson.core:jackson-annotations"));
+
+    try (var files = Files.walk(generated)) {
+      assertTrue(
+          files.noneMatch(file -> file.getFileName().toString().startsWith("Problem")),
+          "the shared Problem is Spring's ProblemDetail, never a generated class");
+    }
+    var served = build.resolve("demo-api/build/resources/main/static/openapi");
+    assertTrue(Files.exists(served.resolve("problem-v1.yaml")), "Swagger UI finds the shared file");
+    assertTrue(
+        Files.readString(served.resolve("demo-v1.yaml"))
+            .contains("$ref: 'problem-v1.yaml#/components/responses/Problem'"));
   }
 
   private String gradle(String... arguments) {

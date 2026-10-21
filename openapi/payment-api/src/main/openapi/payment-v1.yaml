@@ -55,12 +55,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-        "503": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/payments/{paymentId}:
     get:
@@ -78,9 +78,9 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/payment-links:
     post:
@@ -99,10 +99,10 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentLinkResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     get:
       tags: [PaymentLink]
       operationId: listPaymentLinks
@@ -117,8 +117,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/PaymentLinkResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/payments/{paymentId}/refund:
     post:
@@ -141,11 +141,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/payment-links/{paymentId}/refund:
     post:
@@ -160,11 +160,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentLinkResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/reports:
     get:
@@ -182,9 +182,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/DailyReport" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/reports/{day}/payments.csv:
     get:
@@ -199,8 +199,8 @@ paths:
           content:
             text/csv:
               schema: { type: string, format: binary }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/payments:
     get:
@@ -218,8 +218,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/PaymentAdminResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/pay/{token}:
     get:
@@ -234,8 +234,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentPage" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "410": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/pay/{token}/logo:
     get:
@@ -250,8 +250,8 @@ paths:
           content:
             image/png: { schema: { type: string, format: binary } }
             image/jpeg: { schema: { type: string, format: binary } }
-        "404": { $ref: "#/components/responses/Problem" }
-        "410": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/pay/{token}/card:
     post:
@@ -272,12 +272,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentPage" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "410": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-        "503": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/pay/{token}/code:
     post:
@@ -298,12 +298,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaymentPage" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "410": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-        "503": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
   securitySchemes:
@@ -348,12 +348,6 @@ components:
       required: false
       description: "RFC 9530: the body's SHA-256, sha-256=:<base64>:; required when there is a body"
       schema: { type: string }
-  responses:
-    Problem:
-      description: RFC 9457 problem detail with a stable error code
-      content:
-        application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
     CreatePaymentRequest:
       type: object
@@ -495,21 +489,3 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
-    Problem:
-      type: object
-      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required: [status, title, code]
-      properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string }
-        code: { type: string }
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              field: { type: string }
-              message: { type: string }

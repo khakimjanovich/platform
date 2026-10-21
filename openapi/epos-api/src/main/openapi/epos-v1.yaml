@@ -57,8 +57,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/EposResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     post:
       tags: [EposAdmin]
       operationId: registerEpos
@@ -71,11 +71,11 @@ paths:
             schema: { $ref: "#/components/schemas/EposRequest" }
       responses:
         "201": { $ref: "#/components/responses/Epos" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/epos/route:
     get:
@@ -87,9 +87,9 @@ paths:
         - { name: scheme, in: query, required: true, schema: { $ref: "#/components/schemas/CardScheme" } }
       responses:
         "200": { $ref: "#/components/responses/Epos" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos:
     get:
@@ -109,8 +109,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/EposPage" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}:
     get:
@@ -119,9 +119,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/EposId" }]
       responses:
         "200": { $ref: "#/components/responses/Epos" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}/suspend:
     post:
@@ -131,11 +131,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Epos" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}/resume:
     post:
@@ -144,10 +144,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/EposId" }]
       responses:
         "200": { $ref: "#/components/responses/Epos" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}/revoke:
     post:
@@ -157,11 +157,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Epos" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}/audit:
     get:
@@ -177,9 +177,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/EposAuditResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
   securitySchemes:
@@ -211,11 +211,6 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/EposResponse" }
-    Problem:
-      description: RFC 9457 problem detail with a stable error code
-      content:
-        application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
     CardScheme:
       type: string
@@ -266,21 +261,3 @@ components:
         actor: { type: string }
         reason: { type: string }
         occurredAt: { type: string, format: date-time }
-    Problem:
-      type: object
-      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required: [status, title, code]
-      properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string }
-        code: { type: string }
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              field: { type: string }
-              message: { type: string }

@@ -108,9 +108,9 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PartnerResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/me:
     get:
@@ -119,8 +119,8 @@ paths:
       summary: The signed-in partner
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/clients:
     get:
@@ -135,17 +135,17 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/ApiClientResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     post:
       tags: [PartnerSelf]
       operationId: createClient
       summary: Creates a machine-to-machine client; the secret is shown only in this response
       responses:
         "201": { $ref: "#/components/responses/ApiClientSecret" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/clients/{clientId}/secret:
     post:
@@ -159,10 +159,10 @@ paths:
           schema: { type: string }
       responses:
         "200": { $ref: "#/components/responses/ApiClientSecret" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/sales-points:
     get:
@@ -177,8 +177,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/SalesPointResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     post:
       tags: [SalesPoints]
       operationId: createSalesPoint
@@ -190,10 +190,10 @@ paths:
             schema: { $ref: "#/components/schemas/SalesPointRequest" }
       responses:
         "201": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/sales-points/{salesPointId}/return-urls:
     put:
@@ -208,11 +208,11 @@ paths:
             schema: { $ref: "#/components/schemas/ReturnUrlsRequest" }
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/sales-points/{salesPointId}/webhook:
     put:
@@ -228,10 +228,10 @@ paths:
             schema: { $ref: "#/components/schemas/WebhookRequest" }
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/sales-points:
     get:
@@ -246,9 +246,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/SalesPointResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}:
     get:
@@ -257,9 +257,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/site-checks:
     get:
@@ -274,9 +274,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/SiteCheckResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     post:
       tags: [SalesPointAdmin]
       operationId: recordSiteCheck
@@ -293,11 +293,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SiteCheckResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/settings:
     put:
@@ -312,11 +312,11 @@ paths:
             schema: { $ref: "#/components/schemas/SalesPointSettingsRequest" }
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/activate:
     post:
@@ -326,10 +326,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/suspend:
     post:
@@ -339,11 +339,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/restore:
     post:
@@ -352,10 +352,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/close:
     post:
@@ -365,11 +365,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/registrations:
     post:
@@ -388,8 +388,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PartnerResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/registrations/email-verification:
     post:
@@ -408,10 +408,10 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PartnerResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "429": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "429": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/registrations/email-verification/resend:
     post:
@@ -426,10 +426,10 @@ paths:
             schema: { $ref: "#/components/schemas/ResendCodeRequest" }
       responses:
         "202": { description: A new code was sent }
-        "400": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "429": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "429": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners:
     get:
@@ -447,9 +447,9 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PartnerPage" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/activation-requests:
     get:
@@ -464,8 +464,8 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/ActivationRequestResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/verify:
     post:
@@ -475,10 +475,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/reject:
     post:
@@ -488,11 +488,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/contract:
     post:
@@ -506,11 +506,11 @@ paths:
             schema: { $ref: "#/components/schemas/ContractRequest" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/activation-requests:
     post:
@@ -520,10 +520,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "201": { $ref: "#/components/responses/ActivationRequest" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/activation-requests/{requestId}/approve:
     post:
@@ -533,11 +533,11 @@ paths:
       parameters: [{ $ref: "#/components/parameters/RequestId" }]
       responses:
         "200": { $ref: "#/components/responses/ActivationRequest" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "410": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/activation-requests/{requestId}/reject:
     post:
@@ -547,12 +547,12 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/ActivationRequest" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "410": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/suspend:
     post:
@@ -562,11 +562,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/restore:
     post:
@@ -575,10 +575,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/terminate:
     post:
@@ -588,11 +588,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Partner" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/history:
     get:
@@ -607,9 +607,9 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/StatusChangeResponse" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/documents:
     get:
@@ -618,8 +618,8 @@ paths:
       summary: The company documents the merchant uploaded, and what is still needed to be switched on
       responses:
         "200": { $ref: "#/components/responses/Documents" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     post:
       tags: [PartnerDocuments]
       operationId: uploadMyDocument
@@ -641,11 +641,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentResponse" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "413": { $ref: "#/components/responses/Problem" }
-        "415": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "413": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "415": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/documents/{documentId}/file:
     get:
@@ -654,9 +654,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/DocumentId" }]
       responses:
         "200": { $ref: "#/components/responses/File" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/sales-points/{salesPointId}/logo:
     get:
@@ -665,9 +665,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       responses:
         "200": { $ref: "#/components/responses/Image" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     put:
       tags: [SalesPoints]
       operationId: uploadMySalesPointLogo
@@ -684,12 +684,12 @@ paths:
                 file: { type: string, format: binary }
       responses:
         "200": { $ref: "#/components/responses/SalesPoint" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "413": { $ref: "#/components/responses/Problem" }
-        "415": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "413": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "415": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/documents:
     get:
@@ -699,9 +699,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/PartnerId" }]
       responses:
         "200": { $ref: "#/components/responses/Documents" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/documents/{documentId}/file:
     get:
@@ -710,9 +710,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/DocumentId" }]
       responses:
         "200": { $ref: "#/components/responses/File" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/documents/{documentId}/verify:
     post:
@@ -721,10 +721,10 @@ paths:
       parameters: [{ $ref: "#/components/parameters/PartnerId" }, { $ref: "#/components/parameters/DocumentId" }]
       responses:
         "200": { $ref: "#/components/responses/Document" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/documents/{documentId}/reject:
     post:
@@ -734,11 +734,11 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
         "200": { $ref: "#/components/responses/Document" }
-        "400": { $ref: "#/components/responses/Problem" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/logo:
     get:
@@ -747,9 +747,9 @@ paths:
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       responses:
         "200": { $ref: "#/components/responses/Image" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
   securitySchemes:
@@ -826,11 +826,6 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/PartnerResponse" }
-    Problem:
-      description: RFC 9457 problem detail with a stable error code
-      content:
-        application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
     PartnerResponse:
       type: object
@@ -1073,22 +1068,3 @@ components:
           items: { type: string }
         checkedBy: { type: string }
         checkedAt: { type: string, format: date-time }
-    Problem:
-      type: object
-      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required: [status, title, code]
-      properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string }
-        code: { type: string, example: PARTNER_EMAIL_TAKEN }
-        errors:
-          type: array
-          description: Only for VALIDATION_FAILED, one entry per invalid field
-          items:
-            type: object
-            properties:
-              field: { type: string }
-              message: { type: string }

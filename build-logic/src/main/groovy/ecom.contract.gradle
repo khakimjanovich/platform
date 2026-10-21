@@ -17,11 +17,20 @@ def lib = { String alias -> libs.findLibrary(alias).get() }
 def contract = extensions.create('contract', OpenApiContractExtension)
 contract.client.convention(false)
 contract.useResponseEntity.convention(true)
-contract.schemaMappings.convention([:])
+// Every contract answers with the one shared Problem, which is Spring's own ProblemDetail; its
+// entries are ProblemDetail properties, never classes of their own.
+contract.schemaMappings.convention([
+    Problem          : 'org.springframework.http.ProblemDetail',
+    ProblemFieldError: 'java.util.Map',
+    ProblemSubError  : 'java.util.Map',
+])
 
 def name = project.name - '-api'
 def basePackage = "uz.heeypay.ecom.${name.replace('-', '')}.api"
 def spec = "$projectDir/src/main/openapi/$name-v1.yaml"
+// The problem detail and error responses every contract shares, referred to by relative path.
+def sharedDir = "$projectDir/../common"
+def sharedPrefix = '../../../../common/'
 def generatedDir = layout.buildDirectory.dir('generated/openapi')
 def generatedClientDir = layout.buildDirectory.dir('generated/openapi-client')
 
@@ -87,11 +96,25 @@ def openApiGenerateClient = tasks.register('openApiGenerateClient', GenerateTask
 
 // inputSpec is a plain string to the generator: declare the file, so an edited spec regenerates
 // instead of being served from the build cache.
-tasks.named('openApiGenerate') { inputs.file(spec).withPathSensitivity(PathSensitivity.RELATIVE) }
-openApiGenerateClient.configure { inputs.file(spec).withPathSensitivity(PathSensitivity.RELATIVE) }
+tasks.named('openApiGenerate') {
+    inputs.file(spec).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(sharedDir).withPathSensitivity(PathSensitivity.RELATIVE)
+}
+openApiGenerateClient.configure {
+    inputs.file(spec).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(sharedDir).withPathSensitivity(PathSensitivity.RELATIVE)
+}
 
 sourceSets.main.java.srcDir(generatedDir.map { it.dir('src/main/java') })
 sourceSets.main.java.srcDir(generatedClientDir.map { it.dir('src/main/java') })
 tasks.named('compileJava') { dependsOn 'openApiGenerate', openApiGenerateClient }
 tasks.named('sourcesJar') { dependsOn 'openApiGenerate', openApiGenerateClient }
-tasks.named('processResources', ProcessResources) { from('src/main/openapi') { into 'static/openapi' } }
+// Swagger UI reads the spec at /openapi/<name>-v1.yaml, so the shared file goes beside it and the
+// spec's references point there.
+tasks.named('processResources', ProcessResources) {
+    from('src/main/openapi') {
+        into 'static/openapi'
+        filter { String line -> line.replace(sharedPrefix, '') }
+    }
+    from(sharedDir) { into 'static/openapi' }
+}

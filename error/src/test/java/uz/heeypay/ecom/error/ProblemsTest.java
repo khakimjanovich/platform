@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -53,6 +56,29 @@ class ProblemsTest {
     var problem = Problems.of(e).orElseThrow();
     assertThat(Problems.code(problem)).isEqualTo("NOT_FOUND");
     assertThat(Problems.subErrors(problem)).isEmpty();
+  }
+
+  @Test
+  void anExceptionMadeByHandIsReadTheSameWay() {
+    var e =
+        HttpClientErrorException.create(
+            HttpStatus.BAD_REQUEST,
+            "Bad Request",
+            HttpHeaders.EMPTY,
+            "{\"status\":400,\"code\":\"SV_GATE_ERROR\",\"subErrors\":[{\"code\":\"-240\"}]}"
+                .getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8);
+    var problem = Problems.of(e).orElseThrow();
+    assertThat(Problems.code(problem)).isEqualTo("SV_GATE_ERROR");
+    assertThat(Problems.subErrors(problem)).extracting("code").containsExactly("-240");
+    var html =
+        HttpClientErrorException.create(
+            HttpStatus.BAD_REQUEST,
+            "Bad Request",
+            HttpHeaders.EMPTY,
+            "<html/>".getBytes(StandardCharsets.UTF_8),
+            StandardCharsets.UTF_8);
+    assertThat(Problems.of(html)).isEmpty();
   }
 
   @Test

@@ -38,9 +38,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthorizePaymentResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/payment/capture:
     post:
       summary: Capture (confirm) an authorized DMS card debit payment
@@ -68,9 +68,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/CapturePaymentResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/payment/cancel:
     post:
       summary: Cancel an active DMS card debit payment
@@ -99,9 +99,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/CancelPaymentResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/payment/refund:
     post:
       summary: Return (refund) a finished DMS card debit payment
@@ -127,9 +127,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/RefundPaymentResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/reconciliation/authorize:
     post:
       summary: Authorize virtual terminal reconciliation (RECO)
@@ -162,9 +162,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReconcileAuthorizeResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/reconciliation/confirm:
     post:
       summary: Confirm virtual terminal reconciliation (RECO)
@@ -191,9 +191,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReconcileConfirmResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/payment/status:
     get:
       summary: Get payment status
@@ -235,9 +235,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetPaymentResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/send/sms:
     post:
       summary: Send an SMS confirmation code to the given phone number
@@ -264,9 +264,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/SmsSendResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v1/send/code:
     post:
       summary: Confirm the SMS code sent to the phone number
@@ -292,9 +292,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/SmsCodeResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v3/iiacs/card:
     post:
       summary: Get card information with balance and mobile banking status
@@ -321,9 +321,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/IiacsCardResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
   /v2/pm/bins:
     get:
       summary: Get the HUMO BIN list
@@ -344,17 +344,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/BinListResult'
         4XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
-          $ref: '#/components/responses/Problem'
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
 components:
-  responses:
-    Problem:
-      description: RFC 9457 problem detail with a stable error code, and HUMO's own code in subErrors
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/Problem'
   schemas:
     AuthorizePaymentRequest:
       type: object
@@ -1477,36 +1470,3 @@ components:
           $ref: '#/components/schemas/HumoAdapterStatusCode'
         data:
           $ref: '#/components/schemas/SmsSendResponse'
-    SubError:
-      type: object
-      properties:
-        code:
-          type: string
-          description: HUMO's own code
-        message:
-          type: string
-    Problem:
-      type: object
-      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required:
-      - status
-      - title
-      - code
-      properties:
-        type:
-          type: string
-          format: uri
-        title:
-          type: string
-        status:
-          type: integer
-        detail:
-          type: string
-        instance:
-          type: string
-        code:
-          type: string
-        subErrors:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubError'

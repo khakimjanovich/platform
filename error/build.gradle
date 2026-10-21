@@ -12,6 +12,7 @@ dependencies {
     implementation project(':masking') // error log lines are masked
     implementation libs.jakarta.validation // a @Validated service's refusal is a 400
     implementation libs.slf4j.api // the trace id, from the logging context
+    implementation libs.jackson3.databind // a problem from an exception made without converters
     compileOnly libs.jakarta.servlet
     compileOnly libs.spring.security.web // security problems only when the app uses Spring Security
 

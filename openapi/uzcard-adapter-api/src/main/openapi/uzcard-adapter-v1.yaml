@@ -37,8 +37,8 @@ paths:
             schema: { $ref: "#/components/schemas/CardsNewOtpRequest" }
       responses:
         "200": { description: OTP sent, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewOtpResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/cards/new-verify:
     post:
@@ -52,8 +52,8 @@ paths:
             schema: { $ref: "#/components/schemas/CardsNewVerifyRequest" }
       responses:
         "200": { description: The card, content: { application/json: { schema: { $ref: "#/components/schemas/CardsNewVerifyResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/cards/remove-token:
     post:
@@ -67,8 +67,8 @@ paths:
             schema: { $ref: "#/components/schemas/CardsRemoveTokenRequest" }
       responses:
         "200": { description: Each token and its status, content: { application/json: { schema: { $ref: "#/components/schemas/CardsRemoveTokenResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/cards/bin-list:
     get:
@@ -77,8 +77,8 @@ paths:
       summary: The BINs with their institution ids (get.bin.list)
       responses:
         "200": { description: BINs, content: { application/json: { schema: { $ref: "#/components/schemas/BinListResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/trans/pay-purpose:
     post:
@@ -92,8 +92,8 @@ paths:
             schema: { $ref: "#/components/schemas/TransPayPurposeRequest" }
       responses:
         "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/trans/ext:
     post:
@@ -110,8 +110,8 @@ paths:
             schema: { $ref: "#/components/schemas/TransExtRequest" }
       responses:
         "200": { description: The transactions, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/trans/reverse:
     post:
@@ -125,8 +125,8 @@ paths:
             schema: { $ref: "#/components/schemas/TransReverseRequest" }
       responses:
         "200": { description: "The debit and its reversal; REVERSE_SUCCESS or REVERSE_ERROR", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/trans/reverse-partial:
     post:
@@ -140,8 +140,8 @@ paths:
             schema: { $ref: "#/components/schemas/TransReversePartialRequest" }
       responses:
         "200": { description: "The reversal; REVERSE_SUCCESS or REVERSE_ERROR", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/terminals:
     get:
@@ -150,8 +150,8 @@ paths:
       summary: The e-POS terminals registered under our login (terminal.get)
       responses:
         "200": { description: Terminals, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalListResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     post:
       tags: [UzcardTerminalService]
       operationId: terminalAdd
@@ -163,8 +163,8 @@ paths:
             schema: { $ref: "#/components/schemas/TerminalAddRequest" }
       responses:
         "200": { description: Registered, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalCodeResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/terminals/check:
     post:
@@ -178,8 +178,8 @@ paths:
             schema: { $ref: "#/components/schemas/TerminalRequest" }
       responses:
         "200": { description: The terminal, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalCheckResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/terminals/remove:
     post:
@@ -193,8 +193,8 @@ paths:
             schema: { $ref: "#/components/schemas/TerminalRequest" }
       responses:
         "200": { description: Removed, content: { application/json: { schema: { $ref: "#/components/schemas/TerminalCodeResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/reports/sum:
     post:
@@ -208,8 +208,8 @@ paths:
             schema: { $ref: "#/components/schemas/ReportSumRequest" }
       responses:
         "200": { description: Totals, content: { application/json: { schema: { $ref: "#/components/schemas/ReportSumResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/reports/short:
     post:
@@ -223,8 +223,8 @@ paths:
             schema: { $ref: "#/components/schemas/ReportPageRequest" }
       responses:
         "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/ReportShortResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /v1/reports/detail:
     post:
@@ -238,16 +238,10 @@ paths:
             schema: { $ref: "#/components/schemas/ReportPageRequest" }
       responses:
         "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
-        "4XX": { $ref: "#/components/responses/Problem" }
-        "5XX": { $ref: "#/components/responses/Problem" }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
-  responses:
-    Problem:
-      description: RFC 9457 problem detail with a stable error code, and SV-Gate's own code in subErrors
-      content:
-        application/problem+json:
-          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
     UzcardSvGateStatusCode:
       type: string
@@ -532,23 +526,3 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/ReportShortResponse" }
-
-    SubError:
-      type: object
-      properties:
-        code: { type: string, description: "SV-Gate's own code: a JSON-RPC error code or a respSV" }
-        message: { type: string }
-    Problem:
-      type: object
-      description: RFC 9457 problem detail. `code` is stable and meant for programs; `detail` is for people.
-      required: [status, title, code]
-      properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string }
-        code: { type: string }
-        subErrors:
-          type: array
-          items: { $ref: "#/components/schemas/SubError" }

@@ -6,13 +6,15 @@ import lombok.experimental.UtilityClass;
 public class VaultConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.vault";
-  public static final String TOKEN_HEADER = "X-Vault-Token";
-
-  /** KV version 2 keeps values under {@code <mount>/data/<path>}, wrapped in {@code data}. */
-  public static final String DATA_PATH = "/v1/{mount}/data/{path}";
-
-  public static final String DATA = "data";
+  public static final String DEFAULT_MOUNT = "secret";
 
   public static final String SIGNING_KEY_PATH = "merchants/%s";
   public static final String SIGNING_KEY = "signingKey";
+  public static final String DEFAULT_CACHE_TTL = "30s";
+
+  /**
+   * Spring Cloud Vault's auto-configuration, which makes the VaultTemplate this library reads with.
+   */
+  public static final String SPRING_CLOUD_VAULT =
+      "org.springframework.cloud.vault.config.VaultAutoConfiguration";
 }

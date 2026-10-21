@@ -1,4 +1,6 @@
-// Secrets from HashiCorp Vault (KV version 2) for any module: read only, failing closed.
+// Secrets from HashiCorp Vault (KV version 2) for any module, through Spring Vault: read only,
+// failing closed, with Vault's own authentication methods (token, AppRole, Kubernetes) and token
+// renewal from Spring Cloud Vault, and a short cache for merchants' signing keys.
 plugins {
     id 'ecom.library'
     id 'ecom.integration-test'
@@ -6,10 +8,11 @@ plugins {
 
 dependencies {
     api platform(libs.spring.boot.bom)
-    api libs.spring.web
+    api platform(libs.spring.cloud.bom)
+    api libs.spring.cloud.starter.vault.config
     implementation libs.spring.boot.autoconfigure
-    implementation libs.jackson3.databind
 
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
+    integrationTestImplementation libs.testcontainers.vault
 }

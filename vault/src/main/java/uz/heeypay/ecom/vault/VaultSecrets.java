@@ -3,38 +3,34 @@ package uz.heeypay.ecom.vault;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
-import tools.jackson.databind.JsonNode;
+import org.springframework.vault.VaultException;
+import org.springframework.vault.core.VaultTemplate;
+import org.springframework.vault.core.VaultVersionedKeyValueOperations;
 
-/** Reads key-value secrets from Vault. Writing them is the bank's job, outside the app. */
-@RequiredArgsConstructor
+/**
+ * Reads key-value secrets (KV version 2, the latest version) from Vault. Writing them is the bank's
+ * job, outside the app.
+ */
 public class VaultSecrets {
 
-  private final RestClient vault;
-  private final String mount;
+  private final VaultVersionedKeyValueOperations kv;
 
-  /** The secret, or empty if there is none at this path. */
+  public VaultSecrets(VaultTemplate vault, String mount) {
+    this.kv = vault.opsForVersionedKeyValue(mount);
+  }
+
+  /**
+   * The secret, or empty if there is none at this path. Throws {@link VaultUnavailableException} if
+   * Vault can't be reached or refuses, so callers fail closed.
+   */
   public Optional<Map<String, String>> get(String path) {
     try {
-      var values =
-          vault
-              .get()
-              .uri(VaultConstants.DATA_PATH, mount, path)
-              .retrieve()
-              .body(JsonNode.class)
-              .path(VaultConstants.DATA)
-              .path(VaultConstants.DATA);
+      var versioned = kv.get(path);
+      if (versioned == null || !versioned.hasData()) return Optional.empty();
       var secret = new LinkedHashMap<String, String>();
-      values.properties().forEach(e -> secret.put(e.getKey(), e.getValue().asString()));
+      versioned.getRequiredData().forEach((key, value) -> secret.put(key, String.valueOf(value)));
       return Optional.of(secret);
-    } catch (HttpClientErrorException e) {
-      if (e.getStatusCode().isSameCodeAs(HttpStatus.NOT_FOUND)) return Optional.empty();
-      throw new VaultUnavailableException(e);
-    } catch (RestClientException e) {
+    } catch (VaultException e) {
       throw new VaultUnavailableException(e);
     }
   }

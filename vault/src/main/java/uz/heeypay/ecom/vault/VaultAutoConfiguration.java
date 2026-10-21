@@ -1,35 +1,32 @@
 package uz.heeypay.ecom.vault;
 
-import org.springframework.beans.factory.ObjectProvider;
+import java.time.Clock;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestClient;
+import org.springframework.vault.core.VaultTemplate;
 
-/** Setting {@code ecom.vault.url} gives the app {@link VaultSecrets} and {@link SigningKeys}. */
-@AutoConfiguration
-@ConditionalOnProperty(prefix = VaultConstants.PROPERTIES_PREFIX, name = "url")
+/**
+ * Where Spring Cloud Vault gives the app a {@link VaultTemplate} ({@code spring.cloud.vault.*}),
+ * this library gives it {@link VaultSecrets} and {@link SigningKeys}.
+ */
+@AutoConfiguration(afterName = VaultConstants.SPRING_CLOUD_VAULT)
+@ConditionalOnBean(VaultTemplate.class)
 @EnableConfigurationProperties(VaultProperties.class)
 public class VaultAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  VaultSecrets vaultSecrets(
-      VaultProperties properties, ObjectProvider<RestClient.Builder> builders) {
-    return new VaultSecrets(
-        builders
-            .getIfAvailable(RestClient::builder)
-            .baseUrl(properties.url())
-            .defaultHeader(VaultConstants.TOKEN_HEADER, properties.token())
-            .build(),
-        properties.mount());
+  VaultSecrets vaultSecrets(VaultTemplate vaultTemplate, VaultProperties properties) {
+    return new VaultSecrets(vaultTemplate, properties.mount());
   }
 
   @Bean
   @ConditionalOnMissingBean
-  SigningKeys signingKeys(VaultSecrets vaultSecrets) {
-    return new SigningKeys(vaultSecrets);
+  SigningKeys signingKeys(VaultSecrets vaultSecrets, VaultProperties properties) {
+    var keys = properties.signingKeys();
+    return new SigningKeys(vaultSecrets, keys.path(), keys.cacheTtl(), Clock.systemUTC());
   }
 }

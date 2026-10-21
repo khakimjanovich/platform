@@ -86,6 +86,14 @@ class ContractPluginTest {
           files.noneMatch(file -> file.getFileName().toString().startsWith("Problem")),
           "the shared Problem is Spring's ProblemDetail, never a generated class");
     }
+    try (var files = Files.walk(generated)) {
+      assertTrue(
+          files.noneMatch(
+              file ->
+                  file.toString().contains("org/openapitools")
+                      || file.getFileName().toString().equals("ApiUtil.java")),
+          "no supporting files: every contract jar would carry the same classes");
+    }
     var served = build.resolve("demo-api/build/resources/main/static/openapi");
     assertTrue(Files.exists(served.resolve("problem-v1.yaml")), "Swagger UI finds the shared file");
     assertTrue(

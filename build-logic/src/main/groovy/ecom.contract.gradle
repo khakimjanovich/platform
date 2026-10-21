@@ -63,6 +63,9 @@ openApiGenerate {
         documentationProvider: 'none',
         annotationLibrary   : 'none',
     ]
+    // Interfaces and models only: no supporting files (ApiUtil, org.openapitools.configuration),
+    // which every contract jar would carry under the same names and nothing uses.
+    globalProperties = [apis: '', models: '']
     schemaMappings = contract.schemaMappings
     cleanupOutput = true // nothing a previous spec generated survives
 }

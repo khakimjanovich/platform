@@ -3,6 +3,7 @@ package uz.heeypay.ecom.error;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.json.ProblemDetailJacksonMixin;
 import org.springframework.web.client.RestClientResponseException;
@@ -46,7 +47,7 @@ public final class Problems {
   }
 
   /** Its stable code, e.g. {@code SV_GATE_ERROR}, or null if it has none. */
-  public static String code(ProblemDetail problem) {
+  public static @Nullable String code(ProblemDetail problem) {
     return problem.getProperties() == null
             || !(problem.getProperties().get(ErrorConstants.CODE_PROPERTY) instanceof String code)
         ? null
@@ -71,7 +72,7 @@ public final class Problems {
         .toList();
   }
 
-  private static String text(Object value) {
+  private static @Nullable String text(@Nullable Object value) {
     return value == null ? null : value.toString();
   }
 }

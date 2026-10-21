@@ -2,6 +2,7 @@ package uz.heeypay.ecom.persistence;
 
 import com.zaxxer.hikari.HikariDataSource;
 import liquibase.integration.spring.SpringLiquibase;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -23,7 +24,7 @@ public class PersistenceAutoConfiguration {
   @Bean
   static BeanPostProcessor modulePersistenceSettings(Environment environment) {
     return new BeanPostProcessor() {
-      private PersistenceProperties properties;
+      private @Nullable PersistenceProperties properties;
 
       @Override
       public Object postProcessBeforeInitialization(Object bean, String name) {

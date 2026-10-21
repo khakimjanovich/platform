@@ -13,6 +13,7 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import org.jspecify.annotations.Nullable;
 
 /**
  * AES-256-GCM: every value gets a fresh 12-byte nonce, and the key id is authenticated with it, so
@@ -117,7 +118,7 @@ public class Crypto {
     }
   }
 
-  private String seal(String plain, String version, String context) {
+  private String seal(String plain, String version, @Nullable String context) {
     try {
       var nonce = new byte[CryptoConstants.NONCE_BYTES];
       RANDOM.nextBytes(nonce);
@@ -133,10 +134,10 @@ public class Crypto {
     }
   }
 
-  private String open(String envelope, String context) {
+  private String open(String envelope, @Nullable String context) {
     var parts = envelope.split(CryptoConstants.SEPARATOR, 3);
     if (parts.length != 3) throw new IllegalArgumentException("not an encrypted value");
-    var bound =
+    @Nullable String bound =
         switch (parts[0]) {
           case CryptoConstants.VERSION -> null;
           case CryptoConstants.VERSION_2 -> {
@@ -162,7 +163,7 @@ public class Crypto {
    * The associated data (NIST SP 800-38D): the key id for v1; the key id, a 0x00 and the context
    * for v2, so neither can be confused with the other.
    */
-  private Cipher cipher(int mode, String keyId, byte[] nonce, String context)
+  private Cipher cipher(int mode, String keyId, byte[] nonce, @Nullable String context)
       throws GeneralSecurityException {
     var key = keys.get(keyId);
     if (key == null) throw new IllegalArgumentException("unknown key id " + keyId);

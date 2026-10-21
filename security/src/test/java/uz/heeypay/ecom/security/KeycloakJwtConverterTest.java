@@ -38,4 +38,16 @@ class KeycloakJwtConverterTest {
     claims.forEach(jwt::claim);
     return jwt.build();
   }
+
+  @Test
+  void aTokenWithoutAUsernameIsNamedByItsSubject() {
+    var jwt =
+        org.springframework.security.oauth2.jwt.Jwt.withTokenValue("t")
+            .header("alg", "none")
+            .subject("8b1f-service-account")
+            .claim("realm_access", java.util.Map.of("roles", java.util.List.of("merchant")))
+            .build();
+    org.assertj.core.api.Assertions.assertThat(new KeycloakJwtConverter().convert(jwt).getName())
+        .isEqualTo("8b1f-service-account");
+  }
 }

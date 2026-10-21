@@ -12,6 +12,11 @@ version = libs.findVersion('ecom-platform').get().requiredVersion
 
 java { withSourcesJar() }
 
+// A platform library may not return or pass null where its types don't say @Nullable.
+tasks.named('compileJava', JavaCompile) {
+    options.errorprone.check('NullAway', net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
+}
+
 // META-INF/spring-configuration-metadata.json in every jar: IDE completion and docs for every property.
 dependencies {
     annotationProcessor platform(libs.findLibrary('spring-boot-bom').get())

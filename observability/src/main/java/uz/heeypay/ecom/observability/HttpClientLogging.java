@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.util.Locale;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -77,7 +78,7 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
   }
 
   /** Bodies the masking can read: JSON, XML and forms. */
-  private static boolean loggable(MediaType type) {
+  private static boolean loggable(@Nullable MediaType type) {
     if (type == null) return false;
     var subtype = type.getSubtype().toLowerCase(Locale.ROOT);
     return subtype.contains("json")
@@ -90,7 +91,7 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     return "<" + (length < 0 ? "?" : length) + " bytes" + (type == null ? "" : ", " + type) + ">";
   }
 
-  private static String type(HttpHeaders headers) {
+  private static @Nullable String type(HttpHeaders headers) {
     var type = headers.getContentType();
     return type == null ? null : type.toString();
   }

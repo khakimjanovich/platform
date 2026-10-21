@@ -3,8 +3,10 @@ package uz.heeypay.ecom.keycloak;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
@@ -71,7 +73,9 @@ public class KeycloakAdmin {
         () -> {
           // Keycloak replaces the whole user on update, so change the field on the full
           // representation.
-          var user = keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON);
+          var user =
+              Objects.requireNonNull(
+                  keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON));
           user.put(KeycloakConstants.EMAIL_VERIFIED, true);
           return keycloak
               .put()
@@ -87,7 +91,9 @@ public class KeycloakAdmin {
   }
 
   private Object realmRole(String userId, String role) {
-    var representation = keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON);
+    var representation =
+        Objects.requireNonNull(
+            keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON));
     return keycloak
         .post()
         .uri(KeycloakConstants.USER_REALM_ROLES, userId)
@@ -129,12 +135,13 @@ public class KeycloakAdmin {
     if (realmRoles.length > 0) {
       var serviceAccount =
           (String)
-              keycloak
-                  .get()
-                  .uri(KeycloakConstants.CLIENT_SERVICE_ACCOUNT, id)
-                  .retrieve()
-                  .body(JSON)
-                  .get(KeycloakConstants.ID);
+              field(
+                  keycloak
+                      .get()
+                      .uri(KeycloakConstants.CLIENT_SERVICE_ACCOUNT, id)
+                      .retrieve()
+                      .body(JSON),
+                  KeycloakConstants.ID);
       for (var role : realmRoles) realmRole(serviceAccount, role);
     }
     return new IssuedClient(id, secretOf(keycloak.get().uri(KeycloakConstants.CLIENT_SECRET, id)));
@@ -160,7 +167,7 @@ public class KeycloakAdmin {
   }
 
   /** Keycloak's {@code errorMessage} (admin API) or {@code error_description} (token endpoint). */
-  private static String errorMessage(RestClientResponseException e) {
+  private static @Nullable String errorMessage(RestClientResponseException e) {
     try {
       var body = e.getResponseBodyAs(JSON);
       if (body == null) return e.getStatusText();
@@ -173,11 +180,24 @@ public class KeycloakAdmin {
   }
 
   private static String secretOf(RestClient.RequestHeadersSpec<?> request) {
-    return (String) request.retrieve().body(JSON).get(KeycloakConstants.VALUE);
+    return (String) field(request.retrieve().body(JSON), KeycloakConstants.VALUE);
+  }
+
+  /** An answer Keycloak never gives when it works: as good as no answer. */
+  private static GeneralException broken(String what) {
+    return new GeneralException(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE).subError(null, what);
+  }
+
+  /** A field Keycloak always sends; a body without it is a broken answer. */
+  private static Object field(@Nullable Map<String, Object> body, String name) {
+    var value = body == null ? null : body.get(name);
+    if (value == null) throw broken(KeycloakConstants.MISSING_FIELD.formatted(name));
+    return value;
   }
 
   /** Keycloak answers a create with the new resource's URL; its last segment is the id. */
-  private static String idOf(URI location) {
+  private static String idOf(@Nullable URI location) {
+    if (location == null) throw broken(KeycloakConstants.MISSING_LOCATION);
     var path = location.getPath();
     return path.substring(path.lastIndexOf('/') + 1);
   }

@@ -1,6 +1,7 @@
 package uz.heeypay.ecom.security;
 
 import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -12,13 +13,13 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 public class CurrentUser {
 
   /** The caller's name, or {@code null} without an authentication. */
-  public static String name() {
+  public static @Nullable String name() {
     var authentication = SecurityContextHolder.getContext().getAuthentication();
     return authentication == null ? null : authentication.getName();
   }
 
   /** The API client's id, or {@code null} without a token. */
-  public static String clientId() {
+  public static @Nullable String clientId() {
     return SecurityContextHolder.getContext().getAuthentication()
             instanceof JwtAuthenticationToken token
         ? token.getToken().getClaimAsString(SecurityConstants.CLIENT_CLAIM)

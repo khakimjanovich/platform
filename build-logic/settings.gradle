@@ -2,9 +2,5 @@ rootProject.name = 'build-logic'
 
 // Convention plugins shared by every ecom build: platform libraries, the app's modules and the adapters.
 dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
     versionCatalogs { create('libs') { from(files('../gradle/libs.versions.toml')) } }
 }

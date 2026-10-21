@@ -38,6 +38,15 @@ class KeycloakAdminTest {
   }
 
   @Test
+  void aCreateAnsweredWithoutALocationIsUnavailable() {
+    server.expect(requestTo("http://keycloak/users")).andRespond(withStatus(HttpStatus.CREATED));
+    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.uz", "pw", false))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE));
+  }
+
+  @Test
   void anErrorStatusIsUnavailableWithKeycloaksMessage() {
     server
         .expect(requestTo("http://keycloak/roles/partner"))

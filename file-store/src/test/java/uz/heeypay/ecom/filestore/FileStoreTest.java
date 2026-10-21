@@ -87,6 +87,21 @@ class FileStoreTest {
                     .isEqualTo(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT));
   }
 
+  /** An object the store didn't write (no name, no checksum) is not one of its files. */
+  @Test
+  @SuppressWarnings("unchecked")
+  void anObjectWithoutTheStoresMetadataIsCorrupt() {
+    var response = GetObjectResponse.builder().contentType("application/pdf").build();
+    when(s3.getObjectAsBytes(any(Consumer.class)))
+        .thenReturn(ResponseBytes.fromByteArray(response, new byte[] {1, 2, 3}));
+    assertThatThrownBy(() -> files.read("partner-documents", UUID.randomUUID()))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e ->
+                assertThat(e.getStatus())
+                    .isEqualTo(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT));
+  }
+
   @Test
   @SuppressWarnings("unchecked")
   void aStoreThatDoesntAnswerIsUnavailable() {

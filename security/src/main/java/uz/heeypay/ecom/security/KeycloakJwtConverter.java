@@ -20,8 +20,11 @@ public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticati
 
   @Override
   public AbstractAuthenticationToken convert(Jwt jwt) {
-    return new JwtAuthenticationToken(
-        jwt, roles(jwt), jwt.getClaimAsString(SecurityConstants.USERNAME_CLAIM));
+    var username = jwt.getClaimAsString(SecurityConstants.USERNAME_CLAIM);
+    // Without a username the token's subject names the caller, as Spring Security does.
+    return username == null
+        ? new JwtAuthenticationToken(jwt, roles(jwt))
+        : new JwtAuthenticationToken(jwt, roles(jwt), username);
   }
 
   private static Collection<GrantedAuthority> roles(Jwt jwt) {

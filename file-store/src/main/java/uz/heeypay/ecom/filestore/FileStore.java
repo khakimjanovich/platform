@@ -116,7 +116,11 @@ public class FileStore {
     var response = object.response();
     var metadata = response.metadata();
     var bytes = object.asByteArray();
-    if (!sha256(bytes).equals(metadata.get(FileStoreConstants.SHA256_METADATA))) {
+    var name = metadata.get(FileStoreConstants.FILE_NAME_METADATA);
+    var checksum = metadata.get(FileStoreConstants.SHA256_METADATA);
+    var uploadedAt = metadata.get(FileStoreConstants.UPLOADED_AT_METADATA);
+    // Bytes that no longer match, or an object the store didn't write, are not this file.
+    if (name == null || uploadedAt == null || checksum == null || !sha256(bytes).equals(checksum)) {
       log.error(FileStoreConstants.LOG_CORRUPT, fileId, bucket);
       throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT, fileId);
     }
@@ -124,11 +128,11 @@ public class FileStore {
         new StoredFile(
             fileId,
             bucket,
-            metadata.get(FileStoreConstants.FILE_NAME_METADATA),
+            name,
             response.contentType(),
             response.contentLength(),
-            metadata.get(FileStoreConstants.SHA256_METADATA),
-            Instant.parse(metadata.get(FileStoreConstants.UPLOADED_AT_METADATA))),
+            checksum,
+            Instant.parse(uploadedAt)),
         bytes);
   }
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.MDC;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
@@ -114,7 +115,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   }
 
   @Override
-  protected ResponseEntity<Object> handleMethodArgumentNotValid(
+  protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex,
       HttpHeaders headers,
       HttpStatusCode status,
@@ -127,7 +128,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   }
 
   @Override
-  protected ResponseEntity<Object> handleHandlerMethodValidationException(
+  protected @Nullable ResponseEntity<Object> handleHandlerMethodValidationException(
       HandlerMethodValidationException ex,
       HttpHeaders headers,
       HttpStatusCode status,
@@ -153,8 +154,12 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
    * METHOD_NOT_ALLOWED).
    */
   @Override
-  protected ResponseEntity<Object> handleExceptionInternal(
-      Exception ex, Object body, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+  protected @Nullable ResponseEntity<Object> handleExceptionInternal(
+      Exception ex,
+      @Nullable Object body,
+      HttpHeaders headers,
+      HttpStatusCode status,
+      WebRequest request) {
     if (body == null && ex instanceof ErrorResponse error) {
       // Spring passes no body for its own errors; fill and translate it as Spring would.
       body = error.updateAndGetBody(getMessageSource(), LocaleContextHolder.getLocale());
@@ -173,7 +178,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     return super.handleExceptionInternal(ex, body, headers, status, request);
   }
 
-  private ResponseEntity<Object> invalid(
+  private @Nullable ResponseEntity<Object> invalid(
       Exception ex,
       ProblemDetail problem,
       List<Map<String, String>> errors,
@@ -202,7 +207,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     return errors.stream().map(error -> error.get(ErrorConstants.FIELD)).toList();
   }
 
-  private static boolean loggable(ErrorStarterProperties.ErrorDefinition definition) {
+  private static boolean loggable(ErrorStarterProperties.@Nullable ErrorDefinition definition) {
     return definition != null && definition.isLoggable();
   }
 
@@ -218,14 +223,14 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   }
 
   /** One line per error response: status, code, request, and the English reason, masked. */
-  private void log(ProblemDetail problem, String reason, boolean loggable) {
+  private void log(ProblemDetail problem, @Nullable String reason, boolean loggable) {
     var properties = problem.getProperties() == null ? Map.of() : problem.getProperties();
     var line =
         ErrorConstants.LOG_PROBLEM.formatted(
             problem.getStatus(),
             properties.get(ErrorConstants.CODE_PROPERTY),
             request(),
-            masking.text(reason == null ? problem.getTitle() : reason));
+            masking.text(reason == null ? String.valueOf(problem.getTitle()) : reason));
     if (problem.getStatus() >= 500) log.error(line);
     else if (loggable) log.warn(line);
     else log.info(line);

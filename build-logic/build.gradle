@@ -2,9 +2,17 @@ plugins {
     id 'groovy-gradle-plugin'
 }
 
+// The plugins these conventions apply: Spotless and OpenAPI Generator from Maven Central, Error
+// Prone's only from the Gradle Plugin Portal.
+repositories {
+    mavenCentral()
+    gradlePluginPortal()
+}
+
 dependencies {
     implementation libs.spotless.gradle
     implementation libs.openapi.generator.gradle
+    implementation libs.errorprone.gradle
 
     // The plugins tested on real builds (Gradle TestKit).
     testImplementation platform(libs.spring.boot.bom)

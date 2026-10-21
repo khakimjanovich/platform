@@ -1,8 +1,13 @@
 // Every Java build: Java from the catalog, the Spring Boot BOM, Lombok, JUnit 5,
-// parameter names for Spring binding, and one code format checked by `check`.
+// parameter names for Spring binding, one code format checked by `check`, and null-safety:
+// Error Prone with NullAway checks every @NullMarked package (JSpecify), as a warning here and an
+// error in platform libraries (ecom.library). Generated code and tests are not checked.
+import net.ltgt.gradle.errorprone.CheckSeverity
+
 plugins {
     id 'java-library'
     id 'com.diffplug.spotless'
+    id 'net.ltgt.errorprone'
 }
 
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
@@ -21,6 +26,24 @@ dependencies {
     testRuntimeOnly libs.findLibrary('junit-launcher').get()
     compileOnly libs.findLibrary('lombok').get()
     annotationProcessor libs.findLibrary('lombok').get()
+    implementation libs.findLibrary('jspecify').get()
+    errorprone libs.findLibrary('errorprone-core').get()
+    errorprone libs.findLibrary('nullaway').get()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone {
+        // Null-safety is what this build checks; Error Prone's other checks stay off.
+        disableAllChecks = true
+        check('NullAway', CheckSeverity.WARN)
+        option('NullAway:OnlyNullMarked', 'true')
+        option('NullAway:JSpecifyMode', 'true')
+        excludedPaths = '.*/build/generated/.*'
+    }
+}
+// Tests may pass null on purpose; only production code is checked.
+tasks.matching { it.name ==~ /compile(Test|IntegrationTest|TestFixtures)Java/ }.configureEach {
+    options.errorprone.enabled = false
 }
 
 tasks.withType(Test).configureEach { useJUnitPlatform() }

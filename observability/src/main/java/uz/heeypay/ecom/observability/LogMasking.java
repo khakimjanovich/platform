@@ -55,7 +55,8 @@ public final class LogMasking {
   public static class Message extends MessageConverter {
     @Override
     public String convert(ILoggingEvent event) {
-      return masking.text(super.convert(event));
+      var text = masking.text(super.convert(event));
+      return text == null ? "" : text;
     }
   }
 

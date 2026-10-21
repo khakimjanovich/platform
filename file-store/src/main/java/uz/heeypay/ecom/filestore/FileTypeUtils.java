@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import javax.imageio.ImageIO;
 import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A file's type from its own bytes: the format's signature, and then the file must really be that
@@ -39,7 +40,7 @@ public class FileTypeUtils {
   }
 
   /** Keeps a readable name for display; nothing that could be a path or break a header. */
-  public static String safeName(String original) {
+  public static String safeName(@Nullable String original) {
     var name = original == null ? "" : original;
     name = name.substring(Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\')) + 1);
     name = name.replaceAll(FileStoreConstants.UNSAFE_NAME_CHARACTERS, "_").strip();

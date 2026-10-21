@@ -8,6 +8,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -44,7 +45,7 @@ public final class Masking {
   }
 
   /** An HTTP body of the given content type (e.g. {@code application/json}), or null. */
-  public String body(byte[] body, String contentType) {
+  public String body(byte @Nullable [] body, @Nullable String contentType) {
     if (body == null || body.length == 0) return "";
     var text = new String(body, StandardCharsets.UTF_8);
     var subtype = subtype(contentType);
@@ -58,7 +59,7 @@ public final class Masking {
   }
 
   /** A log message or an exception's: {@code key=value} pairs by name, and any card number. */
-  public String text(String text) {
+  public @Nullable String text(@Nullable String text) {
     if (text == null || text.isEmpty()) return text;
     return cards(
         replace(
@@ -168,7 +169,7 @@ public final class Masking {
   }
 
   /** "json" for "application/problem+json; charset=UTF-8"; "" for none. */
-  private static String subtype(String contentType) {
+  private static String subtype(@Nullable String contentType) {
     if (contentType == null) return "";
     var type = contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);
     return type.substring(type.indexOf('/') + 1);

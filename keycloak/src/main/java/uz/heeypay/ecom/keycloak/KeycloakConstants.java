@@ -24,6 +24,8 @@ public class KeycloakConstants {
   /* ------- Keycloak's own error bodies ------- */
   public static final String ERROR_MESSAGE = "errorMessage";
   public static final String ERROR = "error";
+  public static final String MISSING_FIELD = "Keycloak answered without %s";
+  public static final String MISSING_LOCATION = "Keycloak answered a create without a Location";
 
   public static final String DEFAULT_CONNECT_TIMEOUT = "5s";
   public static final String DEFAULT_READ_TIMEOUT = "10s";

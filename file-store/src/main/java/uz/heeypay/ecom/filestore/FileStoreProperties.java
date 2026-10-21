@@ -2,6 +2,7 @@ package uz.heeypay.ecom.filestore;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -22,7 +23,8 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties(FileStoreConstants.PROPERTIES_PREFIX)
-public record FileStoreProperties(@Valid Storage storage, Map<String, @Valid Bucket> buckets) {
+public record FileStoreProperties(
+    @Valid @NotNull Storage storage, @NotEmpty Map<String, @Valid Bucket> buckets) {
 
   /**
    * Where the store is and how to sign in.
@@ -40,8 +42,8 @@ public record FileStoreProperties(@Valid Storage storage, Map<String, @Valid Buc
    * @param apiCallAttemptTimeout how long one attempt of a call may take
    */
   public record Storage(
-      String endpoint,
-      String region,
+      @NotBlank String endpoint,
+      @NotBlank String region,
       @DefaultValue(FileStoreConstants.DEFAULT_CREDENTIALS) Credentials credentials,
       String accessKey,
       String secretKey,

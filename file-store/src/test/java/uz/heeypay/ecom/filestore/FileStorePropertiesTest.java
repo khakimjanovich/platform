@@ -61,4 +61,24 @@ class FileStorePropertiesTest {
         .withPropertyValues("ecom.file-store.storage.credentials=default-chain")
         .run(context -> assertThat(context).hasSingleBean(FileStore.class));
   }
+
+  @Test
+  void aStoreWithoutARegionStopsStartup() {
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(FileStoreAutoConfiguration.class))
+        .withBean(S3Client.class, () -> mock(S3Client.class))
+        .withPropertyValues(
+            "ecom.file-store.storage.endpoint=http://localhost:8333",
+            "ecom.file-store.storage.access-key=ecom",
+            "ecom.file-store.storage.secret-key=local-only",
+            "ecom.file-store.buckets.logos.allowed-types=image/png",
+            "ecom.file-store.buckets.logos.max-size=1MB")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("ecom.file-store")
+                    .hasMessageContaining("region"));
+  }
 }

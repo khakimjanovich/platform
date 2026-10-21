@@ -53,6 +53,7 @@ class FileStoreTest {
         .withBean(S3Client.class, () -> s3)
         .withPropertyValues(
             "ecom.file-store.storage.endpoint=http://localhost:8333",
+            "ecom.file-store.storage.region=us-east-1",
             "ecom.file-store.storage.access-key=ecom",
             "ecom.file-store.storage.secret-key=local-only",
             "ecom.file-store.buckets.partner-documents.allowed-types=application/pdf",
@@ -67,6 +68,28 @@ class FileStoreTest {
                         cause ->
                             assertThat(context.getStartupFailure())
                                 .hasStackTraceContaining("Bucket partner-documents")));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void aStoreThatIsDownAtStartupNamesTheBucket() {
+    when(s3.headBucket(any(Consumer.class)))
+        .thenThrow(SdkClientException.create("connection refused"));
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(FileStoreAutoConfiguration.class))
+        .withBean(S3Client.class, () -> s3)
+        .withPropertyValues(
+            "ecom.file-store.storage.endpoint=http://localhost:8333",
+            "ecom.file-store.storage.region=us-east-1",
+            "ecom.file-store.storage.access-key=ecom",
+            "ecom.file-store.storage.secret-key=local-only",
+            "ecom.file-store.buckets.partner-documents.allowed-types=application/pdf",
+            "ecom.file-store.buckets.partner-documents.max-size=10MB")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .hasStackTraceContaining("Bucket partner-documents can't be checked"));
   }
 
   @Test

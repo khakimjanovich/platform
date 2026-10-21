@@ -4,8 +4,8 @@
       "name": "ecom",
       "credentials": [{ "accessKey": "ecom", "secretKey": "local-only" }],
       "actions": [
-        "Read:partner-documents", "Write:partner-documents", "List:partner-documents",
-        "Read:sales-point-logos", "Write:sales-point-logos", "List:sales-point-logos"
+        "Read:partner-documents", "Write:partner-documents",
+        "Read:sales-point-logos", "Write:sales-point-logos"
       ]
     }
   ]

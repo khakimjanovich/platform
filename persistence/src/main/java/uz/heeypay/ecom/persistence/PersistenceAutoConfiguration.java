@@ -2,7 +2,6 @@ package uz.heeypay.ecom.persistence;
 
 import com.zaxxer.hikari.HikariDataSource;
 import liquibase.integration.spring.SpringLiquibase;
-import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,17 +20,23 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 @EnableConfigurationProperties(PersistenceProperties.class)
 public class PersistenceAutoConfiguration {
 
+  /**
+   * A post-processor is made before any other bean, so it can't take the {@code
+   * PersistenceProperties} bean (registered above for the metadata): it binds the same prefix from
+   * the environment, once.
+   */
   @Bean
   static BeanPostProcessor modulePersistenceSettings(Environment environment) {
+    var properties =
+        Binder.get(environment)
+            .bindOrCreate(PersistenceConstants.PROPERTIES_PREFIX, PersistenceProperties.class);
     return new BeanPostProcessor() {
-      private @Nullable PersistenceProperties properties;
-
       @Override
       public Object postProcessBeforeInitialization(Object bean, String name) {
         if (bean instanceof LocalContainerEntityManagerFactoryBean factory) {
-          factory.getJpaPropertyMap().putAll(properties().jpa().properties());
+          factory.getJpaPropertyMap().putAll(properties.jpa().properties());
         } else if (bean instanceof SpringLiquibase liquibase) {
-          liquibase.setShouldRun(properties().liquibase().enabled());
+          liquibase.setShouldRun(properties.liquibase().enabled());
         }
         return bean;
       }
@@ -40,17 +45,6 @@ public class PersistenceAutoConfiguration {
       public Object postProcessAfterInitialization(Object bean, String name) {
         if (bean instanceof HikariDataSource pool) ModulePersistence.checkKeepalive(pool);
         return bean;
-      }
-
-      /** Bound once, from the environment: a post-processor comes before other beans. */
-      private PersistenceProperties properties() {
-        if (properties == null) {
-          properties =
-              Binder.get(environment)
-                  .bindOrCreate(
-                      PersistenceConstants.PROPERTIES_PREFIX, PersistenceProperties.class);
-        }
-        return properties;
       }
     };
   }

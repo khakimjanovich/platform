@@ -16,3 +16,8 @@ dependencies {
     integrationTestImplementation libs.testcontainers.postgresql
     integrationTestImplementation libs.testcontainers.junit
 }
+
+// Not UTC, so a time written without the UTC session setting would read back shifted.
+tasks.named('integrationTest') {
+    systemProperty 'user.timezone', 'Asia/Tashkent'
+}

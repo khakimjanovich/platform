@@ -51,5 +51,5 @@ files.delete("partner-documents", stored.id());
 - `./gradlew -p platform :file-store:test`: types from bytes, the rules, a missing bucket, a corrupt
   file, the store down.
 - `./gradlew -p platform :file-store:integrationTest`: a real SeaweedFS as an identity that may only
-  read, write and list its buckets: store, read, delete, rules, a missing bucket, a file changed
+  read and write its buckets (nothing lists them): store, read, delete, rules, a missing bucket, a file changed
   behind the store's back.

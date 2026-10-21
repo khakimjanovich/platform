@@ -4,11 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /** One module's beans, built the same way for every module. */
@@ -45,6 +52,45 @@ class ModulePersistenceTest {
         .withConfiguration(AutoConfigurations.of(PersistenceAutoConfiguration.class))
         .withBean("cardDataSource", HikariDataSource.class, () -> pool)
         .run(context -> assertThat(context).hasFailed());
+  }
+
+  /** A module's pool settings as ecom-infra passes them: an environment variable per setting. */
+  @Configuration(proxyBeanMethods = false)
+  @EnableConfigurationProperties
+  static class CardPool {
+    @Bean
+    @ConfigurationProperties("ecom.db.card")
+    DataSourceProperties cardDataSourceProperties() {
+      return new DataSourceProperties();
+    }
+
+    @Bean
+    @ConfigurationProperties("ecom.db.card" + PersistenceConstants.HIKARI_SUFFIX)
+    HikariDataSource cardDataSource(DataSourceProperties cardDataSourceProperties) {
+      return ModulePersistence.dataSource("card", cardDataSourceProperties);
+    }
+  }
+
+  @Test
+  void aPoolSettingComesFromAnEnvironmentVariable() {
+    new ApplicationContextRunner()
+        .withUserConfiguration(CardPool.class)
+        .withPropertyValues(
+            "ecom.db.card.url=jdbc:postgresql://localhost:5442/acquiring",
+            "ecom.db.card.username=card_user")
+        .withInitializer(
+            context ->
+                context
+                    .getEnvironment()
+                    .getPropertySources()
+                    .addFirst(
+                        new SystemEnvironmentPropertySource(
+                            StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                            Map.of("ECOM_DB_CARD_HIKARI_MAXIMUM_POOL_SIZE", "3"))))
+        .run(
+            context ->
+                assertThat(context.getBean(HikariDataSource.class).getMaximumPoolSize())
+                    .isEqualTo(3));
   }
 
   @Test

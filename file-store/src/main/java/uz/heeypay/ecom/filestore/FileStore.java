@@ -60,6 +60,10 @@ public class FileStore {
           throw new IllegalStateException(FileStoreConstants.BUCKET_MISSING.formatted(name), e);
         }
         throw new IllegalStateException(FileStoreConstants.BUCKET_UNREADABLE.formatted(name), e);
+      } catch (SdkException e) {
+        // The store doesn't answer (refused, a timeout): say which bucket and why, not a raw SDK
+        // trace.
+        throw new IllegalStateException(FileStoreConstants.BUCKET_UNCHECKED.formatted(name), e);
       }
     }
   }
@@ -130,7 +134,7 @@ public class FileStore {
             bucket,
             name,
             response.contentType(),
-            response.contentLength(),
+            bytes.length,
             checksum,
             Instant.parse(uploadedAt)),
         bytes);

@@ -20,8 +20,13 @@ import uz.heeypay.ecom.error.ProblemSecurityHandler;
  * Adding the library secures the app: every call carries a Keycloak access token except the
  * configured public routes, which ignore any token sent; each listed route needs its role, anything
  * else is refused, and 401 and 403 answer with problem details. Boot's {@code
- * spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API. An app that needs
- * more defines its own {@link SecurityFilterChain}.
+ * spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API.
+ *
+ * <p>A module adds to this one chain with a {@code Customizer<HttpSecurity>} bean, which Spring
+ * Security applies to the {@link HttpSecurity} before these rules, e.g. {@code http.addFilterAfter(
+ * filter, BearerTokenAuthenticationFilter.class)}; to refuse a request it hands the {@link
+ * ProblemSecurityHandler} the reason, so the refusal is a problem detail. Filters only: the route
+ * rules stay here. An app that needs a different chain defines its own {@link SecurityFilterChain}.
  */
 @AutoConfiguration(
     beforeName = {

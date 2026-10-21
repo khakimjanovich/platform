@@ -2,6 +2,11 @@ package uz.heeypay.ecom.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
@@ -10,10 +15,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
@@ -21,11 +31,13 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.filter.OncePerRequestFilter;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
+import uz.heeypay.ecom.error.ProblemSecurityHandler;
 
 /**
  * The library against a real Keycloak, with real password and client-credentials tokens: roles per
@@ -70,6 +82,31 @@ class SecurityIT {
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
   static class App {
+
+    /**
+     * A module's own check after the token's, as the payment module's request signatures will be:
+     * it refuses through the library's handler, so the refusal is a problem detail too.
+     */
+    @Bean
+    Customizer<HttpSecurity> signatureCheck(ProblemSecurityHandler problems) {
+      return http ->
+          http.addFilterAfter(
+              new OncePerRequestFilter() {
+                @Override
+                protected void doFilterInternal(
+                    HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+                    throws IOException, ServletException {
+                  if ("bad".equals(request.getHeader("X-Signature"))) {
+                    problems.commence(
+                        request, response, new BadCredentialsException("signature mismatch"));
+                    return;
+                  }
+                  chain.doFilter(request, response);
+                }
+              },
+              BearerTokenAuthenticationFilter.class);
+    }
+
     @RestController
     static class Endpoints {
       @GetMapping({"/admin/report", "/partner/me", "/public/page", "/unlisted"})
@@ -116,6 +153,26 @@ class SecurityIT {
     call("/admin/report", stale).expectStatus().isUnauthorized();
     call("/public/page", stale).expectStatus().isOk();
     call("/actuator/health", stale).expectStatus().isOk();
+  }
+
+  @Test
+  void aModulesFilterRefusesWithAProblemDetail() {
+    RestTestClient.bindToServer()
+        .baseUrl("http://localhost:" + port)
+        .build()
+        .get()
+        .uri("/admin/report")
+        .header(HttpHeaders.AUTHORIZATION, "Bearer " + password("aziz"))
+        .header("X-Signature", "bad")
+        .exchange()
+        .expectStatus()
+        .isUnauthorized()
+        .expectHeader()
+        .contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)
+        .expectBody()
+        .jsonPath("$.code")
+        .isEqualTo("UNAUTHORIZED");
+    call("/admin/report", password("aziz")).expectStatus().isOk();
   }
 
   private RestTestClient.ResponseSpec call(String path, String token) {

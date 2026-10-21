@@ -1,0 +1,17 @@
+exception:
+  starter:
+    error:
+      DEMO_FAILED:
+        http-code: 409
+        title: demo-failed
+        is-loggable: false
+        message-en: "Demo {0} failed."
+        message-ru: "Демо {0} не удалось."
+        message-uz: "Demo {0} bajarilmadi."
+      DEMO_GONE:
+        http-code: 410
+        title: demo-gone
+        is-loggable: false
+        message-en: "Gone."
+        message-ru: "Нет."
+        message-uz: "Yoʻq."

@@ -1,6 +1,7 @@
 // One error format for every module: RFC 9457 problem details plus a stable error code.
 plugins {
     id 'ecom.library'
+    id 'java-test-fixtures' // ErrorDefinitions: the completeness check every service runs
 }
 
 dependencies {
@@ -9,6 +10,9 @@ dependencies {
     implementation libs.spring.boot.autoconfigure
     compileOnly libs.jakarta.servlet
     compileOnly libs.spring.security.web // security problems only when the app uses Spring Security
+
+    testFixturesImplementation platform(libs.spring.boot.bom)
+    testFixturesImplementation libs.starter.test
 
     testImplementation libs.starter.webmvc
     testImplementation libs.starter.validation

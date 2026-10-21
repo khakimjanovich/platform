@@ -1,0 +1,9 @@
+exception:
+  starter:
+    error:
+      DEMO_FAILED:
+        http-code: 409
+        title: demo-failed
+        is-loggable: false
+        message-en: "Demo {0} failed."
+        message-ru: "Демо {0} не удалось."

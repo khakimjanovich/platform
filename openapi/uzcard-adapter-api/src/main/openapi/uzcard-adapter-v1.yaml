@@ -261,7 +261,6 @@ components:
         ussd: { type: string, maxLength: 160 }
         hash: { type: string, maxLength: 12 }
         templateId: { type: integer, format: int32 }
-        serviceName: { type: string, maxLength: 20 }
     CardsNewOtpResponse:
       type: object
       properties:
@@ -300,6 +299,7 @@ components:
         cardtype: { type: string }
         holdAmount: { type: integer, format: int64 }
         cashbackAmount: { type: integer, format: int64 }
+        exceedLimit: { type: integer, format: int64, description: "How far the card is over its limit" }
     CardsNewVerifyResult:
       type: object
       properties:

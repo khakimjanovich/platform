@@ -2,5 +2,13 @@ rootProject.name = 'build-logic'
 
 // Convention plugins shared by every ecom build: platform libraries, the app's modules and the adapters.
 dependencyResolutionManagement {
+    // The plugins these conventions apply: Spotless and OpenAPI Generator from Maven Central, Error
+    // Prone's only from the Gradle Plugin Portal. Settings win over repositories a machine's init
+    // script adds to every project, so the Plugin Portal is always there.
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
     versionCatalogs { create('libs') { from(files('../gradle/libs.versions.toml')) } }
 }

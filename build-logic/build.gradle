@@ -2,13 +2,6 @@ plugins {
     id 'groovy-gradle-plugin'
 }
 
-// The plugins these conventions apply: Spotless and OpenAPI Generator from Maven Central, Error
-// Prone's only from the Gradle Plugin Portal.
-repositories {
-    mavenCentral()
-    gradlePluginPortal()
-}
-
 dependencies {
     implementation libs.spotless.gradle
     implementation libs.openapi.generator.gradle

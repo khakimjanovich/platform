@@ -7,6 +7,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
@@ -70,7 +71,7 @@ public final class ErrorDefinitions {
       yaml.setResources(new PathMatchingResourcePatternResolver().getResources(locationPattern));
       return new Binder(new MapConfigurationPropertySource(yaml.getObject()))
           .bind(ErrorConstants.PROPERTIES_PREFIX, ErrorStarterProperties.class)
-          .orElseGet(() -> new ErrorStarterProperties(null));
+          .orElseGet(() -> new ErrorStarterProperties(Map.of()));
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }

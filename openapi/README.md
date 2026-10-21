@@ -37,10 +37,11 @@ Spring's `ProblemDetail`, never a generated class.
 
 ## Checks
 
-On every pull request that changes a contract, CI lints all of them (`redocly.yaml`: unique
-`operationId`s, tags, `/internal` operations tagged `...Internal`, no contract's own `Problem`) and
-compares each with the base branch's (`oasdiff breaking`); a breaking change needs the
-`breaking-contract` label.
+On every pull request that changes a contract, the contracts workflow
+(`.github/workflows/contracts.yml`) lints all of them (`redocly.yaml`: unique `operationId`s, tags,
+`/internal` operations tagged `...Internal`, no contract's own `Problem`) and compares each with the
+base branch's (`oasdiff breaking`); a breaking change needs the `breaking-contract` label. Adding or
+removing the label re-runs only that workflow, never the build.
 
 ## Tests
 

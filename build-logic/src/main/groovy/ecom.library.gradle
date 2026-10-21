@@ -23,6 +23,24 @@ dependencies {
     annotationProcessor libs.findLibrary('spring-boot-configuration-processor').get()
 }
 
+// Every property the jar's metadata lists has a description (its record's @param): the build fails
+// on one without, so a constructor that hides the Javadoc from the processor is caught.
+def verifyConfigurationMetadata = tasks.register('verifyConfigurationMetadata') {
+    def metadata = layout.buildDirectory.file('classes/java/main/META-INF/spring-configuration-metadata.json')
+    inputs.files(tasks.named('compileJava'))
+    doLast {
+        def file = metadata.get().asFile
+        if (!file.exists()) return
+        def undescribed = new groovy.json.JsonSlurper().parse(file).properties
+            .findAll { !it.description }
+            .collect { it.name }
+        if (undescribed) {
+            throw new GradleException("Properties without a description in ${project.name}: ${undescribed.join(', ')}")
+        }
+    }
+}
+tasks.named('check') { dependsOn verifyConfigurationMetadata }
+
 publishing {
     publications {
         library(MavenPublication) { from components.java }

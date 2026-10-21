@@ -38,9 +38,9 @@ image tags as ecom-infra (each library's `src/integrationTest/resources/images.p
 
 - One version for the whole platform, `ecom-platform` in `gradle/libs.versions.toml` (the catalog
   every build reads), following Semantic Versioning 2.0.
-- A PR that removes or changes a public class, method, property or error code bumps the minor
-  version while it is 0.x (the major from 1.0); one that only adds bumps the minor too; a fix that
-  changes no API bumps the patch.
+- While 0.x: breaking changes and additions bump the minor, fixes the patch. From 1.0: breaking →
+  major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
+  method, property or error code.
 - A release is the tag `platform-vX.Y.Z` on `main`. Publishing to a package repository waits for the
   platform to become its own repository.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).

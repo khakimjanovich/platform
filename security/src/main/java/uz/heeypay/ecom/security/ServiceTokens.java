@@ -3,6 +3,7 @@ package uz.heeypay.ecom.security;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpRequestExecution;
@@ -18,7 +19,7 @@ import org.springframework.web.client.support.RestClientHttpServiceGroupConfigur
 
 /**
  * The configured HTTP service groups call with a client-credentials token of their registration:
- * Spring Security's own interceptor gets and refreshes it. A 401 from the callee drops the token
+ * Spring Security's own interceptor gets and refreshes it. A 401 that refuses the token drops it
  * (Spring's authorization-failure handler) and the call is tried once more with a new one.
  *
  * <p>Generated client interfaces can't carry {@code @ClientRegistrationId}, so a group names its
@@ -49,7 +50,7 @@ public class ServiceTokens implements RestClientHttpServiceGroupConfigurer {
         });
   }
 
-  private OAuth2ClientHttpRequestInterceptor interceptor(String registration) {
+  OAuth2ClientHttpRequestInterceptor interceptor(String registration) {
     var service =
         new AnonymousAuthenticationToken(
             SecurityConstants.SERVICE_PRINCIPAL,
@@ -72,13 +73,20 @@ public class ServiceTokens implements RestClientHttpServiceGroupConfigurer {
     };
   }
 
-  /** A 401 means the token was refused; the token interceptor has dropped it, so try once more. */
+  /**
+   * A 401 for a refused token (no challenge, or {@code error="invalid_token"}): the token
+   * interceptor has dropped it, so try once more. Any other 401 ({@code insufficient_scope}) is the
+   * answer.
+   */
   static class RetryOnceOnUnauthorized implements ClientHttpRequestInterceptor {
     @Override
     public ClientHttpResponse intercept(
         HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
       var response = execution.execute(request, body);
       if (!response.getStatusCode().isSameCodeAs(HttpStatus.UNAUTHORIZED)) return response;
+      var challenge = response.getHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE);
+      if (challenge != null && !challenge.contains(SecurityConstants.INVALID_TOKEN))
+        return response;
       response.close();
       return execution.execute(request, body);
     }

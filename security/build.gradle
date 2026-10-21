@@ -11,15 +11,18 @@ dependencies {
     api libs.starter.oauth2.resource.server
     implementation libs.spring.boot.autoconfigure
     compileOnly libs.spring.security.oauth2.client // service tokens, only in an app with OAuth2 clients
+    compileOnly libs.spring.boot.http.client // the token requests' timeouts, over Boot's client
     compileOnly libs.jakarta.servlet // provided by the app's web server
 
     testImplementation libs.starter.webmvc
     testImplementation libs.spring.security.test
     testImplementation libs.starter.oauth2.client
+    testImplementation libs.spring.boot.http.client
 
     integrationTestImplementation libs.starter.actuator
     integrationTestImplementation libs.starter.restclient
     integrationTestImplementation libs.wiremock
+    integrationTestImplementation testFixtures(project(':keycloak')) // ecom-realm.json
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
 }

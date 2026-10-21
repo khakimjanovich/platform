@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
@@ -62,6 +63,11 @@ public class SecurityAutoConfiguration {
       ProblemSecurityHandler problems,
       KeycloakJwtConverter converter,
       BearerTokenResolver tokens) {
+    // Spring Security applies the Customizer<HttpSecurity> beans first, and the first matching
+    // rule wins: a module's own route rule would silently beat the configured ones.
+    if (http.getConfigurer(AuthorizeHttpRequestsConfigurer.class) != null) {
+      throw new IllegalStateException(SecurityConstants.ROUTES_IN_CONFIGURATION);
+    }
     return http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

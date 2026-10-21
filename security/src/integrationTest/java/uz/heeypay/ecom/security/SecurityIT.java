@@ -67,16 +67,16 @@ class SecurityIT {
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("test-realm.json"),
-              "/opt/keycloak/data/import/test-realm.json")
+              MountableFile.forClasspathResource("ecom-realm.json"),
+              "/opt/keycloak/data/import/ecom-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
-              Wait.forHttp("/realms/test").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
+              Wait.forHttp("/realms/ecom").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
   @DynamicPropertySource
   static void issuer(DynamicPropertyRegistry registry) {
     registry.add(
-        "spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> keycloak() + "/realms/test");
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> keycloak() + "/realms/ecom");
   }
 
   @Configuration(proxyBeanMethods = false)
@@ -121,8 +121,8 @@ class SecurityIT {
   @Test
   void eachRouteNeedsItsRole() {
     call("/admin/report", password("aziz")).expectStatus().isOk();
-    call("/partner/me", password("malika")).expectStatus().isOk();
-    call("/admin/report", password("malika"))
+    call("/partner/me", password("dilnoza")).expectStatus().isOk();
+    call("/admin/report", password("dilnoza"))
         .expectStatus()
         .isForbidden()
         .expectBody()
@@ -203,7 +203,7 @@ class SecurityIT {
   private static String password(String username) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
-    form.add("client_id", "portal");
+    form.add("client_id", "ecom-portal");
     form.add("username", username);
     form.add("password", "local-only");
     return token(form);
@@ -221,7 +221,7 @@ class SecurityIT {
     return (String)
         RestClient.create()
             .post()
-            .uri(keycloak() + "/realms/test/protocol/openid-connect/token")
+            .uri(keycloak() + "/realms/ecom/protocol/openid-connect/token")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(form)
             .retrieve()

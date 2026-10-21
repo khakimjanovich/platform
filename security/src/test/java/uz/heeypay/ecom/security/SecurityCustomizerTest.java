@@ -1,5 +1,6 @@
 package uz.heeypay.ecom.security;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +32,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * A module adds a filter to the one security chain with a {@code Customizer<HttpSecurity>} bean,
- * which Spring Security applies before the library's rules; the route rules still hold.
+ * which Spring Security applies before the library's rules; the route rules still hold, even
+ * against a customizer that tries to open a route.
  */
 @SpringBootTest(
     classes = SecurityCustomizerTest.App.class,
@@ -107,5 +110,27 @@ class SecurityCustomizerTest {
     mvc.perform(get("/other").header("Authorization", "Bearer admin"))
         .andExpect(status().isForbidden())
         .andExpect(header().string("X-Module", "seen"));
+  }
+
+  /** A module trying to open a route itself: the rules live in configuration only. */
+  @Configuration
+  static class RouteRule {
+    @Bean
+    Customizer<HttpSecurity> moduleRouteRule() {
+      return http ->
+          http.authorizeHttpRequests(routes -> routes.requestMatchers("/admin/**").permitAll());
+    }
+  }
+
+  @Test
+  void aCustomizersPermitAllDoesNotWin() {
+    assertThatThrownBy(
+            () ->
+                new SpringApplicationBuilder(App.class, RouteRule.class)
+                    .properties("server.port=0", "ecom.security.roles[/admin/**]=ADMIN")
+                    .run()
+                    .close())
+        .rootCause()
+        .hasMessageContaining("ecom.security.roles");
   }
 }

@@ -3,7 +3,6 @@ package uz.heeypay.ecom.security;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,11 +74,11 @@ class ServiceTokensIT {
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("test-realm.json"),
-              "/opt/keycloak/data/import/test-realm.json")
+              MountableFile.forClasspathResource("ecom-realm.json"),
+              "/opt/keycloak/data/import/ecom-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
-              Wait.forHttp("/realms/test").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
+              Wait.forHttp("/realms/ecom").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
   @RegisterExtension
   static final WireMockExtension FLAKY =
@@ -156,10 +155,12 @@ class ServiceTokensIT {
   void aRefusedTokenIsDroppedAndTheCallTriedOnceMore() {
     FLAKY.stubFor(get(urlEqualTo("/adapter/ping")).willReturn(aResponse().withStatus(401)));
     assertThatThrownBy(flaky::ping).isInstanceOf(HttpClientErrorException.Unauthorized.class);
-    FLAKY.verify(
-        2,
-        getRequestedFor(urlEqualTo("/adapter/ping"))
-            .withHeader("Authorization", matching("Bearer .+")));
+    var tokens =
+        FLAKY.findAll(getRequestedFor(urlEqualTo("/adapter/ping"))).stream()
+            .map(request -> request.getHeader("Authorization"))
+            .toList();
+    assertThat(tokens).hasSize(2).allMatch(header -> header.startsWith("Bearer "));
+    assertThat(tokens.get(1)).as("the retry carries a new token").isNotEqualTo(tokens.get(0));
   }
 
   @Test
@@ -207,7 +208,7 @@ class ServiceTokensIT {
                 .get("access_token");
     var api =
         RestClient.builder()
-            .baseUrl(keycloak() + "/admin/realms/test")
+            .baseUrl(keycloak() + "/admin/realms/ecom")
             .defaultHeader("Authorization", "Bearer " + admin)
             .build();
     var id =
@@ -226,7 +227,7 @@ class ServiceTokensIT {
   }
 
   private static String realm() {
-    return keycloak() + "/realms/test";
+    return keycloak() + "/realms/ecom";
   }
 
   private static String tokenUri() {

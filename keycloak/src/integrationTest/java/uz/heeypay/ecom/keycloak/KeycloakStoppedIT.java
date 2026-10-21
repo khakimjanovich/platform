@@ -24,11 +24,11 @@ class KeycloakStoppedIT {
             .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
             .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
             .withCopyFileToContainer(
-                MountableFile.forClasspathResource("test-realm.json"),
-                "/opt/keycloak/data/import/test-realm.json")
+                MountableFile.forClasspathResource("ecom-realm.json"),
+                "/opt/keycloak/data/import/ecom-realm.json")
             .withExposedPorts(8080)
             .waitingFor(
-                Wait.forHttp("/realms/test")
+                Wait.forHttp("/realms/ecom")
                     .forPort(8080)
                     .withStartupTimeout(Duration.ofMinutes(3)));
     keycloak.start();
@@ -36,9 +36,9 @@ class KeycloakStoppedIT {
         .withConfiguration(AutoConfigurations.of(KeycloakAutoConfiguration.class))
         .withPropertyValues(
             "ecom.keycloak.url=http://" + keycloak.getHost() + ":" + keycloak.getMappedPort(8080),
-            "ecom.keycloak.realm=test",
-            "ecom.keycloak.client-id=backend",
-            "ecom.keycloak.client-secret=test-secret")
+            "ecom.keycloak.realm=ecom",
+            "ecom.keycloak.client-id=ecom-backend",
+            "ecom.keycloak.client-secret=local-only")
         .run(
             context -> {
               var admin = context.getBean(KeycloakAdmin.class);

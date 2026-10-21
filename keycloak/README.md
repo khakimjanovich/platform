@@ -46,5 +46,7 @@ var secret = keycloak.rotateSecret(client.id());
 
 - `./gradlew -p platform :keycloak:test`: every failure as its error, a refused token replaced
   once, the read timeout, the property checks.
-- `./gradlew -p platform :keycloak:integrationTest`: a real Keycloak with an imported realm: users,
+- Test fixtures: `ecom-realm.json`, the one realm (`ecom`) every integration test imports, here, in
+  security and in the app (`testFixtures(libs.ecom.keycloak)`).
+- `./gradlew -p platform :keycloak:integrationTest`: a real Keycloak with that realm: users,
   roles, logins, secrets that rotate, and Keycloak stopped mid-life.

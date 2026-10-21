@@ -22,6 +22,14 @@ public class SecurityConstants {
 
   /* ------- service-to-service tokens ------- */
   public static final String SERVICE_TOKENS_PREFIX = "ecom.security.service-tokens";
+  public static final String ROUTES_IN_CONFIGURATION =
+      "A Customizer<HttpSecurity> set route rules; they belong in ecom.security.roles and"
+          + " ecom.security.public-routes, and a customizer adds filters only";
+  public static final String HTTP_CLIENT_FACTORY =
+      "org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder";
+  public static final String DEFAULT_TOKEN_CONNECT_TIMEOUT = "5s";
+  public static final String DEFAULT_TOKEN_READ_TIMEOUT = "10s";
+  public static final String INVALID_TOKEN = "error=\"invalid_token\"";
 
   /** Whose token a group's calls carry: the service's own, one per registration. */
   public static final String SERVICE_PRINCIPAL = "service-tokens";

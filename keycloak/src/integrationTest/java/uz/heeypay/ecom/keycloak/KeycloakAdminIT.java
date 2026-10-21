@@ -50,11 +50,11 @@ class KeycloakAdminIT {
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("test-realm.json"),
-              "/opt/keycloak/data/import/test-realm.json")
+              MountableFile.forClasspathResource("ecom-realm.json"),
+              "/opt/keycloak/data/import/ecom-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
-              Wait.forHttp("/realms/test").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
+              Wait.forHttp("/realms/ecom").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
   static ConfigurableApplicationContext context;
   static KeycloakAdmin admin;
@@ -67,9 +67,9 @@ class KeycloakAdminIT {
             .web(WebApplicationType.NONE)
             .properties(
                 "ecom.keycloak.url=" + url(),
-                "ecom.keycloak.realm=test",
-                "ecom.keycloak.client-id=backend",
-                "ecom.keycloak.client-secret=test-secret")
+                "ecom.keycloak.realm=ecom",
+                "ecom.keycloak.client-id=ecom-backend",
+                "ecom.keycloak.client-secret=local-only")
             .run();
     admin = context.getBean(KeycloakAdmin.class);
   }
@@ -123,13 +123,13 @@ class KeycloakAdminIT {
   private static String passwordToken(String username, String password) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
-    form.add("client_id", "portal");
+    form.add("client_id", "ecom-portal");
     form.add("username", username);
     form.add("password", password);
     return (String)
         RestClient.create()
             .post()
-            .uri(url() + "/realms/test/protocol/openid-connect/token")
+            .uri(url() + "/realms/ecom/protocol/openid-connect/token")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(form)
             .retrieve()
@@ -145,7 +145,7 @@ class KeycloakAdminIT {
     return (String)
         RestClient.create()
             .post()
-            .uri(url() + "/realms/test/protocol/openid-connect/token")
+            .uri(url() + "/realms/ecom/protocol/openid-connect/token")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(form)
             .retrieve()
@@ -160,7 +160,7 @@ class KeycloakAdminIT {
     form.add("client_secret", secret);
     return RestClient.create()
         .post()
-        .uri(url() + "/realms/test/protocol/openid-connect/token")
+        .uri(url() + "/realms/ecom/protocol/openid-connect/token")
         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
         .body(form)
         .exchange((req, res) -> res.getStatusCode().value());

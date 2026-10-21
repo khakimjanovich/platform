@@ -3,6 +3,7 @@
 plugins {
     id 'ecom.library'
     id 'ecom.integration-test'
+    id 'java-test-fixtures' // ecom-realm.json: the one Keycloak realm every integration test imports
 }
 
 dependencies {
@@ -16,6 +17,7 @@ dependencies {
     implementation libs.starter.validation // the properties are checked at startup
     runtimeOnly libs.jackson3.databind // Keycloak's JSON, read into maps
 
+    integrationTestImplementation testFixtures(project(':keycloak'))
     integrationTestImplementation project(':observability') // every call logged, as in an app
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit

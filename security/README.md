@@ -18,20 +18,27 @@ Set Boot's `spring.security.oauth2.resourceserver.jwt.issuer-uri` (the realm) an
 | `ecom.security.public-routes` | routes anyone may call; a token sent with them is never read. `"POST /api/v1/registrations/**"` limits one to a method |
 | `ecom.security.roles` | each route and the realm role it needs, in order, e.g. `"[/api/v1/admin/**]": ADMIN` |
 | `ecom.security.service-tokens.groups` | HTTP service groups and the OAuth2 client registration (`spring.security.oauth2.client.registration.<id>`) their calls take a client-credentials token from |
+| `ecom.security.service-tokens.connect-timeout` | 5s: a token request's wait for a connection |
+| `ecom.security.service-tokens.read-timeout` | 10s: a token request's wait for its answer |
 
 ## Adding to the chain
 
 A module adds a filter with a `Customizer<HttpSecurity>` bean, which Spring Security applies before
 the library's rules: `http -> http.addFilterAfter(filter, BearerTokenAuthenticationFilter.class)`.
 To refuse a request, hand `ProblemSecurityHandler` the reason so the answer is a problem detail.
-Filters only; the route rules stay in configuration.
+Filters only; the route rules stay in configuration: a customizer that sets route rules
+(`authorizeHttpRequests`) stops startup.
 
 ## Calling another service
 
 With an OAuth2 client registration and `ecom.security.service-tokens.groups.<group>=<registration>`,
 the group's `@HttpExchange` clients send the service's own client-credentials token (Spring
-Security's interceptor gets and refreshes it). A 401 drops the token and the call is tried once
-more. Without registrations nothing changes. The registration's secret comes from Vault.
+Security's interceptor gets and refreshes it). A 401 that refuses the token (no challenge, or
+`error="invalid_token"`) drops it and the call is tried once more; `insufficient_scope` is the
+answer. The app's own `OAuth2AuthorizedClientManager` bean gets the tokens when it has one;
+otherwise a manager over Boot's authorized-client store does (Spring Security's default needs a
+servlet request, which a job's call has not), its token requests over Boot's `RestClient.Builder`.
+Without registrations nothing changes. The registration's secret comes from Vault.
 
 `CurrentUser.name()` and `CurrentUser.clientId()` say who is calling, or null without a token.
 

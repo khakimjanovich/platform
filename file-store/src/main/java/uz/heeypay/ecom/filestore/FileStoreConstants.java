@@ -22,4 +22,11 @@ public class FileStoreConstants {
 
   public static final int MAX_NAME_LENGTH = 200;
   public static final String LOG_STORED = "Stored {} in {} | {} bytes, {}";
+  public static final String LOG_CORRUPT = "File {} in {} doesn't match its checksum";
+  public static final String BUCKET_MISSING =
+      "Bucket %s is configured but doesn't exist in the store; infrastructure creates it";
+  public static final String BUCKET_UNREADABLE = "Bucket %s can't be checked in the store";
+
+  public static final String DEFAULT_API_CALL_TIMEOUT = "30s";
+  public static final String DEFAULT_API_CALL_ATTEMPT_TIMEOUT = "10s";
 }

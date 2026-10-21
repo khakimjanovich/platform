@@ -4,9 +4,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.util.unit.DataSize;
 import org.springframework.validation.annotation.Validated;
 
@@ -27,12 +29,22 @@ public record FileStoreProperties(Storage storage, Map<String, @Valid Bucket> bu
    * @param endpoint the store's URL, e.g. {@code http://localhost:8333}; setting it turns the
    *     library on
    * @param region the region requests are signed for
-   * @param accessKey the app's access key
+   * @param accessKey the app's access key; with the secret key blank, AWS's default credentials
+   *     chain (environment, profile, container or instance role) is used
    * @param secretKey the app's secret key
    * @param pathStyle bucket in the path ({@code host/bucket/key}) instead of the host name
+   * @param apiCallTimeout how long one store call may take, retries included
+   * @param apiCallAttemptTimeout how long one attempt of a call may take
    */
   public record Storage(
-      String endpoint, String region, String accessKey, String secretKey, boolean pathStyle) {}
+      String endpoint,
+      String region,
+      String accessKey,
+      String secretKey,
+      boolean pathStyle,
+      @DefaultValue(FileStoreConstants.DEFAULT_API_CALL_TIMEOUT) Duration apiCallTimeout,
+      @DefaultValue(FileStoreConstants.DEFAULT_API_CALL_ATTEMPT_TIMEOUT)
+          Duration apiCallAttemptTimeout) {}
 
   /**
    * What one bucket accepts.

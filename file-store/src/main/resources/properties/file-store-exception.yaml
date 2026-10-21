@@ -4,9 +4,9 @@ exception:
   starter:
     error:
       FILE_STORE_BUCKET_UNKNOWN:
-        http-code: 404
+        http-code: 500
         title: file-store-bucket-unknown
-        is-loggable: false
+        is-loggable: true
         message-en: "There is no bucket {0}."
         message-ru: "Хранилища {0} нет."
         message-uz: "{0} ombori yoʻq."
@@ -45,3 +45,10 @@ exception:
         message-en: "Files can't be stored or read right now. Try again in a minute."
         message-ru: "Сейчас нельзя сохранить или прочитать файл. Попробуйте через минуту."
         message-uz: "Hozir faylni saqlab yoki oʻqib boʻlmaydi. Bir daqiqadan soʻng urinib koʻring."
+      FILE_STORE_FILE_CORRUPT:
+        http-code: 500
+        title: file-store-file-corrupt
+        is-loggable: true
+        message-en: "The file {0} is damaged and can't be read."
+        message-ru: "Файл {0} повреждён, его нельзя прочитать."
+        message-uz: "{0} fayli shikastlangan, uni oʻqib boʻlmaydi."

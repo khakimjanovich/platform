@@ -9,10 +9,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -21,9 +24,14 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 import uz.heeypay.ecom.error.GeneralException;
 
-/** The file store, storing into a real SeaweedFS. */
+/**
+ * The file store, storing into a real SeaweedFS as an identity that may only read, write and list
+ * its two buckets; the buckets are created beforehand, as ecom-infra does.
+ */
 @SpringBootTest(
     classes = FileStoreIT.class,
     properties = {
@@ -59,14 +67,28 @@ class FileStoreIT {
                   .forStatusCode(403)
                   .withStartupTimeout(Duration.ofMinutes(2)));
 
+  /** As ecom-infra's seaweedfs/init.sh: the buckets come from infrastructure, not from the app. */
+  @BeforeAll
+  static void buckets() throws Exception {
+    for (var bucket : new String[] {"partner-documents", "sales-point-logos"}) {
+      var created =
+          SEAWEEDFS.execInContainer(
+              "sh", "-c", "echo 's3.bucket.create -name " + bucket + "' | weed shell");
+      assertThat(created.getExitCode()).as(created.getStderr()).isZero();
+    }
+  }
+
   @DynamicPropertySource
   static void storage(DynamicPropertyRegistry registry) {
-    registry.add(
-        "ecom.file-store.storage.endpoint",
-        () -> "http://" + SEAWEEDFS.getHost() + ":" + SEAWEEDFS.getMappedPort(8333));
+    registry.add("ecom.file-store.storage.endpoint", FileStoreIT::endpoint);
+  }
+
+  private static String endpoint() {
+    return "http://" + SEAWEEDFS.getHost() + ":" + SEAWEEDFS.getMappedPort(8333);
   }
 
   @Autowired FileStore files;
+  @Autowired S3Client s3;
 
   @Test
   void aFileIsStoredWithItsTypeAndChecksumAndReadBackAsIs() {
@@ -101,6 +123,42 @@ class FileStoreIT {
         .isEqualTo("image/png");
     assertThatThrownBy(() -> files.store("anything", file("a.png", "image/png", png())))
         .satisfies(e -> hasCode(e, FileStoreExceptionStatus.FILE_STORE_BUCKET_UNKNOWN));
+  }
+
+  @Test
+  void aConfiguredBucketTheStoreLacksStopsStartup() {
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(FileStoreAutoConfiguration.class))
+        .withPropertyValues(
+            "ecom.file-store.storage.endpoint=" + endpoint(),
+            "ecom.file-store.storage.region=us-east-1",
+            "ecom.file-store.storage.access-key=ecom",
+            "ecom.file-store.storage.secret-key=local-only",
+            "ecom.file-store.storage.path-style=true",
+            "ecom.file-store.buckets.contracts.allowed-types=application/pdf",
+            "ecom.file-store.buckets.contracts.max-size=1MB")
+        .run(
+            context ->
+                assertThat(context.getStartupFailure())
+                    .isNotNull()
+                    .hasStackTraceContaining("Bucket contracts"));
+  }
+
+  @Test
+  void aFileChangedBehindTheStoresBackIsCorrupt() {
+    var pdf = "%PDF-1.4\ntrailer << >>\n%%EOF\n".getBytes(StandardCharsets.US_ASCII);
+    var stored = files.store("partner-documents", file("Ustav.pdf", "application/pdf", pdf));
+    var original =
+        s3.headObject(head -> head.bucket("partner-documents").key(stored.id().toString()));
+    s3.putObject(
+        put ->
+            put.bucket("partner-documents")
+                .key(stored.id().toString())
+                .contentType("application/pdf")
+                .metadata(original.metadata()),
+        RequestBody.fromBytes("%PDF-1.4 tampered %%EOF".getBytes(StandardCharsets.US_ASCII)));
+    assertThatThrownBy(() -> files.read("partner-documents", stored.id()))
+        .satisfies(e -> hasCode(e, FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT));
   }
 
   private static void hasCode(Throwable e, FileStoreExceptionStatus status) {

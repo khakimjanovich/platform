@@ -1,10 +1,12 @@
 package uz.heeypay.ecom.filestore;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /** A bucket whose rules can't work stops startup, naming the property. */
 class FileStorePropertiesTest {
@@ -12,6 +14,7 @@ class FileStorePropertiesTest {
   private final ApplicationContextRunner runner =
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(FileStoreAutoConfiguration.class))
+          .withBean(S3Client.class, () -> mock(S3Client.class)) // no store needed to check rules
           .withPropertyValues(
               "ecom.file-store.storage.endpoint=http://localhost:8333",
               "ecom.file-store.storage.region=us-east-1",

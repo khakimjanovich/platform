@@ -11,12 +11,11 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import uz.heeypay.ecom.error.GeneralException;
@@ -25,11 +24,13 @@ import uz.heeypay.ecom.filestore.FileStoreProperties.Bucket;
 /**
  * Files as S3 objects: the key is a random id, and what the file is (name, type, checksum, upload
  * time) travels with the object as its metadata, so no database is needed. The type is read from
- * the file's own bytes, never from what the uploader claims.
+ * the file's own bytes, never from what the uploader claims; a file read back must still match its
+ * checksum. The buckets are infrastructure's: the store only checks at startup that each configured
+ * one exists, so the app needs no admin rights.
  */
 @Slf4j
 @RequiredArgsConstructor
-public class FileStore implements ApplicationRunner {
+public class FileStore {
 
   private final S3Client s3;
   private final FileStoreProperties properties;
@@ -47,13 +48,20 @@ public class FileStore implements ApplicationRunner {
   /** A stored file and its bytes. */
   public record FileContent(StoredFile file, byte[] bytes) {}
 
-  /** At startup: creates every configured bucket that doesn't exist yet. */
-  @Override
-  public void run(ApplicationArguments args) {
-    var existing = s3.listBuckets().buckets().stream().map(b -> b.name()).toList();
-    properties.buckets().keySet().stream()
-        .filter(name -> !existing.contains(name))
-        .forEach(name -> s3.createBucket(create -> create.bucket(name)));
+  /** At startup: every configured bucket must exist; creating them is infrastructure's job. */
+  public void checkBuckets() {
+    for (var name : properties.buckets().keySet()) {
+      try {
+        s3.headBucket(head -> head.bucket(name));
+      } catch (NoSuchBucketException e) {
+        throw new IllegalStateException(FileStoreConstants.BUCKET_MISSING.formatted(name), e);
+      } catch (S3Exception e) {
+        if (e.statusCode() == 404) {
+          throw new IllegalStateException(FileStoreConstants.BUCKET_MISSING.formatted(name), e);
+        }
+        throw new IllegalStateException(FileStoreConstants.BUCKET_UNREADABLE.formatted(name), e);
+      }
+    }
   }
 
   /** Checks the file against the bucket's rules (not empty, small enough, an allowed type). */
@@ -107,6 +115,11 @@ public class FileStore implements ApplicationRunner {
             () -> s3.getObjectAsBytes(get -> get.bucket(bucket).key(fileId.toString())), fileId);
     var response = object.response();
     var metadata = response.metadata();
+    var bytes = object.asByteArray();
+    if (!sha256(bytes).equals(metadata.get(FileStoreConstants.SHA256_METADATA))) {
+      log.error(FileStoreConstants.LOG_CORRUPT, fileId, bucket);
+      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT, fileId);
+    }
     return new FileContent(
         new StoredFile(
             fileId,
@@ -116,7 +129,7 @@ public class FileStore implements ApplicationRunner {
             response.contentLength(),
             metadata.get(FileStoreConstants.SHA256_METADATA),
             Instant.parse(metadata.get(FileStoreConstants.UPLOADED_AT_METADATA))),
-        object.asByteArray());
+        bytes);
   }
 
   /** Best effort: a file nobody points to any more is only wasted space. */

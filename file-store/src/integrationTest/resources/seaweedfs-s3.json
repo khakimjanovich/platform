@@ -1,9 +1,12 @@
 {
   "identities": [
     {
-      "name": "file-service",
+      "name": "ecom",
       "credentials": [{ "accessKey": "ecom", "secretKey": "local-only" }],
-      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+      "actions": [
+        "Read:partner-documents", "Write:partner-documents", "List:partner-documents",
+        "Read:sales-point-logos", "Write:sales-point-logos", "List:sales-point-logos"
+      ]
     }
   ]
 }

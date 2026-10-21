@@ -6,6 +6,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
@@ -76,6 +77,16 @@ public class Crypto {
     } catch (GeneralSecurityException e) {
       throw new IllegalArgumentException("the value was changed or the key is wrong", e);
     }
+  }
+
+  /** Every key id this instance can read, for a rotation job that checks what is still in use. */
+  public Set<String> keyIds() {
+    return keys.keySet();
+  }
+
+  /** The key new values are sealed with. */
+  public String activeKeyId() {
+    return activeKeyId;
   }
 
   /** Whether the value was sealed with a key other than the active one, and should be rewrapped. */

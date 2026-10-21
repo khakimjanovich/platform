@@ -1,0 +1,15 @@
+// The platform: every library and API contract in one build. The app and the adapters include it
+// (includeBuild), and Gradle puts these projects in place of uz.heeypay.ecom:* dependencies.
+pluginManagement { includeBuild 'build-logic' }
+
+rootProject.name = 'platform'
+
+include('versioning')
+include('error', 'otp', 'security', 'keycloak', 'persistence', 'crypto', 'vault', 'file-store', 'observability')
+include('openapi:partner-api', 'openapi:commission-api', 'openapi:epos-api', 'openapi:card-api', 'openapi:payment-api',
+        'openapi:uzcard-adapter-api', 'openapi:humo-adapter-api', 'openapi:bin-api')
+
+dependencyResolutionManagement {
+    repositories { mavenCentral() }
+    versionCatalogs { create('libs') { from(files('versioning/libs.versions.toml')) } }
+}

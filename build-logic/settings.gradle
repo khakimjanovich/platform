@@ -1,11 +1,10 @@
 rootProject.name = 'build-logic'
 
-// Convention plugins shared by every ecom build: platform libraries and the app's modules.
+// Convention plugins shared by every ecom build: platform libraries, the app's modules and the adapters.
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
         mavenCentral()
         gradlePluginPortal()
     }
-    versionCatalogs { create('libs') { from('uz.heeypay.ecom:versioning:0.1.0') } }
+    versionCatalogs { create('libs') { from(files('../versioning/libs.versions.toml')) } }
 }

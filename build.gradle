@@ -1,0 +1,7 @@
+// `check` here checks every library and contract.
+plugins {
+    id 'base'
+}
+
+def checks = subprojects.findAll { it.buildFile.exists() && it.name != 'versioning' }.collect { "${it.path}:check" }
+tasks.named('check') { dependsOn checks }

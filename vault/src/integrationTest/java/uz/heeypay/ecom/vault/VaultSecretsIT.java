@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -51,7 +52,10 @@ class VaultSecretsIT {
   }
 
   private static VaultSecrets secrets(String token) {
-    return new VaultAutoConfiguration().vaultSecrets(new VaultProperties(url(), token, "secret"));
+    return new VaultAutoConfiguration()
+        .vaultSecrets(
+            new VaultProperties(url(), token, "secret"),
+            new StaticListableBeanFactory().getBeanProvider(RestClient.Builder.class));
   }
 
   private static String url() {

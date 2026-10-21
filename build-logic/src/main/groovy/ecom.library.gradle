@@ -1,4 +1,5 @@
-// A platform library: published to local Maven, with sources, under the platform's group and version.
+// A platform library, with sources, under the platform's group and version: the coordinates the app and
+// the adapters depend on, which Gradle maps to this project when they include the platform build.
 plugins {
     id 'ecom.java'
     id 'maven-publish'

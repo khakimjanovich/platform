@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
@@ -45,7 +46,9 @@ class KeycloakAdminIT {
   static void client() {
     admin =
         new KeycloakAutoConfiguration()
-            .keycloakAdmin(new KeycloakProperties(url(), "test", "backend", "test-secret"));
+            .keycloakAdmin(
+                new KeycloakProperties(url(), "test", "backend", "test-secret"),
+                new StaticListableBeanFactory().getBeanProvider(RestClient.Builder.class));
   }
 
   @Test

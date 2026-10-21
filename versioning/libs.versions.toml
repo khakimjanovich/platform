@@ -1,4 +1,4 @@
-# Every version in one place. Published to local Maven as uz.heeypay.ecom:versioning.
+# Every version in one place, read by every build (platform, app, adapters).
 # Pinned exactly; upgrades get their own commit.
 [versions]
 temporal = "1.40.0"

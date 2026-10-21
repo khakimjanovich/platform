@@ -9,7 +9,7 @@ dependencies {
     api platform(libs.spring.boot.bom)
     api platform(libs.aws.sdk.bom)
     api libs.spring.web
-    api libs.ecom.error
+    api project(":error")
     implementation libs.spring.boot.autoconfigure
     implementation libs.aws.s3
 

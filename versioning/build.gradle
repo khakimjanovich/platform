@@ -1,4 +1,5 @@
-// The one version catalog, published to local Maven so every build uses the same versions.
+// The one version catalog. Every build reads libs.versions.toml directly; the catalog is also
+// publishable for when the platform becomes its own repository.
 plugins {
     id 'version-catalog'
     id 'maven-publish'

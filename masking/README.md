@@ -1,5 +1,12 @@
 # masking
 
+Used by observability (every log line, every client call) and error (its log line); a service
+extends its names with `ecom.observability.masking.*`, never by copying the lists.
+
+```groovy
+implementation libs.ecom.masking
+```
+
 Hides what must never reach a log: card numbers (first 6 and last 4 digits kept), tokens (last 4
 characters kept) and secrets (hidden whole), by field name, in JSON, XML, forms, URI queries and
 `key=value` text, plus any run of 13 to 19 digits. Plain Java and Jackson, no Spring.
@@ -11,7 +18,8 @@ masking.uri(uri);
 masking.text(message);
 ```
 
-`MaskingRules.with(...)` adds names to the defaults; nothing repeats them.
+`MaskingRules.with(...)` adds names to the defaults; nothing repeats them. No properties of its
+own (it has no Spring), no errors, no beans.
 
 ## Tests
 

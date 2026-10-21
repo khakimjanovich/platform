@@ -35,7 +35,7 @@ public class VaultAutoConfiguration {
   /** With the actuator: a token Vault refuses turns the app's health DOWN. */
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
-  @ConditionalOnMissingBean(name = "vaultTokenHealthIndicator")
+  @ConditionalOnMissingBean(name = VaultConstants.HEALTH_INDICATOR_BEAN)
   HealthIndicator vaultTokenHealthIndicator(VaultTemplate vaultTemplate) {
     return new VaultTokenHealthIndicator(vaultTemplate);
   }

@@ -83,7 +83,7 @@ public class KeycloakAutoConfiguration {
   /** With the actuator: no token from Keycloak, or an admin API that refuses it, is DOWN. */
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
-  @ConditionalOnMissingBean(name = "keycloakHealthIndicator")
+  @ConditionalOnMissingBean(name = KeycloakConstants.HEALTH_INDICATOR_BEAN)
   HealthIndicator keycloakHealthIndicator(KeycloakAdmin admin) {
     return new KeycloakHealthIndicator(admin);
   }

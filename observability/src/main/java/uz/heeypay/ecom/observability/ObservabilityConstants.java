@@ -10,4 +10,5 @@ public class ObservabilityConstants {
 
   public static final String HEALTH_METRIC = "ecom.health.up";
   public static final String COMPONENT_TAG = "component";
+  public static final String HEALTH_METRIC_DESCRIPTION = "1 while the component's health is UP";
 }

@@ -65,7 +65,7 @@ public class FileStoreAutoConfiguration {
   /** With the actuator: a store that rejects our credentials turns the app's health DOWN. */
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
-  @ConditionalOnMissingBean(name = "fileStoreHealthIndicator")
+  @ConditionalOnMissingBean(name = FileStoreConstants.HEALTH_INDICATOR_BEAN)
   HealthIndicator fileStoreHealthIndicator(S3Client s3, FileStoreProperties properties) {
     return new FileStoreHealthIndicator(s3, properties);
   }

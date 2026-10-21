@@ -1,6 +1,5 @@
 package uz.heeypay.ecom.filestore;
 
-import java.time.Duration;
 import java.util.LinkedHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.health.contributor.Health;
@@ -17,9 +16,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 @RequiredArgsConstructor
 class FileStoreHealthIndicator implements HealthIndicator {
 
-  /** A check is cheap: a slow store is a down store, not a health call that hangs. */
-  private static final Duration CALL_TIMEOUT = Duration.ofSeconds(3);
-
   private final S3Client s3;
   private final FileStoreProperties properties;
 
@@ -31,7 +27,8 @@ class FileStoreHealthIndicator implements HealthIndicator {
         s3.headBucket(
             head ->
                 head.bucket(name)
-                    .overrideConfiguration(timeout -> timeout.apiCallTimeout(CALL_TIMEOUT)));
+                    .overrideConfiguration(
+                        timeout -> timeout.apiCallTimeout(FileStoreConstants.HEALTH_CALL_TIMEOUT)));
       } catch (AwsServiceException e) {
         var code = e.awsErrorDetails() == null ? null : e.awsErrorDetails().errorCode();
         failed.put(name, code != null ? code : String.valueOf(e.statusCode()));

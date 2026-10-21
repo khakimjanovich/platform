@@ -17,6 +17,8 @@ public class KeycloakConstants {
   public static final String USER_REALM_ROLES = "/users/{id}/role-mappings/realm";
   public static final String ROLE = "/roles/{name}";
   public static final String ROLES_ONE = "/roles?max=1";
+  public static final String HEALTH_INDICATOR_BEAN = "keycloakHealthIndicator";
+  public static final String HEALTH_ERROR_DETAIL = "error";
   public static final String CLIENTS = "/clients";
   public static final String CLIENT_SECRET = "/clients/{id}/client-secret";
   public static final String INVALID_TOKEN = "error=\"invalid_token\"";

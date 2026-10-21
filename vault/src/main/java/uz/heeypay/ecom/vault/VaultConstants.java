@@ -12,6 +12,9 @@ public class VaultConstants {
   public static final String SIGNING_KEY = "signingKey";
   public static final String DEFAULT_CACHE_TTL = "30s";
   public static final String TOKEN_LOOKUP_SELF = "auth/token/lookup-self";
+  public static final String HEALTH_INDICATOR_BEAN = "vaultTokenHealthIndicator";
+  public static final String HEALTH_ERROR_DETAIL = "error";
+  public static final String HEALTH_EMPTY_ANSWER = "empty";
 
   /**
    * Spring Cloud Vault's auto-configuration, which makes the VaultTemplate this library reads with.

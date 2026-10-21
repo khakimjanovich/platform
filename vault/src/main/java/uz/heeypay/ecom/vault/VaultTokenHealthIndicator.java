@@ -23,10 +23,14 @@ class VaultTokenHealthIndicator implements HealthIndicator {
     try {
       var self = vault.read(VaultConstants.TOKEN_LOOKUP_SELF);
       return self == null
-          ? Health.down().withDetail("error", "empty").build()
+          ? Health.down()
+              .withDetail(VaultConstants.HEALTH_ERROR_DETAIL, VaultConstants.HEALTH_EMPTY_ANSWER)
+              .build()
           : Health.up().build();
     } catch (VaultException | RestClientException e) {
-      return Health.down().withDetail("error", e.getClass().getSimpleName()).build();
+      return Health.down()
+          .withDetail(VaultConstants.HEALTH_ERROR_DETAIL, e.getClass().getSimpleName())
+          .build();
     }
   }
 }

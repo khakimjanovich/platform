@@ -32,7 +32,7 @@ class HealthMetrics implements SmartInitializingSingleton {
             named -> {
               var indicator = (HealthIndicator) named.contributor();
               Gauge.builder(ObservabilityConstants.HEALTH_METRIC, () -> up(indicator))
-                  .description("1 while the component's health is UP")
+                  .description(ObservabilityConstants.HEALTH_METRIC_DESCRIPTION)
                   .tag(ObservabilityConstants.COMPONENT_TAG, named.name())
                   .register(meters);
             });

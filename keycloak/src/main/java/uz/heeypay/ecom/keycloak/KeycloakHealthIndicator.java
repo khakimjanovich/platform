@@ -20,7 +20,9 @@ class KeycloakHealthIndicator implements HealthIndicator {
       admin.ping();
       return Health.up().build();
     } catch (GeneralException e) {
-      return Health.down().withDetail("error", e.getStatus().getType()).build();
+      return Health.down()
+          .withDetail(KeycloakConstants.HEALTH_ERROR_DETAIL, e.getStatus().getType())
+          .build();
     }
   }
 }

@@ -1,5 +1,6 @@
 package uz.heeypay.ecom.filestore;
 
+import java.time.Duration;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -33,4 +34,9 @@ public class FileStoreConstants {
   public static final String LOG_UNAVAILABLE = "File store unavailable: {}";
   public static final String DEFAULT_CREDENTIALS = "keys";
   public static final String DEFAULT_API_CALL_ATTEMPT_TIMEOUT = "10s";
+
+  /** A health check is cheap: a slow store is a down store, not a health call that hangs. */
+  public static final Duration HEALTH_CALL_TIMEOUT = Duration.ofSeconds(3);
+
+  public static final String HEALTH_INDICATOR_BEAN = "fileStoreHealthIndicator";
 }

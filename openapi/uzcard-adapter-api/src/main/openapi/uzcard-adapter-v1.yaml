@@ -13,6 +13,9 @@ info:
     UZCARD_ADAPTER_SERVICE_UNAVAILABLE, UZCARD_ADAPTER_MANUAL_REVIEW, UZCARD_ADAPTER_SV_GATE_CLIENT_ERROR) and whose
     `subErrors[0]` carries SV-Gate's own code and message. Only SV_GATE_ERROR and NOT_FOUND are final; for the
     rest the outcome is unknown and trans.ext tells it later.
+servers:
+  - url: http://localhost:8091
+    description: dev server
 
 tags:
   - name: UzcardCardService

@@ -6,6 +6,10 @@ info:
   description: 'Adapter between our services and HUMO: the Payment Server (SOAP) and the Middleware (REST), proxied
     operation by operation. Every answer is an envelope {requestId, status, data}; a HUMO error is a problem detail
     whose `code` names the status and whose subErrors[0] carries HUMO''s own code.'
+servers:
+  - url: http://localhost:8092
+    description: dev server
+
 tags:
 - name: HumoPaymentService
   description: Payment operations service endpoints

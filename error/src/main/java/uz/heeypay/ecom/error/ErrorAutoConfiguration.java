@@ -8,18 +8,26 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
  * Adding the library is enough: every web app gets the same error format, security errors included.
+ * It runs before Spring Boot's MVC configuration, so with {@code spring.mvc.problemdetails.enabled}
+ * Boot's own handler backs off; an app that defines its own {@link ResponseEntityExceptionHandler}
+ * replaces this one.
  */
-@AutoConfiguration
+@AutoConfiguration(beforeName = ErrorConstants.BOOT_WEB_MVC)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@Import(ProblemDetailsAdvice.class)
 @EnableConfigurationProperties(ErrorStarterProperties.class)
 public class ErrorAutoConfiguration {
+
+  @Bean
+  @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
+  ProblemDetailsAdvice problemDetailsAdvice(ErrorStarterProperties errors) {
+    return new ProblemDetailsAdvice(errors);
+  }
 
   @Configuration(proxyBeanMethods = false)
   @ConditionalOnClass(AuthenticationEntryPoint.class)
@@ -30,6 +38,13 @@ public class ErrorAutoConfiguration {
     ProblemSecurityHandler problemSecurityHandler(
         @Qualifier(ErrorConstants.EXCEPTION_RESOLVER) HandlerExceptionResolver resolver) {
       return new ProblemSecurityHandler(resolver);
+    }
+
+    /** Only beside this library's handler: it answers through it. */
+    @Bean
+    @ConditionalOnMissingBean({AccessDeniedAdvice.class, ResponseEntityExceptionHandler.class})
+    AccessDeniedAdvice accessDeniedAdvice(ProblemDetailsAdvice problems) {
+      return new AccessDeniedAdvice(problems);
     }
   }
 }

@@ -2,12 +2,16 @@
 plugins {
     id 'ecom.library'
     id 'java-test-fixtures' // ErrorDefinitions: the completeness check every service runs
+    id 'ecom.integration-test'
 }
 
 dependencies {
     api platform(libs.spring.boot.bom)
     api libs.spring.webmvc
     implementation libs.spring.boot.autoconfigure
+    implementation project(':masking') // error log lines are masked
+    implementation libs.jakarta.validation // a @Validated service's refusal is a 400
+    implementation libs.slf4j.api // the trace id, from the logging context
     compileOnly libs.jakarta.servlet
     compileOnly libs.spring.security.web // security problems only when the app uses Spring Security
 
@@ -17,4 +21,6 @@ dependencies {
     testImplementation libs.starter.webmvc
     testImplementation libs.starter.validation
     testImplementation libs.spring.security.web
+
+    integrationTestImplementation libs.starter.security
 }

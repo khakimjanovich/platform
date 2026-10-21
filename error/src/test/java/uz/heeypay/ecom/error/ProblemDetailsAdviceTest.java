@@ -1,22 +1,33 @@
 package uz.heeypay.ecom.error;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
+import jakarta.validation.Validation;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
+import java.time.Duration;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -28,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Every error a client can see is a problem detail with a stable code, and nothing internal leaks.
  */
+@ExtendWith(OutputCaptureExtension.class)
 class ProblemDetailsAdviceTest {
 
   record Signup(@Size(min = 2) String name, @Email String email) {}
@@ -62,6 +74,28 @@ class ProblemDetailsAdviceTest {
     @GetMapping("/undefined")
     void undefined() {
       throw new GeneralException(TestStatus.NOT_DEFINED);
+    }
+
+    @GetMapping("/later")
+    void later() {
+      throw new GeneralException(TestStatus.EMAIL_TAKEN, "aziz@example.uz")
+          .retryAfter(Duration.ofMillis(41_200));
+    }
+
+    /** What a @Validated service throws when its arguments break their constraints. */
+    @PostMapping("/service")
+    void service() {
+      var violations =
+          Validation.buildDefaultValidatorFactory()
+              .getValidator()
+              .validate(new Signup("a", "nope"));
+      throw new ConstraintViolationException(violations);
+    }
+
+    /** What method security (@PreAuthorize) throws inside a controller. */
+    @GetMapping("/denied")
+    void denied() {
+      throw new AuthorizationDeniedException("denied", new AuthorizationDecision(false));
     }
 
     @GetMapping("/boom")
@@ -144,6 +178,53 @@ class ProblemDetailsAdviceTest {
             jsonPath("$.detail").value("Something went wrong on our side. Please try again."));
   }
 
+  @Test
+  void aValidatedServicesRefusalIsA400ListingItsFields() throws Exception {
+    mvc.perform(post("/service"))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+        .andExpect(
+            jsonPath("$.errors[*].field").value(Matchers.containsInAnyOrder("name", "email")));
+  }
+
+  @Test
+  void methodSecurityDenialIsA403() throws Exception {
+    mvc.perform(get("/denied"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+  }
+
+  @Test
+  void everyProblemNamesItsRequestAndItsTrace() throws Exception {
+    mvc.perform(get("/taken")).andExpect(jsonPath("$.instance").value("/taken"));
+    mvc.perform(delete("/taken")).andExpect(jsonPath("$.instance").value("/taken"));
+    MDC.put("traceId", "4bf92f3577b34da6a3ce929d0e0e4736");
+    try {
+      mvc.perform(get("/boom"))
+          .andExpect(jsonPath("$.requestId").value("4bf92f3577b34da6a3ce929d0e0e4736"));
+    } finally {
+      MDC.remove("traceId");
+    }
+    mvc.perform(get("/boom")).andExpect(jsonPath("$.requestId").doesNotExist());
+  }
+
+  @Test
+  void aLimitThatLiftsSaysWhenInWholeSeconds() throws Exception {
+    mvc.perform(get("/later")).andExpect(header().string("Retry-After", "42"));
+    mvc.perform(get("/taken")).andExpect(header().doesNotExist("Retry-After"));
+  }
+
+  @Test
+  void theLogLineHoldsTheCodeButNoneOfTheCallersData(CapturedOutput output) throws Exception {
+    mvc.perform(get("/taken").header("Accept-Language", "uz"));
+    mvc.perform(post("/service"));
+    assertThat(output)
+        .contains("409 EMAIL_TAKEN | GET /taken | {0} is already registered.")
+        .contains("400 VALIDATION_FAILED | POST /service")
+        .doesNotContain("aziz@example.uz", "allaqachon", "nope");
+  }
+
   private static MockMvc mvc() {
     var validator = new LocalValidatorFactoryBean();
     validator.afterPropertiesSet();
@@ -155,7 +236,7 @@ class ProblemDetailsAdviceTest {
     var advice = new ProblemDetailsAdvice(definitions());
     advice.setMessageSource(messages);
     return MockMvcBuilders.standaloneSetup(new Endpoints())
-        .setControllerAdvice(advice)
+        .setControllerAdvice(new AccessDeniedAdvice(advice), advice)
         .setValidator(validator)
         .build();
   }

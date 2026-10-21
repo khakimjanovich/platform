@@ -35,6 +35,7 @@ opentelemetry-logback-appender = { module = "io.opentelemetry.instrumentation:op
 micrometer-tracing = { module = "io.micrometer:micrometer-tracing" }
 temporal-opentracing = { module = "io.temporal:temporal-opentracing", version.ref = "temporal" }
 opentelemetry-opentracing-shim = { module = "io.opentelemetry:opentelemetry-opentracing-shim" }
+slf4j-api = { module = "org.slf4j:slf4j-api" }
 micrometer-core = { module = "io.micrometer:micrometer-core" }
 temporal-sdk = { module = "io.temporal:temporal-sdk", version.ref = "temporal" }
 temporal-testing = { module = "io.temporal:temporal-testing", version.ref = "temporal" }
@@ -45,6 +46,7 @@ starter-mail = { module = "org.springframework.boot:spring-boot-starter-mail" }
 starter-kafka = { module = "org.springframework.boot:spring-boot-starter-kafka" }
 starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }
 starter-oauth2-client = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-client" }
+starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
 starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 postgresql = { module = "org.postgresql:postgresql" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }

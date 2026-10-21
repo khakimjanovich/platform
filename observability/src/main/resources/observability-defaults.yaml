@@ -15,6 +15,8 @@ logging:
       rename:
         traceId: trace.id
         spanId: span.id
+      # Every message masked (card numbers, key=value secrets), as on the readable console and OTLP.
+      customizer: uz.heeypay.ecom.observability.LogMasking$Json
 
 management:
   # One trace per request, carried to every call it makes (W3C traceparent) and onto every log line.
@@ -29,7 +31,7 @@ management:
       export:
         otlp:
           endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
-    # Every log line goes over OTLP too (the OpenTelemetry appender in logback-spring.xml).
+    # Every log line goes over OTLP too (the masking OpenTelemetry appender the library installs).
     logging:
       export:
         otlp:

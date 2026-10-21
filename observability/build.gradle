@@ -3,6 +3,7 @@
 // observability-defaults.yaml loads itself, below the service's own configuration.
 plugins {
     id 'ecom.library'
+    id 'ecom.integration-test'
 }
 
 dependencies {
@@ -11,6 +12,14 @@ dependencies {
     api libs.opentelemetry.logback.appender
     api libs.starter.restclient
     api project(":masking")
-    implementation libs.jackson3.databind
     implementation libs.spring.boot.autoconfigure
+    compileOnly libs.jakarta.servlet // X-Request-Id, in a web app only
+
+    testImplementation libs.starter.webmvc
+
+    integrationTestImplementation libs.starter.webmvc
+    integrationTestImplementation libs.spring.boot.testcontainers
+    integrationTestImplementation libs.testcontainers.grafana
+    integrationTestImplementation libs.testcontainers.junit
+    integrationTestImplementation libs.wiremock
 }

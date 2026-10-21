@@ -3,11 +3,14 @@ package uz.heeypay.ecom.observability;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
+import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
@@ -15,11 +18,15 @@ import uz.heeypay.ecom.masking.Masking;
 
 /**
  * Every call this service makes, in three readable lines at most: what went out ({@code →}), what
- * came back ({@code ←}) with its status and time, or why it failed ({@code ✗}). Bodies are masked
- * ({@link Masking}); headers are never logged. A 4xx or 5xx answer is a warning. Every RestClient
- * gets it; a client built on a ClientHttpRequestFactory (a SOAP one) adds it itself.
+ * came back ({@code ←}) with its status and time, or why it failed ({@code ✗}). The URI and bodies
+ * are masked ({@link Masking}); headers are never logged. A 4xx or 5xx answer is a warning. Only a
+ * JSON, XML or form answer of up to {@value #MAX_LOGGED_BYTES} bytes is read for the log; anything
+ * else is logged by its size and streams through untouched. Every RestClient gets it; a client
+ * built on a ClientHttpRequestFactory (a SOAP one) adds it itself.
  */
 public class HttpClientLogging implements ClientHttpRequestInterceptor {
+
+  static final int MAX_LOGGED_BYTES = 4_000;
 
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
 
@@ -32,7 +39,7 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
   @Override
   public ClientHttpResponse intercept(
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-    var call = request.getMethod() + " " + request.getURI();
+    var call = request.getMethod() + " " + masking.uri(request.getURI());
     log.info("→ {} | {}", call, masking.body(body, type(request.getHeaders())));
     var started = System.nanoTime();
     ClientHttpResponse response;
@@ -42,13 +49,45 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
       log.warn("✗ {} | {} ms | {}", call, millis(started), e.toString());
       throw e;
     }
-    var bytes = response.getBody().readAllBytes();
+    var headers = response.getHeaders();
+    var length = headers.getContentLength();
+    String logged;
+    ClientHttpResponse answer = response;
+    if (!loggable(headers.getContentType()) || length > MAX_LOGGED_BYTES) {
+      logged = size(length, headers);
+    } else {
+      // Read at most one byte past the cap: a longer body is put back in front of the rest.
+      var start = response.getBody().readNBytes(MAX_LOGGED_BYTES + 1);
+      if (start.length <= MAX_LOGGED_BYTES) {
+        logged = masking.body(start, type(headers));
+        answer = new Read(response, new ByteArrayInputStream(start));
+      } else {
+        logged = "<more than " + MAX_LOGGED_BYTES + " bytes, " + headers.getContentType() + ">";
+        answer =
+            new Read(
+                response,
+                new SequenceInputStream(new ByteArrayInputStream(start), response.getBody()));
+      }
+    }
     var status = response.getStatusCode();
     var line = "← {} {} | {} ms | {}";
-    var masked = masking.body(bytes, type(response.getHeaders()));
-    if (status.isError()) log.warn(line, status.value(), call, millis(started), masked);
-    else log.info(line, status.value(), call, millis(started), masked);
-    return new Read(response, bytes);
+    if (status.isError()) log.warn(line, status.value(), call, millis(started), logged);
+    else log.info(line, status.value(), call, millis(started), logged);
+    return answer;
+  }
+
+  /** Bodies the masking can read: JSON, XML and forms. */
+  private static boolean loggable(MediaType type) {
+    if (type == null) return false;
+    var subtype = type.getSubtype().toLowerCase(Locale.ROOT);
+    return subtype.contains("json")
+        || subtype.contains("xml")
+        || MediaType.APPLICATION_FORM_URLENCODED.equalsTypeAndSubtype(type);
+  }
+
+  private static String size(long length, HttpHeaders headers) {
+    var type = headers.getContentType();
+    return "<" + (length < 0 ? "?" : length) + " bytes" + (type == null ? "" : ", " + type) + ">";
   }
 
   private static String type(HttpHeaders headers) {
@@ -60,8 +99,8 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     return (System.nanoTime() - started) / 1_000_000;
   }
 
-  /** The response, its body already read for the log and read again by the caller. */
-  private record Read(ClientHttpResponse response, byte[] body) implements ClientHttpResponse {
+  /** The response, with the part already read for the log put back in front of its body. */
+  private record Read(ClientHttpResponse response, InputStream body) implements ClientHttpResponse {
 
     @Override
     public HttpStatusCode getStatusCode() throws IOException {
@@ -80,7 +119,7 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
 
     @Override
     public InputStream getBody() {
-      return new ByteArrayInputStream(body);
+      return body;
     }
 
     @Override

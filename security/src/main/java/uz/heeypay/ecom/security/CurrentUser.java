@@ -6,13 +6,15 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 /**
  * Who is calling, from the access token: a person's name (an admin's username or a partner's
- * email), or the API client a merchant's server uses.
+ * email), or the API client a merchant's server uses. Both are {@code null} without a token.
  */
 @UtilityClass
 public class CurrentUser {
 
+  /** The caller's name, or {@code null} without an authentication. */
   public static String name() {
-    return SecurityContextHolder.getContext().getAuthentication().getName();
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    return authentication == null ? null : authentication.getName();
   }
 
   /** The API client's id, or {@code null} without a token. */

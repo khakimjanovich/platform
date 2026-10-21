@@ -2,6 +2,7 @@
 // and 401/403 as problem details.
 plugins {
     id 'ecom.library'
+    id 'ecom.integration-test'
 }
 
 dependencies {
@@ -9,7 +10,12 @@ dependencies {
     api project(":error")
     api libs.starter.oauth2.resource.server
     implementation libs.spring.boot.autoconfigure
+    compileOnly libs.jakarta.servlet // provided by the app's web server
 
     testImplementation libs.starter.webmvc
     testImplementation libs.spring.security.test
+
+    integrationTestImplementation libs.starter.actuator
+    integrationTestImplementation libs.testcontainers.core
+    integrationTestImplementation libs.testcontainers.junit
 }

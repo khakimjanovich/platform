@@ -90,6 +90,14 @@ class SecurityAutoConfigurationTest {
   }
 
   @Test
+  void aPublicRouteIgnoresAStaleToken() throws Exception {
+    mvc.perform(post("/signup").header("Authorization", "Bearer garbage"))
+        .andExpect(status().isOk());
+    mvc.perform(get("/docs/x").header("Authorization", "Bearer garbage"))
+        .andExpect(status().isOk());
+  }
+
+  @Test
   void eachRouteNeedsItsRole() throws Exception {
     mvc.perform(get("/admin/x").header("Authorization", "Bearer admin")).andExpect(status().isOk());
     mvc.perform(get("/me/x").header("Authorization", "Bearer partner")).andExpect(status().isOk());

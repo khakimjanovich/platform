@@ -1,0 +1,63 @@
+{
+  "realm": "test",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      { "name": "admin" },
+      { "name": "partner" },
+      { "name": "offline_access" },
+      { "name": "uma_authorization" },
+      {
+        "name": "default-roles-test",
+        "composite": true,
+        "composites": { "realm": ["offline_access", "uma_authorization"], "client": { "ecom-api": ["caller"] } }
+      }
+    ],
+    "client": {
+      "ecom-api": [{ "name": "caller", "description": "Puts ecom-api in the token's audience (Keycloak's audience resolve)" }]
+    }
+  },
+  "defaultRole": { "name": "default-roles-test" },
+  "clients": [
+    { "clientId": "ecom-api", "enabled": true, "bearerOnly": true },
+    {
+      "clientId": "portal",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false
+    },
+    {
+      "clientId": "outsider",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "outsider-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": ["basic", "profile"]
+    }
+  ],
+  "users": [
+    {
+      "username": "aziz",
+      "firstName": "Aziz",
+      "lastName": "Karimov",
+      "email": "aziz@example.uz",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "local-only", "temporary": false }],
+      "realmRoles": ["admin", "default-roles-test"]
+    },
+    {
+      "username": "malika",
+      "firstName": "Malika",
+      "lastName": "Usmonova",
+      "email": "malika@example.uz",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "local-only", "temporary": false }],
+      "realmRoles": ["partner", "default-roles-test"]
+    }
+  ]
+}

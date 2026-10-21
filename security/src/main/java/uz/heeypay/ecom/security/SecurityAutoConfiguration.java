@@ -8,16 +8,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import uz.heeypay.ecom.error.ProblemSecurityHandler;
 
 /**
  * Adding the library secures the app: every call carries a Keycloak access token except the
- * configured public routes, each listed route needs its role, anything else is refused, and 401 and
- * 403 answer with problem details. An app that needs more defines its own {@link
- * SecurityFilterChain}.
+ * configured public routes, which ignore any token sent; each listed route needs its role, anything
+ * else is refused, and 401 and 403 answer with problem details. Boot's {@code
+ * spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API. An app that needs
+ * more defines its own {@link SecurityFilterChain}.
  */
 @AutoConfiguration(
     beforeName = {
@@ -36,19 +40,33 @@ public class SecurityAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean
+  BearerTokenResolver bearerTokenResolver(SecurityProperties properties) {
+    var routes = properties.publicRoutes().stream().map(SecurityAutoConfiguration::route).toList();
+    RequestMatcher publicRoutes =
+        routes.isEmpty() ? request -> false : new OrRequestMatcher(routes);
+    return new PublicRouteTokenResolver(publicRoutes);
+  }
+
+  @Bean
   @ConditionalOnMissingBean(SecurityFilterChain.class)
   SecurityFilterChain apiSecurity(
       HttpSecurity http,
       SecurityProperties properties,
       ProblemSecurityHandler problems,
-      KeycloakJwtConverter converter) {
+      KeycloakJwtConverter converter,
+      BearerTokenResolver tokens) {
     return http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             routes -> {
-              properties.publicRoutes().forEach(route -> matcher(routes, route).permitAll());
-              properties.roles().forEach((route, role) -> matcher(routes, route).hasRole(role));
+              properties
+                  .publicRoutes()
+                  .forEach(route -> routes.requestMatchers(route(route)).permitAll());
+              properties
+                  .roles()
+                  .forEach((route, role) -> routes.requestMatchers(route(route)).hasRole(role));
               routes.anyRequest().denyAll();
             })
         .exceptionHandling(
@@ -56,6 +74,7 @@ public class SecurityAutoConfiguration {
         .oauth2ResourceServer(
             server ->
                 server
+                    .bearerTokenResolver(tokens)
                     .authenticationEntryPoint(problems)
                     .accessDeniedHandler(problems)
                     .jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
@@ -63,13 +82,11 @@ public class SecurityAutoConfiguration {
   }
 
   /** "POST /path/**" matches that method only; "/path/**" matches every method. */
-  private static AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizedUrl matcher(
-      AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
-          routes,
-      String route) {
+  static RequestMatcher route(String route) {
     var parts = route.trim().split(SecurityConstants.METHOD_SEPARATOR, 2);
+    var paths = PathPatternRequestMatcher.withDefaults();
     return parts.length == 2
-        ? routes.requestMatchers(HttpMethod.valueOf(parts[0]), parts[1].trim())
-        : routes.requestMatchers(parts[0]);
+        ? paths.matcher(HttpMethod.valueOf(parts[0]), parts[1].trim())
+        : paths.matcher(parts[0]);
   }
 }

@@ -32,7 +32,8 @@ import uz.heeypay.ecom.error.ProblemSecurityHandler;
     beforeName = {
       SecurityConstants.BOOT_WEB_SECURITY,
       SecurityConstants.BOOT_MANAGEMENT_SECURITY,
-      SecurityConstants.BOOT_RESOURCE_SERVER_SECURITY
+      SecurityConstants.BOOT_RESOURCE_SERVER_SECURITY,
+      SecurityConstants.BOOT_OAUTH2_CLIENT_SECURITY
     })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(SecurityProperties.class)

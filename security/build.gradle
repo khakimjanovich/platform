@@ -10,12 +10,16 @@ dependencies {
     api project(":error")
     api libs.starter.oauth2.resource.server
     implementation libs.spring.boot.autoconfigure
+    compileOnly libs.spring.security.oauth2.client // service tokens, only in an app with OAuth2 clients
     compileOnly libs.jakarta.servlet // provided by the app's web server
 
     testImplementation libs.starter.webmvc
     testImplementation libs.spring.security.test
+    testImplementation libs.starter.oauth2.client
 
     integrationTestImplementation libs.starter.actuator
+    integrationTestImplementation libs.starter.restclient
+    integrationTestImplementation libs.wiremock
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
 }

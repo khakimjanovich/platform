@@ -3,23 +3,56 @@
   "enabled": true,
   "roles": {
     "realm": [
-      { "name": "admin" },
-      { "name": "partner" },
-      { "name": "offline_access" },
-      { "name": "uma_authorization" },
+      {
+        "name": "admin"
+      },
+      {
+        "name": "partner"
+      },
+      {
+        "name": "adapter_client",
+        "description": "A service allowed to call the adapters"
+      },
+      {
+        "name": "offline_access"
+      },
+      {
+        "name": "uma_authorization"
+      },
       {
         "name": "default-roles-test",
         "composite": true,
-        "composites": { "realm": ["offline_access", "uma_authorization"], "client": { "ecom-api": ["caller"] } }
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization"
+          ],
+          "client": {
+            "ecom-api": [
+              "caller"
+            ]
+          }
+        }
       }
     ],
     "client": {
-      "ecom-api": [{ "name": "caller", "description": "Puts ecom-api in the token's audience (Keycloak's audience resolve)" }]
+      "ecom-api": [
+        {
+          "name": "caller",
+          "description": "Puts ecom-api in the token's audience (Keycloak's audience resolve)"
+        }
+      ]
     }
   },
-  "defaultRole": { "name": "default-roles-test" },
+  "defaultRole": {
+    "name": "default-roles-test"
+  },
   "clients": [
-    { "clientId": "ecom-api", "enabled": true, "bearerOnly": true },
+    {
+      "clientId": "ecom-api",
+      "enabled": true,
+      "bearerOnly": true
+    },
     {
       "clientId": "portal",
       "enabled": true,
@@ -35,7 +68,37 @@
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "defaultClientScopes": ["basic", "profile"]
+      "defaultClientScopes": [
+        "basic",
+        "profile"
+      ]
+    },
+    {
+      "clientId": "ecom-app",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "app-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "stranger",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "stranger-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "rotating",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "rotating-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
     }
   ],
   "users": [
@@ -46,8 +109,17 @@
       "email": "aziz@example.uz",
       "emailVerified": true,
       "enabled": true,
-      "credentials": [{ "type": "password", "value": "local-only", "temporary": false }],
-      "realmRoles": ["admin", "default-roles-test"]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "local-only",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "default-roles-test"
+      ]
     },
     {
       "username": "malika",
@@ -56,8 +128,43 @@
       "email": "malika@example.uz",
       "emailVerified": true,
       "enabled": true,
-      "credentials": [{ "type": "password", "value": "local-only", "temporary": false }],
-      "realmRoles": ["partner", "default-roles-test"]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "local-only",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "partner",
+        "default-roles-test"
+      ]
+    },
+    {
+      "username": "service-account-ecom-app",
+      "enabled": true,
+      "serviceAccountClientId": "ecom-app",
+      "realmRoles": [
+        "adapter_client",
+        "default-roles-test"
+      ]
+    },
+    {
+      "username": "service-account-stranger",
+      "enabled": true,
+      "serviceAccountClientId": "stranger",
+      "realmRoles": [
+        "default-roles-test"
+      ]
+    },
+    {
+      "username": "service-account-rotating",
+      "enabled": true,
+      "serviceAccountClientId": "rotating",
+      "realmRoles": [
+        "adapter_client",
+        "default-roles-test"
+      ]
     }
   ]
 }

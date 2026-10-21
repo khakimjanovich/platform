@@ -1,14 +1,14 @@
-// The one version catalog. Every build reads libs.versions.toml directly; the catalog is also
-// publishable for when the platform becomes its own repository.
+// The one version catalog (platform/gradle/libs.versions.toml), which every build reads directly,
+// published as uz.heeypay.ecom:versioning for when the platform becomes its own repository.
 plugins {
     id 'version-catalog'
     id 'maven-publish'
 }
 
 group = 'uz.heeypay.ecom'
-version = '0.1.0'
+version = libs.versions.ecom.platform.get()
 
-catalog { versionCatalog { from(files('libs.versions.toml')) } }
+catalog { versionCatalog { from(files('../gradle/libs.versions.toml')) } }
 
 publishing {
     publications {

@@ -16,7 +16,7 @@ spotless = "8.10.4"
 wiremock = "3.13.2"
 aws-sdk = "2.54.0"
 google-java-format = "1.30.0" # newer releases fail inside Spotless 8.10 (missing commonmark extension)
-ecom-platform = "0.1.0"
+ecom-platform = "0.2.0" # SemVer; see platform/README.md
 opentelemetry-instrumentation = "2.28.1-alpha" # the release built on the OpenTelemetry Boot manages (1.62)
 
 [libraries]

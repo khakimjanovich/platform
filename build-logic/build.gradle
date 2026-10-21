@@ -15,7 +15,7 @@ dependencies {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     // The fixture builds read the same catalog as every ecom build.
-    systemProperty 'catalog', file('../versioning/libs.versions.toml').absolutePath
+    systemProperty 'catalog', file('../gradle/libs.versions.toml').absolutePath
     systemProperty 'sharedProblem', file('../openapi/common/problem-v1.yaml').absolutePath
     inputs.dir('../openapi/common')
 }

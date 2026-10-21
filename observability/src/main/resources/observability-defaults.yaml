@@ -1,4 +1,5 @@
-# Logs, traces and metrics, the same in every service that imports this file.
+# Logs, traces and metrics, the same in every service with this library (loaded by
+# ObservabilityDefaultsPostProcessor, below the service's own configuration).
 # Structured JSON logs in the ECS format.
 logging:
   # Hibernate Validator warns (HV000271) about @Valid on lists in the code generated from the

@@ -16,7 +16,7 @@ public class ErrorConstants {
   /** Every error response, once: status, code, the request, and why. */
   public static final String LOG_PROBLEM = "✗ %d %s | %s | %s";
 
-  /** Used only when a service forgot to import properties/error-exception.yaml. */
+  /** Used only when a service overrode the shared definitions away. */
   public static final ErrorStarterProperties.ErrorDefinition LAST_RESORT =
       new ErrorStarterProperties.ErrorDefinition(
           500, "internal-error", true, "Something went wrong.", null, null);

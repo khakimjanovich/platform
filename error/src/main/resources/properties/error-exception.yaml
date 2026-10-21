@@ -1,5 +1,5 @@
 # Errors every service shares: HTTP status, title and message in English, Russian and Uzbek.
-# Import this file in each service: spring.config.import: classpath:properties/error-exception.yaml
+# Loaded by the library itself (ErrorDefaultsPostProcessor); a service overrides any value in its own config.
 exception:
   starter:
     error:

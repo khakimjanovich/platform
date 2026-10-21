@@ -7,12 +7,18 @@ public class OtpConstants {
 
   public static final String PROPERTIES_PREFIX = "ecom.otp";
 
-  /** Spring Boot's Redis auto-configuration, which makes the StringRedisTemplate. */
-  public static final String BOOT_DATA_REDIS =
-      "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration";
+  /**
+   * Redis key: {prefix}:{flow}:{keyed hash of the subject}:{part}. The hash is a Redis Cluster hash
+   * tag ({@code {…}}), so one subject's keys share a slot and each script may touch them all.
+   */
+  public static final String KEY_FORMAT = "%s:%s:{%s}:%s";
 
-  /** Redis key: {prefix}:{flow}:{keyed hash of the subject}:{part}. */
-  public static final String KEY_FORMAT = "%s:%s:%s:%s";
+  /** Domain separation: a code's hash can never equal a subject's. */
+  public static final String HASH_CODE = "code:";
+
+  public static final String HASH_SUBJECT = "subject:";
+
+  public static final String LOG_UNAVAILABLE = "One-time codes unavailable: {}";
 
   public static final String KEY_CODE = "code";
   public static final String KEY_ATTEMPTS = "attempts";

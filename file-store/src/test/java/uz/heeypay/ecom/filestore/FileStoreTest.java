@@ -12,8 +12,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.util.unit.DataSize;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.exception.SdkClientException;
@@ -23,6 +26,7 @@ import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import uz.heeypay.ecom.error.GeneralException;
 
 /** The store's own rules, with the S3 client mocked. */
+@ExtendWith(OutputCaptureExtension.class)
 class FileStoreTest {
 
   private static final String PDF_SHA256 =
@@ -106,7 +110,7 @@ class FileStoreTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void aStoreThatDoesntAnswerIsUnavailable() {
+  void aStoreThatDoesntAnswerIsUnavailable(CapturedOutput output) {
     when(s3.getObjectAsBytes(any(Consumer.class)))
         .thenThrow(SdkClientException.create("connection refused"));
     assertThatThrownBy(() -> files.read("partner-documents", UUID.randomUUID()))
@@ -115,6 +119,7 @@ class FileStoreTest {
             e ->
                 assertThat(e.getStatus())
                     .isEqualTo(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE));
+    assertThat(output).contains("File store unavailable: connection refused");
   }
 
   @Test

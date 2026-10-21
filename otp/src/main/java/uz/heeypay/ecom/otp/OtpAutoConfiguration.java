@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -15,7 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * counters go to the app's meter registry ({@code ecom.otp.issued}, {@code ecom.otp.verified},
  * {@code ecom.otp.rejected} by reason).
  */
-@AutoConfiguration(afterName = OtpConstants.BOOT_DATA_REDIS)
+@AutoConfiguration(after = DataRedisAutoConfiguration.class)
 @ConditionalOnBean(StringRedisTemplate.class)
 @EnableConfigurationProperties(OtpProperties.class)
 public class OtpAutoConfiguration {

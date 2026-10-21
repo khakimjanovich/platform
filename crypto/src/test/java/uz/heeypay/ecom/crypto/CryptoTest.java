@@ -69,6 +69,31 @@ class CryptoTest {
         .isInstanceOf(IllegalStateException.class);
     assertThatThrownBy(() -> new Crypto(new CryptoProperties(Map.of("k1", K1), "k9", INDEX)))
         .isInstanceOf(IllegalStateException.class);
+    assertThatThrownBy(() -> new Crypto(new CryptoProperties(Map.of("k1", K1), "k1", K1)))
+        .as("the blind index on its own key")
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  void aV2ValueIsNeverBoundToNothing() {
+    assertThatThrownBy(() -> crypto.encrypt(PAN, "")).isInstanceOf(IllegalArgumentException.class);
+    var pan = crypto.encrypt(PAN, "card.pan:card-1");
+    assertThatThrownBy(() -> crypto.decrypt(pan, " ")).isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> crypto.rewrap(pan))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("rewrap(value, context)");
+  }
+
+  @Test
+  void aShortOrRelabelledValueIsNotAnEncryptedValue() {
+    assertThatThrownBy(() -> crypto.decrypt("v1:k1:AAAA"))
+        .isInstanceOf(IllegalArgumentException.class);
+    var v1 = crypto.encrypt(PAN);
+    var v2 = crypto.encrypt(PAN, "card.pan:card-1");
+    assertThatThrownBy(() -> crypto.decrypt(v1.replaceFirst("v1:", "v2:"), "card.pan:card-1"))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> crypto.decrypt(v2.replaceFirst("v2:", "v1:")))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   private static String key() {

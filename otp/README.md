@@ -2,7 +2,9 @@
 
 One-time codes for any module: issued and checked in Redis by one Lua script each, so limits hold
 and a code works once even under concurrent requests. Redis keeps only HMAC-SHA256 hashes of the
-code and of the subject (an email), keyed with a secret.
+code and of the subject (an email), keyed with a secret and kept apart (`code:` and `subject:`
+before hashing). A subject's keys share a Redis Cluster hash tag (`otp:<flow>:{<hash>}:<part>`), so
+the scripts run on a cluster too.
 
 ```groovy
 implementation libs.ecom.otp // needs Redis (spring.data.redis.*)
@@ -15,7 +17,7 @@ otp.verify("registration", email, typedCode); // returns normally if right; neve
 
 Wrong codes count for the whole send window, across codes, so a lockout lasts until the window
 ends and a locked subject gets no new code. A new code waits `resend-after` after the last one.
-Without Redis nothing is issued or accepted.
+Without Redis nothing is issued or accepted, and a warning logs Redis's own message.
 
 ## Properties
 

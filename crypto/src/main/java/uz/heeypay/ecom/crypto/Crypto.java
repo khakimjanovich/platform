@@ -2,6 +2,7 @@ package uz.heeypay.ecom.crypto;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -40,10 +41,14 @@ public class Crypto {
                 Collectors.toUnmodifiableMap(
                     Map.Entry::getKey, e -> key(e.getKey(), e.getValue())));
     this.activeKeyId = properties.activeKeyId();
-    this.blindIndexKey =
-        new SecretKeySpec(
-            decodeKey("blind-index-key", properties.blindIndexKey()),
-            CryptoConstants.BLIND_INDEX_ALGORITHM);
+    var index = decodeKey("blind-index-key", properties.blindIndexKey());
+    for (var key : keys.values()) {
+      if (MessageDigest.isEqual(key.getEncoded(), index)) {
+        throw new IllegalStateException(
+            "ecom.crypto.blind-index-key must differ from every ecom.crypto.keys value");
+      }
+    }
+    this.blindIndexKey = new SecretKeySpec(index, CryptoConstants.BLIND_INDEX_ALGORITHM);
   }
 
   /**
@@ -93,6 +98,10 @@ public class Crypto {
 
   /** Re-encrypts a {@code v1} value under the active key, for key rotation. */
   public String rewrap(String envelope) {
+    if (envelope.startsWith(CryptoConstants.VERSION_2 + CryptoConstants.SEPARATOR)) {
+      throw new IllegalArgumentException(
+          "a v2 value is rewrapped with its context: rewrap(value, context)");
+    }
     return isStale(envelope) ? encrypt(decrypt(envelope)) : envelope;
   }
 
@@ -119,6 +128,7 @@ public class Crypto {
   }
 
   private String seal(String plain, String version, @Nullable String context) {
+    if (version.equals(CryptoConstants.VERSION_2)) bound(context);
     try {
       var nonce = new byte[CryptoConstants.NONCE_BYTES];
       RANDOM.nextBytes(nonce);
@@ -140,14 +150,14 @@ public class Crypto {
     @Nullable String bound =
         switch (parts[0]) {
           case CryptoConstants.VERSION -> null;
-          case CryptoConstants.VERSION_2 -> {
-            if (context == null) throw new IllegalArgumentException("a v2 value needs its context");
-            yield context;
-          }
+          case CryptoConstants.VERSION_2 -> bound(context);
           default -> throw new IllegalArgumentException("not an encrypted value");
         };
     try {
       var data = Base64.getDecoder().decode(parts[2]);
+      if (data.length < CryptoConstants.NONCE_BYTES + CryptoConstants.TAG_BITS / 8) {
+        throw new IllegalArgumentException("not an encrypted value");
+      }
       var nonce = new byte[CryptoConstants.NONCE_BYTES];
       System.arraycopy(data, 0, nonce, 0, nonce.length);
       var cipher = cipher(Cipher.DECRYPT_MODE, parts[1], nonce, bound);
@@ -157,6 +167,15 @@ public class Crypto {
       throw new IllegalArgumentException(
           "the value was changed, the key is wrong, or it belongs elsewhere", e);
     }
+  }
+
+  /** A v2 value's context: never blank, or the value would be bound to nothing. */
+  private static String bound(@Nullable String context) {
+    if (context == null || context.isBlank()) {
+      throw new IllegalArgumentException(
+          "a v2 value needs its context, naming the row and field, e.g. card.pan:<id>");
+    }
+    return context;
   }
 
   /**

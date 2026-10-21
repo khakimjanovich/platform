@@ -26,6 +26,7 @@ class CryptoIT {
   private static final String PAN = "8600301234567890";
   private static final String K1 = key();
   private static final String K2 = key();
+  private static final String INDEX = key();
 
   @Container
   static final VaultContainer<?> VAULT =
@@ -47,7 +48,7 @@ class CryptoIT {
             "ecom.crypto.active-key-id=" + active,
             "ecom.crypto.keys.k1=" + K1,
             "ecom.crypto.keys.k2=" + K2,
-            "ecom.crypto.blind-index-key=" + K1);
+            "ecom.crypto.blind-index-key=" + INDEX);
     assertThat(put.getExitCode()).as(put.getStderr()).isZero();
   }
 

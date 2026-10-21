@@ -28,6 +28,7 @@ public class FileStoreConstants {
   public static final String BUCKET_UNREADABLE = "Bucket %s can't be checked in the store";
 
   public static final String DEFAULT_API_CALL_TIMEOUT = "30s";
+  public static final String LOG_UNAVAILABLE = "File store unavailable: {}";
   public static final String DEFAULT_CREDENTIALS = "keys";
   public static final String DEFAULT_API_CALL_ATTEMPT_TIMEOUT = "10s";
 }

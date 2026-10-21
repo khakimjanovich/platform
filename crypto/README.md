@@ -27,7 +27,8 @@ The base64 part is the 12-byte nonce, the ciphertext and the 16-byte tag. The co
 value lives, e.g. `card.pan:<card id>` or `card.expiry:<card id>`: a `v2` value decrypts only with
 the same context, so a ciphertext copied to another card or another column fails (NIST SP 800-38D
 associated data, as Tink's `encrypt(plaintext, associatedData)`). A `v1` value is bound only to its
-key, so it could be moved unnoticed.
+key, so it could be moved unnoticed. A `v2` context is never blank (`encrypt` and `decrypt` refuse
+it), and the blind-index key differs from every encryption key.
 
 ### Moving data from v1 to v2
 

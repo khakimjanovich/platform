@@ -158,7 +158,7 @@ public class FileStore {
     try {
       return call.get();
     } catch (SdkException e) {
-      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);
+      throw unavailable(e);
     }
   }
 
@@ -172,10 +172,16 @@ public class FileStore {
       if (e.statusCode() == 404) {
         throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_NOT_FOUND, fileId);
       }
-      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);
+      throw unavailable(e);
     } catch (SdkException e) {
-      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);
+      throw unavailable(e);
     }
+  }
+
+  /** The store's trouble: the caller gets a 503, the log says why. */
+  private static GeneralException unavailable(SdkException e) {
+    log.warn(FileStoreConstants.LOG_UNAVAILABLE, e.getMessage(), e);
+    return new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);
   }
 
   private static byte[] bytes(MultipartFile file) {

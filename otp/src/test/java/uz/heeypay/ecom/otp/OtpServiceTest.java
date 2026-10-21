@@ -11,12 +11,16 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import uz.heeypay.ecom.error.GeneralException;
 
 /** How the scripts' answers become codes and errors, without Redis. */
+@ExtendWith(OutputCaptureExtension.class)
 class OtpServiceTest {
 
   private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
@@ -83,7 +87,7 @@ class OtpServiceTest {
   }
 
   @Test
-  void withoutRedisNothingIsIssuedOrAccepted() {
+  void withoutRedisNothingIsIssuedOrAccepted(CapturedOutput output) {
     when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
         .thenThrow(new RedisConnectionFailureException("refused"));
     assertThatThrownBy(() -> otp.issue("f", "s"))
@@ -94,6 +98,7 @@ class OtpServiceTest {
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(OtpExceptionStatus.OTP_UNAVAILABLE));
+    assertThat(output).contains("One-time codes unavailable: refused");
   }
 
   @Test

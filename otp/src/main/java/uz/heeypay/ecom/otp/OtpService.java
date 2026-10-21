@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +30,7 @@ import uz.heeypay.ecom.error.GeneralException;
  * itself says when ({@code Retry-After}). Without Redis nothing is issued or accepted: {@code
  * OTP_UNAVAILABLE}.
  */
+@Slf4j
 public class OtpService {
 
   private static final SecureRandom RANDOM = new SecureRandom();
@@ -77,7 +79,7 @@ public class OtpService {
                         OtpConstants.KEY_LAST),
                     String.valueOf(properties.maxSends()),
                     String.valueOf(properties.sendWindow().toMillis()),
-                    hash(code),
+                    hash(OtpConstants.HASH_CODE + code),
                     String.valueOf(properties.ttl().toMillis()),
                     String.valueOf(properties.maxAttempts()),
                     String.valueOf(properties.resendAfter().toMillis())));
@@ -100,7 +102,7 @@ public class OtpService {
                     keys(flow, subject, OtpConstants.KEY_CODE, OtpConstants.KEY_ATTEMPTS),
                     String.valueOf(properties.maxAttempts()),
                     String.valueOf(properties.sendWindow().toMillis()),
-                    hash(code)));
+                    hash(OtpConstants.HASH_CODE + code)));
     switch (status(result)) {
       case 1 ->
           meters.counter(OtpConstants.METER_VERIFIED, OtpConstants.TAG_FLOW, flow).increment();
@@ -132,18 +134,19 @@ public class OtpService {
     return result == null || result.isEmpty() ? 0 : ((Number) result.getFirst()).intValue();
   }
 
-  /** Fail closed: without Redis, no code is issued or accepted. */
+  /** Fail closed: without Redis, no code is issued or accepted; the log says why. */
   private static List<?> run(Supplier<List<?>> script) {
     try {
       return script.get();
     } catch (DataAccessException e) {
+      log.warn(OtpConstants.LOG_UNAVAILABLE, e.getMessage(), e);
       throw new GeneralException(OtpExceptionStatus.OTP_UNAVAILABLE);
     }
   }
 
   /** The Redis key for each part; the subject (often an email) is stored only as a keyed hash. */
   private List<String> keys(String flow, String subject, String... parts) {
-    var hashedSubject = hash(subject);
+    var hashedSubject = hash(OtpConstants.HASH_SUBJECT + subject);
     return Arrays.stream(parts)
         .map(
             part ->

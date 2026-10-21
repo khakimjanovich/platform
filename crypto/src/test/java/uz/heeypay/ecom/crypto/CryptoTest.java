@@ -76,4 +76,44 @@ class CryptoTest {
     new SecureRandom().nextBytes(bytes);
     return Base64.getEncoder().encodeToString(bytes);
   }
+
+  @Test
+  void aV2ValueReadsOnlyWhereItLives() {
+    var pan = crypto.encrypt(PAN, "card.pan:card-1");
+    assertThat(pan).startsWith("v2:k1:");
+    assertThat(crypto.decrypt(pan, "card.pan:card-1")).isEqualTo(PAN);
+    assertThatThrownBy(() -> crypto.decrypt(pan, "card.pan:card-2"))
+        .as("copied to another card")
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> crypto.decrypt(pan, "card.expiry:card-1"))
+        .as("copied to another field")
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> crypto.decrypt(pan))
+        .as("never without its context")
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void v1DataStillReadsAndRewrapsToV2() {
+    var old = crypto.encrypt(PAN);
+    assertThat(crypto.decrypt(old)).isEqualTo(PAN);
+    assertThat(crypto.decrypt(old, "card.pan:card-1")).as("v1 has no context").isEqualTo(PAN);
+    var upgraded = crypto.rewrap(old, "card.pan:card-1");
+    assertThat(upgraded).startsWith("v2:k1:");
+    assertThat(crypto.decrypt(upgraded, "card.pan:card-1")).isEqualTo(PAN);
+    assertThat(crypto.rewrap(upgraded, "card.pan:card-1"))
+        .as("already current")
+        .isEqualTo(upgraded);
+  }
+
+  @Test
+  void aV2ValueUnderAnOldKeyMovesToTheActiveOne() {
+    var before = new Crypto(new CryptoProperties(Map.of("k1", K1, "k2", K2), "k1", INDEX));
+    var after = new Crypto(new CryptoProperties(Map.of("k1", K1, "k2", K2), "k2", INDEX));
+    var sealed = before.encrypt(PAN, "card.pan:card-1");
+    assertThat(after.isStale(sealed)).isTrue();
+    var rewrapped = after.rewrap(sealed, "card.pan:card-1");
+    assertThat(rewrapped).startsWith("v2:k2:");
+    assertThat(after.decrypt(rewrapped, "card.pan:card-1")).isEqualTo(PAN);
+  }
 }

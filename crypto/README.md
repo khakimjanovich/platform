@@ -16,6 +16,29 @@ All three come from Vault, like every secret (`spring.config.import: vault://sec
 
 A missing key, a key of the wrong size or an active id that names no key stops startup.
 
+## Formats
+
+| Prefix | Associated data | Made by |
+|---|---|---|
+| `v1:<key id>:<base64>` | the key id | `encrypt(plain)` |
+| `v2:<key id>:<base64>` | the key id, a `0x00` byte, the context | `encrypt(plain, context)` |
+
+The base64 part is the 12-byte nonce, the ciphertext and the 16-byte tag. The context says where a
+value lives, e.g. `card.pan:<card id>` or `card.expiry:<card id>`: a `v2` value decrypts only with
+the same context, so a ciphertext copied to another card or another column fails (NIST SP 800-38D
+associated data, as Tink's `encrypt(plaintext, associatedData)`). A `v1` value is bound only to its
+key, so it could be moved unnoticed.
+
+### Moving data from v1 to v2
+
+1. Read with `decrypt(value, context)`: it opens `v2` values with their context and `v1` values as
+   before, so code can switch before the data does.
+2. Write with `encrypt(plain, context)`.
+3. Rewrap the stored `v1` values with `rewrap(value, context)` (it also moves a `v2` value under an
+   old key to the active one), and relax any database check that accepts only `v1:` to `v1:`/`v2:`
+   first.
+4. Once no `v1` value is left, accept only `v2:`.
+
 ## Rotation
 
 1. Add the new key to Vault next to the old one (`ecom.crypto.keys.k2`), keeping `active-key-id` on
@@ -23,7 +46,8 @@ A missing key, a key of the wrong size or an active id that names no key stops s
 2. Make the new key active (`ecom.crypto.active-key-id=k2`) and restart: new values are sealed with
    it, old values still read.
 3. Rewrap the old values: for each one, `crypto.isStale(value)` says whether it was sealed with
-   another key and `crypto.rewrap(value)` re-seals it with the active one. `crypto.keyIds()` lists
+   another key and `crypto.rewrap(value, context)` (`rewrap(value)` for `v1`) re-seals it with the
+   active one. `crypto.keyIds()` lists
    the keys this instance holds.
 4. When no value uses the old key any more, remove it from Vault and restart.
 

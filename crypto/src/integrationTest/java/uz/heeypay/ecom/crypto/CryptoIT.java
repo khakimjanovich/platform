@@ -82,6 +82,10 @@ class CryptoIT {
       var rewrapped = crypto.rewrap(sealed);
       assertThat(rewrapped).startsWith("v1:k2:");
       assertThat(crypto.decrypt(rewrapped)).isEqualTo(PAN);
+
+      var bound = crypto.rewrap(sealed, "card.pan:card-1");
+      assertThat(bound).startsWith("v2:k2:");
+      assertThat(crypto.decrypt(bound, "card.pan:card-1")).isEqualTo(PAN);
     }
   }
 

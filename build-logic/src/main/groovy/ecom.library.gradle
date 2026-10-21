@@ -12,6 +12,12 @@ version = libs.findVersion('ecom-platform').get().requiredVersion
 
 java { withSourcesJar() }
 
+// META-INF/spring-configuration-metadata.json in every jar: IDE completion and docs for every property.
+dependencies {
+    annotationProcessor platform(libs.findLibrary('spring-boot-bom').get())
+    annotationProcessor libs.findLibrary('spring-boot-configuration-processor').get()
+}
+
 publishing {
     publications {
         library(MavenPublication) { from components.java }

@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Every error's definition by its type, from the services' {@code properties/*-exception.yaml}
  * files under {@code exception.starter.error}.
+ *
+ * @param error every error's definition, by its type (the code clients see)
  */
 @ConfigurationProperties(ErrorConstants.PROPERTIES_PREFIX)
 public record ErrorStarterProperties(Map<String, ErrorDefinition> error) {
@@ -15,6 +17,16 @@ public record ErrorStarterProperties(Map<String, ErrorDefinition> error) {
     error = error == null ? Map.of() : error;
   }
 
+  /**
+   * One error: its status, title, and message in each language; {0}, {1}… are its parameters.
+   *
+   * @param httpCode the HTTP status it answers with
+   * @param title a short kebab-case title, the problem's {@code title}
+   * @param isLoggable a 4xx worth a warning in the log (5xx are always errors)
+   * @param messageEn the message in English, also used when a language is missing
+   * @param messageRu the message in Russian
+   * @param messageUz the message in Uzbek
+   */
   public record ErrorDefinition(
       int httpCode,
       String title,

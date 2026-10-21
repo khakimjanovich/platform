@@ -9,6 +9,7 @@ dependencies {
     api project(":error")
     api libs.starter.data.redis
     implementation libs.spring.boot.autoconfigure
+    implementation libs.starter.validation // the properties are checked at startup
 
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit

@@ -10,6 +10,7 @@ dependencies {
     api libs.spring.web
     implementation libs.spring.security.oauth2.client
     implementation libs.spring.boot.autoconfigure
+    implementation libs.starter.validation // the properties are checked at startup
     implementation libs.jackson3.databind
 
     integrationTestImplementation libs.testcontainers.core

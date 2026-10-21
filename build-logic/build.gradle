@@ -5,4 +5,15 @@ plugins {
 dependencies {
     implementation libs.spotless.gradle
     implementation libs.openapi.generator.gradle
+
+    // The plugins tested on real builds (Gradle TestKit).
+    testImplementation platform(libs.spring.boot.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.launcher
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // The fixture builds read the same catalog as every ecom build.
+    systemProperty 'catalog', file('../versioning/libs.versions.toml').absolutePath
 }

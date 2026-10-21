@@ -72,6 +72,8 @@ spring-security-oauth2-client = { module = "org.springframework.security:spring-
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 jakarta-servlet = { module = "jakarta.servlet:jakarta.servlet-api" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 ecom-partner-api = { module = "uz.heeypay.ecom:partner-api", version.ref = "ecom-platform" }
 ecom-error = { module = "uz.heeypay.ecom:error", version.ref = "ecom-platform" }

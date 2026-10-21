@@ -1,7 +1,10 @@
-// `check` here checks every library and contract.
+// `check` here checks every library and contract, and the build conventions themselves.
 plugins {
     id 'base'
 }
 
 def checks = subprojects.findAll { it.buildFile.exists() && it.name != 'versioning' }.collect { "${it.path}:check" }
-tasks.named('check') { dependsOn checks }
+tasks.named('check') {
+    dependsOn checks
+    dependsOn gradle.includedBuild('build-logic').task(':check')
+}

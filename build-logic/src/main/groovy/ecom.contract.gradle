@@ -1,7 +1,8 @@
 // An API contract: `<name>-api` holds `src/main/openapi/<name>-v1.yaml`; Spring server interfaces
 // and models are generated into build/ and published in the jar, never into source. The spec ships
 // in the jar too, so Swagger UI shows exactly what we wrote. With `contract { client = true }` the
-// jar also holds `@HttpExchange` client interfaces.
+// jar also holds `@HttpExchange` client interfaces, named `<Tag>Client` so they never share a simple
+// name with the `<Tag>Api` server interfaces.
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 import uz.heeypay.ecom.contract.OpenApiContractExtension
 
@@ -16,6 +17,7 @@ def lib = { String alias -> libs.findLibrary(alias).get() }
 def contract = extensions.create('contract', OpenApiContractExtension)
 contract.client.convention(false)
 contract.useResponseEntity.convention(true)
+contract.schemaMappings.convention([:])
 
 def name = project.name - '-api'
 def basePackage = "uz.heeypay.ecom.${name.replace('-', '')}.api"
@@ -28,7 +30,11 @@ dependencies {
     api lib('spring-webmvc')
     api lib('jakarta-validation')
     api lib('jakarta-annotation')
-    api lib('jackson-databind')
+    // Generated models need only the annotations Jackson 2 and 3 share; the app runs Jackson 3.
+    api lib('jackson-annotations')
+    // `uniqueItems` arrays get Jackson 2's @JsonDeserialize(as = LinkedHashSet), which must compile;
+    // Jackson 3 never reads it, so it stays off the jar's classpath.
+    compileOnly lib('jackson-databind')
     compileOnly lib('jakarta-servlet') // provided by the app's web server
 }
 
@@ -48,6 +54,8 @@ openApiGenerate {
         documentationProvider: 'none',
         annotationLibrary   : 'none',
     ]
+    schemaMappings = contract.schemaMappings
+    cleanupOutput = true // nothing a previous spec generated survives
 }
 
 // Client interfaces only: the models come from the server generation above.
@@ -58,8 +66,11 @@ def openApiGenerateClient = tasks.register('openApiGenerateClient', GenerateTask
     inputSpec = spec
     outputDir = generatedClientDir.map { it.asFile.path }
     apiPackage = "${basePackage}.client"
+    apiNameSuffix = 'Client'
     modelPackage = "${basePackage}.model"
     globalProperties = [apis: '']
+    schemaMappings = contract.schemaMappings
+    cleanupOutput = true
     // Read when the task runs, after the contract's own `contract { }` block.
     configOptions = contract.useResponseEntity.map { useResponseEntity ->
         [

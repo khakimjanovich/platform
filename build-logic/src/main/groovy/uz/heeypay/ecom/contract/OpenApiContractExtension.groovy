@@ -1,5 +1,6 @@
 package uz.heeypay.ecom.contract
 
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 
 /** What an API contract publishes besides server interfaces and models. */
@@ -14,4 +15,10 @@ abstract class OpenApiContractExtension {
 
     /** The generator's own option: false makes `@HttpExchange` methods return the model itself. */
     abstract Property<Boolean> getUseResponseEntity()
+
+    /**
+     * Schemas generated as an existing type instead of a new class, e.g.
+     * `Problem: 'org.springframework.http.ProblemDetail'`.
+     */
+    abstract MapProperty<String, String> getSchemaMappings()
 }

@@ -3,6 +3,7 @@ package uz.heeypay.ecom.vault;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
@@ -85,6 +86,23 @@ class VaultSecretsIT {
   @Test
   void aWrongTokenFailsClosed() {
     withToken("wrong")
+        .run(
+            context ->
+                assertThatThrownBy(() -> context.getBean(VaultSecrets.class).get("merchants/x"))
+                    .isInstanceOf(VaultUnavailableException.class));
+  }
+
+  @Test
+  void anUnreachableVaultFailsClosed() throws Exception {
+    int port;
+    try (var free = new ServerSocket(0)) {
+      port = free.getLocalPort(); // nothing listens there once it is closed
+    }
+    app(
+            "spring.cloud.vault.uri=http://localhost:" + port,
+            "spring.cloud.vault.authentication=TOKEN",
+            "spring.cloud.vault.token=test",
+            "spring.cloud.vault.fail-fast=false")
         .run(
             context ->
                 assertThatThrownBy(() -> context.getBean(VaultSecrets.class).get("merchants/x"))

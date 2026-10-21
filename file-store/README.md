@@ -22,7 +22,8 @@ files.delete("partner-documents", stored.id());
 |---|---|---|
 | `ecom.file-store.storage.endpoint` | — | the store's URL; setting it turns the library on |
 | `ecom.file-store.storage.region` | — | the region requests are signed for |
-| `ecom.file-store.storage.access-key` | — | the app's access key; blank uses AWS's default credentials chain |
+| `ecom.file-store.storage.credentials` | `keys` | `keys`: the access and secret key, both required; `default-chain`: AWS's default credentials chain (an instance or container role), only when chosen |
+| `ecom.file-store.storage.access-key` | — | the app's access key |
 | `ecom.file-store.storage.secret-key` | — | its secret key, from Vault |
 | `ecom.file-store.storage.path-style` | false | the bucket in the path, as SeaweedFS and MinIO want |
 | `ecom.file-store.storage.api-call-timeout` | 30s | one call, retries included |

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
@@ -73,6 +74,14 @@ class SigningKeysTest {
     when(vault.get("merchants/shop-1"))
         .thenThrow(new VaultUnavailableException(new IllegalStateException("sealed")));
     assertThatThrownBy(() -> keys.find("shop-1")).isInstanceOf(VaultUnavailableException.class);
+  }
+
+  @Test
+  void anIdThatIsAPathNeverReachesVault() {
+    assertThat(keys.find("../ecom")).isEmpty();
+    assertThat(keys.find("..")).isEmpty();
+    assertThat(keys.find("")).isEmpty();
+    verifyNoInteractions(vault);
   }
 
   /** A clock the test moves. */

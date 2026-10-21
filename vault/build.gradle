@@ -11,6 +11,7 @@ dependencies {
     api platform(libs.spring.cloud.bom)
     api libs.spring.cloud.starter.vault.config
     implementation libs.spring.boot.autoconfigure
+    implementation libs.starter.validation // the properties are checked at startup
 
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit

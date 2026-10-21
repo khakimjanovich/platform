@@ -49,6 +49,8 @@ class FileStoreTest {
         .withBean(S3Client.class, () -> s3)
         .withPropertyValues(
             "ecom.file-store.storage.endpoint=http://localhost:8333",
+            "ecom.file-store.storage.access-key=ecom",
+            "ecom.file-store.storage.secret-key=local-only",
             "ecom.file-store.buckets.partner-documents.allowed-types=application/pdf",
             "ecom.file-store.buckets.partner-documents.max-size=10MB")
         .run(

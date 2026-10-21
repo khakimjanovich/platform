@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.util.StringUtils;
 import org.springframework.util.unit.DataSize;
 import org.springframework.validation.annotation.Validated;
 
@@ -21,7 +22,7 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties(FileStoreConstants.PROPERTIES_PREFIX)
-public record FileStoreProperties(Storage storage, Map<String, @Valid Bucket> buckets) {
+public record FileStoreProperties(@Valid Storage storage, Map<String, @Valid Bucket> buckets) {
 
   /**
    * Where the store is and how to sign in.
@@ -29,8 +30,10 @@ public record FileStoreProperties(Storage storage, Map<String, @Valid Bucket> bu
    * @param endpoint the store's URL, e.g. {@code http://localhost:8333}; setting it turns the
    *     library on
    * @param region the region requests are signed for
-   * @param accessKey the app's access key; with the secret key blank, AWS's default credentials
-   *     chain (environment, profile, container or instance role) is used
+   * @param credentials {@code keys} (the access and secret key, both required) or {@code
+   *     default-chain} (AWS's default credentials chain: environment, profile, container or
+   *     instance role), chosen on purpose so a missing secret never means "use the instance role"
+   * @param accessKey the app's access key
    * @param secretKey the app's secret key
    * @param pathStyle bucket in the path ({@code host/bucket/key}) instead of the host name
    * @param apiCallTimeout how long one store call may take, retries included
@@ -39,12 +42,27 @@ public record FileStoreProperties(Storage storage, Map<String, @Valid Bucket> bu
   public record Storage(
       String endpoint,
       String region,
+      @DefaultValue(FileStoreConstants.DEFAULT_CREDENTIALS) Credentials credentials,
       String accessKey,
       String secretKey,
       boolean pathStyle,
       @DefaultValue(FileStoreConstants.DEFAULT_API_CALL_TIMEOUT) Duration apiCallTimeout,
       @DefaultValue(FileStoreConstants.DEFAULT_API_CALL_ATTEMPT_TIMEOUT)
-          Duration apiCallAttemptTimeout) {}
+          Duration apiCallAttemptTimeout) {
+
+    /** How the app signs in to the store. */
+    public enum Credentials {
+      KEYS,
+      DEFAULT_CHAIN
+    }
+
+    @AssertTrue(
+        message = "access-key and secret-key are required unless credentials is default-chain")
+    public boolean isSecretKeySet() {
+      return credentials == Credentials.DEFAULT_CHAIN
+          || (StringUtils.hasText(accessKey) && StringUtils.hasText(secretKey));
+    }
+  }
 
   /**
    * What one bucket accepts.

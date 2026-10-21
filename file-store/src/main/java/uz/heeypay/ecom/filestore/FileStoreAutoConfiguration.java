@@ -6,7 +6,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -61,11 +60,9 @@ public class FileStoreAutoConfiguration {
     return store;
   }
 
-  /**
-   * The configured key pair, or AWS's default chain (an instance or container role) without one.
-   */
+  /** The configured key pair, or AWS's default chain (an instance or container role) if chosen. */
   private static AwsCredentialsProvider credentials(FileStoreProperties.Storage storage) {
-    if (!StringUtils.hasText(storage.accessKey()) || !StringUtils.hasText(storage.secretKey())) {
+    if (storage.credentials() == FileStoreProperties.Storage.Credentials.DEFAULT_CHAIN) {
       return DefaultCredentialsProvider.builder().build();
     }
     return StaticCredentialsProvider.create(

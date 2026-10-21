@@ -7,6 +7,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 /**
  * Each merchant API client's request-signing key, put into Vault by the bank under the configured
@@ -19,6 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * failure never falls back to an old key.
  */
 public class SigningKeys {
+
+  /** A client id as Keycloak makes them: never a path of its own ({@code ..}, {@code /}). */
+  private static final Pattern CLIENT_ID = Pattern.compile("[A-Za-z0-9_-][A-Za-z0-9._-]*");
 
   private final VaultSecrets vault;
   private final String path;
@@ -36,10 +40,11 @@ public class SigningKeys {
   }
 
   /**
-   * The client's key, or empty if the bank hasn't set one. Throws {@link VaultUnavailableException}
-   * if Vault can't be reached, so callers fail closed.
+   * The client's key, or empty if the bank hasn't set one or the id can't be a client's. Throws
+   * {@link VaultUnavailableException} if Vault can't be reached, so callers fail closed.
    */
   public Optional<byte[]> find(String clientId) {
+    if (!CLIENT_ID.matcher(clientId).matches()) return Optional.empty();
     var now = clock.instant();
     var cached = cache.get(clientId);
     if (cached != null && now.isBefore(cached.until())) return Optional.of(cached.key().clone());

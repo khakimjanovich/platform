@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.vault.VaultException;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.core.VaultVersionedKeyValueOperations;
+import org.springframework.web.client.RestClientException;
 
 /**
  * Reads key-value secrets (KV version 2, the latest version) from Vault. Writing them is the bank's
@@ -30,7 +31,9 @@ public class VaultSecrets {
       var secret = new LinkedHashMap<String, String>();
       versioned.getRequiredData().forEach((key, value) -> secret.put(key, String.valueOf(value)));
       return Optional.of(secret);
-    } catch (VaultException e) {
+    } catch (VaultException | RestClientException e) {
+      // VaultException when Vault answers with an error; RestClientException (connection refused,
+      // a timeout) when it doesn't answer at all.
       throw new VaultUnavailableException(e);
     }
   }

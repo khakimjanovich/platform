@@ -23,11 +23,17 @@ import uz.heeypay.ecom.masking.Masking;
  * are masked ({@link Masking}); headers are never logged. A 4xx or 5xx answer is a warning. Only a
  * JSON, XML or form answer of up to {@value #MAX_LOGGED_BYTES} bytes is read for the log; anything
  * else is logged by its size and streams through untouched. Every RestClient gets it; a client
- * built on a ClientHttpRequestFactory (a SOAP one) adds it itself.
+ * built on a ClientHttpRequestFactory (a SOAP one) adds it itself. A request with the {@value
+ * #NO_BODIES} attribute (one that sends or receives a secret) is logged without its bodies.
  */
 public class HttpClientLogging implements ClientHttpRequestInterceptor {
 
   static final int MAX_LOGGED_BYTES = 4_000;
+
+  /** The request attribute that keeps both bodies of a call out of the log. */
+  public static final String NO_BODIES = "ecom.http-client-logging.no-bodies";
+
+  private static final String NOT_LOGGED = "<not logged>";
 
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
 
@@ -41,7 +47,9 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
   public ClientHttpResponse intercept(
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
     var call = request.getMethod() + " " + masking.uri(request.getURI());
-    log.info("→ {} | {}", call, masking.body(body, type(request.getHeaders())));
+    var bodies = !request.getAttributes().containsKey(NO_BODIES);
+    log.info(
+        "→ {} | {}", call, bodies ? masking.body(body, type(request.getHeaders())) : NOT_LOGGED);
     var started = System.nanoTime();
     ClientHttpResponse response;
     try {
@@ -54,7 +62,9 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     var length = headers.getContentLength();
     String logged;
     ClientHttpResponse answer = response;
-    if (!loggable(headers.getContentType()) || length > MAX_LOGGED_BYTES) {
+    if (!bodies) {
+      logged = NOT_LOGGED;
+    } else if (!loggable(headers.getContentType()) || length > MAX_LOGGED_BYTES) {
       logged = size(length, headers);
     } else {
       // Read at most one byte past the cap: a longer body is put back in front of the rest.

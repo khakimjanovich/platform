@@ -28,8 +28,10 @@ for requests and pool waits).
 `HttpClientLogging` logs every call of every client built from Boot's `RestClient.Builder` in at
 most three lines (`→`, `←` with status and time, `✗`), with the URI and bodies masked and no
 headers. Only a JSON, XML or form answer of up to 4 000 bytes is read for the log; anything else
-streams through, logged by its size. A client built on its own request factory (a SOAP one) adds
-the `HttpClientLogging` bean itself.
+streams through, logged by its size. A call that sends or receives a secret sets the request
+attribute `HttpClientLogging.NO_BODIES` and is logged without either body (Keycloak's
+`/client-secret` calls do). A client built on its own request factory (a SOAP one) adds the
+`HttpClientLogging` bean itself.
 
 ## Beans you can replace
 

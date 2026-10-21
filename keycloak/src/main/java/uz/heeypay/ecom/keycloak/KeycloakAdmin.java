@@ -180,7 +180,8 @@ public class KeycloakAdmin {
   }
 
   private static String secretOf(RestClient.RequestHeadersSpec<?> request) {
-    return (String) field(request.retrieve().body(JSON), KeycloakConstants.VALUE);
+    var answer = request.attribute(KeycloakConstants.NO_LOGGED_BODIES, true).retrieve().body(JSON);
+    return (String) field(answer, KeycloakConstants.VALUE);
   }
 
   /** An answer Keycloak never gives when it works: as good as no answer. */

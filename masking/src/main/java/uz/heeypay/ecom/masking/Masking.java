@@ -88,10 +88,10 @@ public final class Masking {
 
   private void mask(JsonNode node, String parent) {
     if (node instanceof ObjectNode object) {
-      // A code next to a card number, or under "otp", is a one-time code; Keycloak's credentials
-      // are {"type": "password", "value": …}.
+      // A code next to a card number, or under "otp", is a one-time code; every Keycloak credential
+      // or secret is {"type": …, "value": …} ("password", "secret", "otp", …).
       var oneTimeCode = parent.equals("otp") || object.has("pan");
-      var credential = "password".equals(object.path("type").asString(""));
+      var credential = object.has("type");
       for (var name : object.propertyNames().stream().toList()) {
         var value = object.get(name);
         if (!value.isValueNode()) {

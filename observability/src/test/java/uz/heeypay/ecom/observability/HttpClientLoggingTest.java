@@ -64,4 +64,34 @@ class HttpClientLoggingTest {
     assertThat(client.get().uri("/file").retrieve().body(byte[].class)).isEqualTo(pdf);
     assertThat(output).contains("<6 bytes, application/pdf>");
   }
+
+  @Test
+  void aClientSecretAnswerIsLoggedMasked(CapturedOutput output) {
+    server
+        .expect(requestTo("/clients/c-1/client-secret"))
+        .andRespond(
+            withSuccess("{\"type\":\"secret\",\"value\":\"abc\"}", MediaType.APPLICATION_JSON));
+    client.get().uri("/clients/c-1/client-secret").retrieve().body(String.class);
+    assertThat(output).contains("\"value\":\"***\"").doesNotContain("abc");
+  }
+
+  @Test
+  void aCallMarkedNoBodiesLogsNeitherBody(CapturedOutput output) {
+    server
+        .expect(requestTo("/clients/c-1/client-secret"))
+        .andRespond(withSuccess("{\"value\":\"abc\"}", MediaType.APPLICATION_JSON));
+    var body =
+        client
+            .post()
+            .uri("/clients/c-1/client-secret")
+            .attribute(HttpClientLogging.NO_BODIES, true)
+            .body("{\"name\":\"xyz\"}")
+            .retrieve()
+            .body(String.class);
+    assertThat(body).isEqualTo("{\"value\":\"abc\"}");
+    assertThat(output)
+        .contains("→ POST /clients/c-1/client-secret | <not logged>")
+        .contains("← 200 POST /clients/c-1/client-secret")
+        .doesNotContain("abc", "xyz");
+  }
 }

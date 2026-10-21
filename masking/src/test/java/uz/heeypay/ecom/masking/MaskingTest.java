@@ -65,6 +65,9 @@ class MaskingTest {
                     + "\"note\":\"card 8600301234567890\"}",
                 JSON))
         .doesNotContain("hunter2", "8600301234567890");
+    assertThat(masked("{\"type\":\"secret\",\"value\":\"abc\"}", JSON))
+        .as("a client secret, as Keycloak answers it")
+        .isEqualTo("{\"type\":\"secret\",\"value\":\"***\"}");
     assertThat(masked("<html>502</html>", "text/html")).isEqualTo("<16 bytes, text/html>");
   }
 

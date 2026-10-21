@@ -11,9 +11,13 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.restclient.autoconfigure.RestClientAutoConfiguration;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
@@ -26,9 +30,14 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
 import uz.heeypay.ecom.error.GeneralException;
+import uz.heeypay.ecom.observability.ObservabilityAutoConfiguration;
 
-/** The admin client against a real Keycloak: users, roles, and client secrets that rotate. */
+/**
+ * The admin client against a real Keycloak: users, roles, and client secrets that rotate and never
+ * reach the log.
+ */
 @Testcontainers
+@ExtendWith(OutputCaptureExtension.class)
 class KeycloakAdminIT {
 
   private static final ParameterizedTypeReference<Map<String, Object>> JSON =
@@ -50,7 +59,7 @@ class KeycloakAdminIT {
   static ConfigurableApplicationContext context;
   static KeycloakAdmin admin;
 
-  /** The library as an app gets it: auto-configured from ecom.keycloak.* alone. */
+  /** The library as an app gets it: auto-configured from ecom.keycloak.*, every call logged. */
   @BeforeAll
   static void client() {
     context =
@@ -71,7 +80,11 @@ class KeycloakAdminIT {
   }
 
   @Configuration(proxyBeanMethods = false)
-  @ImportAutoConfiguration(KeycloakAutoConfiguration.class)
+  @ImportAutoConfiguration({
+    RestClientAutoConfiguration.class,
+    ObservabilityAutoConfiguration.class,
+    KeycloakAutoConfiguration.class
+  })
   static class App {}
 
   @Test
@@ -90,7 +103,7 @@ class KeycloakAdminIT {
   }
 
   @Test
-  void aClientSecretWorksUntilItIsRotated() {
+  void aClientSecretWorksUntilItIsRotated(CapturedOutput output) {
     var clientId = "partner-" + UUID.randomUUID().toString().substring(0, 8);
     var issued = admin.createConfidentialClient(clientId, "partner");
     assertThat(clientCredentials(clientId, issued.secret())).isEqualTo(200);
@@ -101,6 +114,10 @@ class KeycloakAdminIT {
     var rotated = admin.rotateSecret(issued.id());
     assertThat(clientCredentials(clientId, issued.secret())).isEqualTo(401);
     assertThat(clientCredentials(clientId, rotated)).isEqualTo(200);
+    assertThat(output)
+        .as("the calls are logged, the secrets are not")
+        .contains("/client-secret | <not logged>")
+        .doesNotContain(issued.secret(), rotated);
   }
 
   private static String passwordToken(String username, String password) {

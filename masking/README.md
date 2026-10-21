@@ -9,7 +9,8 @@ implementation libs.ecom.masking
 
 Hides what must never reach a log: card numbers (first 6 and last 4 digits kept), tokens (last 4
 characters kept) and secrets (hidden whole), by field name, in JSON, XML, forms, URI queries and
-`key=value` text, plus any run of 13 to 19 digits. Plain Java and Jackson, no Spring.
+`key=value` text, plus any run of 13 to 19 digits. The `value` of any object with a `type` is a
+secret (Keycloak's credentials and client secrets). Plain Java and Jackson, no Spring.
 
 ```java
 var masking = new Masking(MaskingRules.defaults().with(List.of("EMBOS_NAME"), List.of("hpan"), List.of()));

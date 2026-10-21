@@ -18,6 +18,10 @@ public class KeycloakConstants {
   public static final String ROLE = "/roles/{name}";
   public static final String CLIENTS = "/clients";
   public static final String CLIENT_SECRET = "/clients/{id}/client-secret";
+
+  /** The observability library's HttpClientLogging.NO_BODIES: the secret never reaches a log. */
+  public static final String NO_LOGGED_BODIES = "ecom.http-client-logging.no-bodies";
+
   public static final String CLIENT_SERVICE_ACCOUNT = "/clients/{id}/service-account-user";
   public static final String ID = "id";
 

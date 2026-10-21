@@ -6,7 +6,9 @@ import uz.heeypay.ecom.error.StatusThrowable;
 public enum KeycloakExceptionStatus implements StatusThrowable {
   /** Keycloak already has what we tried to create, e.g. a user with this username. */
   KEYCLOAK_CONFLICT,
-  /** Keycloak refused or didn't answer: any other error status, a timeout, no token. */
+  /** Keycloak refused the input: a 4xx other than 401 and 403, e.g. its password policy. */
+  KEYCLOAK_REJECTED,
+  /** Keycloak failed or didn't answer: a 5xx, a refused login, a timeout, no token. */
   KEYCLOAK_UNAVAILABLE;
 
   @Override

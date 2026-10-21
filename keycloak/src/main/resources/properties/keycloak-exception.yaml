@@ -10,6 +10,13 @@ exception:
         message-en: "{0} already exists."
         message-ru: "{0} уже существует."
         message-uz: "{0} allaqachon mavjud."
+      KEYCLOAK_REJECTED:
+        http-code: 400
+        title: keycloak-rejected
+        is-loggable: false
+        message-en: "The sign-in service refused the request."
+        message-ru: "Служба входа отклонила запрос."
+        message-uz: "Kirish xizmati soʻrovni rad etdi."
       KEYCLOAK_UNAVAILABLE:
         http-code: 503
         title: keycloak-unavailable

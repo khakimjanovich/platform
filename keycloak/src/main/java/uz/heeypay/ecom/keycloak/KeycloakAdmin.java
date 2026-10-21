@@ -18,8 +18,9 @@ import uz.heeypay.ecom.error.GeneralException;
 /**
  * Keycloak's admin API, for the few things our modules need. Every failure is a {@link
  * GeneralException}: {@code KEYCLOAK_CONFLICT} when what we create already exists, {@code
- * KEYCLOAK_UNAVAILABLE} for anything else (an error status, a timeout, no token), with Keycloak's
- * own message as a sub-error.
+ * KEYCLOAK_REJECTED} when Keycloak refuses the input (a 4xx, e.g. its password policy), {@code
+ * KEYCLOAK_UNAVAILABLE} for anything else (a 5xx, a refused login, a timeout, no token). Keycloak's
+ * own message is the sub-error; a failure without an answer names only its kind, never a URL.
  */
 @RequiredArgsConstructor
 public class KeycloakAdmin {
@@ -153,16 +154,25 @@ public class KeycloakAdmin {
         () -> secretOf(keycloak.post().uri(KeycloakConstants.CLIENT_SECRET, clientInternalId)));
   }
 
-  /** Any failure but a conflict is Keycloak being unavailable, with its own message kept. */
+  /** The input refused (a 4xx but our own login's), or Keycloak unavailable, its message kept. */
   private static <T> T call(Supplier<T> request) {
     try {
       return request.get();
     } catch (RestClientResponseException e) {
-      throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE)
-          .subError(String.valueOf(e.getStatusCode().value()), errorMessage(e));
+      var status = e.getStatusCode();
+      var refused =
+          status.is4xxClientError()
+              && !status.isSameCodeAs(HttpStatus.UNAUTHORIZED)
+              && !status.isSameCodeAs(HttpStatus.FORBIDDEN);
+      throw new GeneralException(
+              refused
+                  ? KeycloakExceptionStatus.KEYCLOAK_REJECTED
+                  : KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE)
+          .subError(String.valueOf(status.value()), errorMessage(e));
     } catch (RestClientException | OAuth2AuthorizationException e) {
+      // Its message names Keycloak's URL: the caller learns only what kind of failure it was.
       throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE)
-          .subError(e.getClass().getSimpleName(), e.getMessage());
+          .subError(e.getClass().getSimpleName(), null);
     }
   }
 

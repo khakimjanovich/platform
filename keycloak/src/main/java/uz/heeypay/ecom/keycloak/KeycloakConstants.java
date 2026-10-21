@@ -18,6 +18,7 @@ public class KeycloakConstants {
   public static final String ROLE = "/roles/{name}";
   public static final String CLIENTS = "/clients";
   public static final String CLIENT_SECRET = "/clients/{id}/client-secret";
+  public static final String INVALID_TOKEN = "error=\"invalid_token\"";
 
   /** The observability library's HttpClientLogging.NO_BODIES: the secret never reaches a log. */
   public static final String NO_LOGGED_BODIES = "ecom.http-client-logging.no-bodies";

@@ -23,6 +23,6 @@ public record KeycloakProperties(
     @NotBlank String url,
     @NotBlank String realm,
     @NotBlank String clientId,
-    String clientSecret,
+    @NotBlank String clientSecret,
     @DefaultValue(KeycloakConstants.DEFAULT_CONNECT_TIMEOUT) Duration connectTimeout,
     @DefaultValue(KeycloakConstants.DEFAULT_READ_TIMEOUT) Duration readTimeout) {}

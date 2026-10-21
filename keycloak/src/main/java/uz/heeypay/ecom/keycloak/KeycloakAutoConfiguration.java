@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.http.client.autoconfigure.HttpClientAutoConfiguration;
+import org.springframework.boot.http.client.autoconfigure.imperative.ImperativeHttpClientAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
@@ -25,9 +27,13 @@ import org.springframework.web.client.RestClient;
 /**
  * Adding the library and setting {@code ecom.keycloak.url} gives every module a {@link
  * KeycloakAdmin}. It logs in as its own client with client credentials and refreshes the token when
- * it expires. Every call, the token request included, gives up after the configured timeouts.
+ * it expires; a token Keycloak refuses (a restart, a rotated secret) is dropped and the call tried
+ * once more with a new one. Every call, the token request included, gives up after the configured
+ * timeouts, over Boot's HTTP client settings ({@code spring.http.clients.*}: SSL bundle,
+ * redirects).
  */
-@AutoConfiguration
+@AutoConfiguration(
+    after = {HttpClientAutoConfiguration.class, ImperativeHttpClientAutoConfiguration.class})
 @ConditionalOnProperty(prefix = KeycloakConstants.PROPERTIES_PREFIX, name = "url")
 @EnableConfigurationProperties(KeycloakProperties.class)
 public class KeycloakAutoConfiguration {
@@ -35,11 +41,16 @@ public class KeycloakAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean
   KeycloakAdmin keycloakAdmin(
-      KeycloakProperties keycloak, ObjectProvider<RestClient.Builder> builders) {
+      KeycloakProperties keycloak,
+      ObjectProvider<RestClient.Builder> builders,
+      ObjectProvider<ClientHttpRequestFactoryBuilder<?>> factories,
+      ObjectProvider<HttpClientSettings> settings) {
     var http =
-        ClientHttpRequestFactoryBuilder.detect()
+        factories
+            .getIfAvailable(ClientHttpRequestFactoryBuilder::detect)
             .build(
-                HttpClientSettings.defaults()
+                settings
+                    .getIfAvailable(HttpClientSettings::defaults)
                     .withTimeouts(keycloak.connectTimeout(), keycloak.readTimeout()));
     var registration =
         ClientRegistration.withRegistrationId(KeycloakConstants.REGISTRATION_ID)
@@ -49,17 +60,20 @@ public class KeycloakAutoConfiguration {
             .tokenUri(keycloak.url() + KeycloakConstants.TOKEN_PATH.formatted(keycloak.realm()))
             .build();
     var registrations = new InMemoryClientRegistrationRepository(registration);
-    var manager =
-        new AuthorizedClientServiceOAuth2AuthorizedClientManager(
-            registrations, new InMemoryOAuth2AuthorizedClientService(registrations));
+    var clients = new InMemoryOAuth2AuthorizedClientService(registrations);
+    var manager = new AuthorizedClientServiceOAuth2AuthorizedClientManager(registrations, clients);
     manager.setAuthorizedClientProvider(tokens(http));
     var login = new OAuth2ClientHttpRequestInterceptor(manager);
     login.setClientRegistrationIdResolver(request -> KeycloakConstants.REGISTRATION_ID);
+    login.setAuthorizationFailureHandler(
+        OAuth2ClientHttpRequestInterceptor.authorizationFailureHandler(clients));
     return new KeycloakAdmin(
         builders
             .getIfAvailable(RestClient::builder)
             .baseUrl(keycloak.url() + KeycloakConstants.ADMIN_PATH.formatted(keycloak.realm()))
             .requestFactory(http)
+            // Boot's logging first, then the retry, then the token: a retry logs in again.
+            .requestInterceptor(new RetryOnceOnUnauthorized())
             .requestInterceptor(login)
             .build());
   }

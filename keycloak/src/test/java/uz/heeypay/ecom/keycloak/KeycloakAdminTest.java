@@ -6,9 +6,12 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
+import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -18,7 +21,10 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uz.heeypay.ecom.error.GeneralException;
 
-/** No raw HTTP failure escapes: a conflict, or Keycloak unavailable with its own message. */
+/**
+ * No raw HTTP failure escapes: a conflict, refused input, or Keycloak unavailable with its own
+ * message; a refused token is replaced once.
+ */
 class KeycloakAdminTest {
 
   private final RestClient.Builder builder = RestClient.builder().baseUrl("http://keycloak");
@@ -72,7 +78,84 @@ class KeycloakAdminTest {
     assertThatThrownBy(() -> admin.rotateSecret("c-1"))
         .isInstanceOfSatisfying(
             GeneralException.class,
-            e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE));
+            e -> {
+              assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE);
+              assertThat(e.getSubErrors().toString()).as("no URL").doesNotContain("http");
+            });
+  }
+
+  @Test
+  void refusedInputIsRejectedWithKeycloaksMessage() {
+    server
+        .expect(requestTo("http://keycloak/users"))
+        .andRespond(
+            withStatus(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"errorMessage\":\"invalidPasswordMinLengthMessage\"}"));
+    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.uz", "pw", false))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e -> {
+              assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_REJECTED);
+              assertThat(e.getSubErrors())
+                  .containsExactly(
+                      new GeneralException.SubError("400", "invalidPasswordMinLengthMessage"));
+            });
+  }
+
+  /** Keycloak restarted: the stored token is refused once, so a new one is fetched and used. */
+  @Test
+  void aRefusedTokenIsDroppedAndTheCallTriedOnceMore() throws IOException {
+    var tokens = new AtomicInteger();
+    var users = new AtomicInteger();
+    var keycloak = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+    keycloak.createContext(
+        "/realms/ecom/protocol/openid-connect/token",
+        exchange -> {
+          var token =
+              "{\"access_token\":\"t"
+                  + tokens.incrementAndGet()
+                  + "\","
+                  + "\"token_type\":\"Bearer\",\"expires_in\":300}";
+          exchange.getResponseHeaders().add("Content-Type", "application/json");
+          exchange.sendResponseHeaders(200, token.length());
+          exchange.getResponseBody().write(token.getBytes());
+          exchange.close();
+        });
+    keycloak.createContext(
+        "/admin/realms/ecom/users",
+        exchange -> {
+          if (users.incrementAndGet() == 1) {
+            exchange.getResponseHeaders().add("WWW-Authenticate", "Bearer error=\"invalid_token\"");
+            exchange.sendResponseHeaders(401, -1);
+          } else {
+            exchange.getResponseHeaders().add("Location", "http://keycloak/users/u-1");
+            exchange.sendResponseHeaders(201, -1);
+          }
+          exchange.close();
+        });
+    keycloak.start();
+    try {
+      new ApplicationContextRunner()
+          .withConfiguration(AutoConfigurations.of(KeycloakAutoConfiguration.class))
+          .withPropertyValues(
+              "ecom.keycloak.url=http://localhost:" + keycloak.getAddress().getPort(),
+              "ecom.keycloak.realm=ecom",
+              "ecom.keycloak.client-id=backend",
+              "ecom.keycloak.client-secret=local-only")
+          .run(
+              context -> {
+                var id =
+                    context
+                        .getBean(KeycloakAdmin.class)
+                        .createUser("aziz", "aziz@example.uz", "pw", false);
+                assertThat(id).isEqualTo("u-1");
+                assertThat(tokens).hasValue(2);
+                assertThat(users).hasValue(2);
+              });
+    } finally {
+      keycloak.stop(0);
+    }
   }
 
   /** A Keycloak that accepts the connection and never answers: the read timeout ends the wait. */

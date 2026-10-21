@@ -1,20 +1,30 @@
 // Integration tests live in src/integrationTest (*IT), run against real infrastructure, and are part of `check`.
+// A JVM test suite: Gradle's own source set, configurations and task for a second kind of test.
 plugins {
     id 'java'
+    id 'jvm-test-suite'
 }
 
-def integrationTest = sourceSets.create('integrationTest') {
-    compileClasspath += sourceSets.main.output
-    runtimeClasspath += sourceSets.main.output
+testing {
+    suites {
+        integrationTest(JvmTestSuite) {
+            dependencies {
+                implementation project()
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        description = 'Runs integration tests against real infrastructure (Testcontainers).'
+                        shouldRunAfter tasks.named('test')
+                    }
+                }
+            }
+        }
+    }
 }
+
+// An integration test sees everything the code and its unit tests see.
 configurations.integrationTestImplementation.extendsFrom(configurations.implementation, configurations.testImplementation)
 configurations.integrationTestRuntimeOnly.extendsFrom(configurations.runtimeOnly, configurations.testRuntimeOnly)
 
-def integrationTestTask = tasks.register('integrationTest', Test) {
-    description = 'Runs integration tests against real infrastructure (Testcontainers).'
-    group = 'verification'
-    testClassesDirs = integrationTest.output.classesDirs
-    classpath = integrationTest.runtimeClasspath
-    shouldRunAfter tasks.named('test')
-}
-tasks.named('check') { dependsOn integrationTestTask }
+tasks.named('check') { dependsOn testing.suites.integrationTest }

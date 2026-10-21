@@ -6,10 +6,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
@@ -29,7 +35,7 @@ class KeycloakAdminIT {
 
   @Container
   static final GenericContainer<?> KEYCLOAK =
-      new GenericContainer<>("quay.io/keycloak/keycloak:26.4.0")
+      new GenericContainer<>(ResourceBundle.getBundle("images").getString("keycloak"))
           .withCommand("start-dev", "--import-realm")
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
@@ -40,16 +46,32 @@ class KeycloakAdminIT {
           .waitingFor(
               Wait.forHttp("/realms/test").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
+  static ConfigurableApplicationContext context;
   static KeycloakAdmin admin;
 
+  /** The library as an app gets it: auto-configured from ecom.keycloak.* alone. */
   @BeforeAll
   static void client() {
-    admin =
-        new KeycloakAutoConfiguration()
-            .keycloakAdmin(
-                new KeycloakProperties(url(), "test", "backend", "test-secret"),
-                new StaticListableBeanFactory().getBeanProvider(RestClient.Builder.class));
+    context =
+        new SpringApplicationBuilder(App.class)
+            .web(WebApplicationType.NONE)
+            .properties(
+                "ecom.keycloak.url=" + url(),
+                "ecom.keycloak.realm=test",
+                "ecom.keycloak.client-id=backend",
+                "ecom.keycloak.client-secret=test-secret")
+            .run();
+    admin = context.getBean(KeycloakAdmin.class);
   }
+
+  @AfterAll
+  static void close() {
+    context.close();
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @ImportAutoConfiguration(KeycloakAutoConfiguration.class)
+  static class App {}
 
   @Test
   void aUserGetsAVerifiedEmailAndARoleAndCanLogIn() {

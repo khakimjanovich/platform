@@ -12,4 +12,5 @@ dependencies {
 
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
+    integrationTestImplementation libs.spring.boot.testcontainers
 }

@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -18,7 +21,7 @@ class VaultSecretsIT {
 
   @Container
   static final GenericContainer<?> VAULT =
-      new GenericContainer<>("hashicorp/vault:1.20.4")
+      new GenericContainer<>(ResourceBundle.getBundle("images").getString("vault"))
           .withCommand("server", "-dev")
           .withEnv("VAULT_DEV_ROOT_TOKEN_ID", "test")
           .withEnv("VAULT_DEV_LISTEN_ADDRESS", "0.0.0.0:8200")
@@ -51,11 +54,14 @@ class VaultSecretsIT {
         .isInstanceOf(VaultUnavailableException.class);
   }
 
+  /** The library as an app gets it: auto-configured from ecom.vault.* alone. */
   private static VaultSecrets secrets(String token) {
-    return new VaultAutoConfiguration()
-        .vaultSecrets(
-            new VaultProperties(url(), token, "secret"),
-            new StaticListableBeanFactory().getBeanProvider(RestClient.Builder.class));
+    var secrets = new AtomicReference<VaultSecrets>();
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(VaultAutoConfiguration.class))
+        .withPropertyValues("ecom.vault.url=" + url(), "ecom.vault.token=" + token)
+        .run(context -> secrets.set(context.getBean(VaultSecrets.class)));
+    return secrets.get();
   }
 
   private static String url() {

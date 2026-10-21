@@ -7,6 +7,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +42,7 @@ class FileStoreIT {
 
   @Container
   static final GenericContainer<?> SEAWEEDFS =
-      new GenericContainer<>("chrislusf/seaweedfs:3.97")
+      new GenericContainer<>(ResourceBundle.getBundle("images").getString("seaweedfs"))
           .withCommand(
               "server",
               "-s3",

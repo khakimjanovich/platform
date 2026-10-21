@@ -54,6 +54,9 @@ testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgr
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-core = { module = "org.testcontainers:testcontainers" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
+testcontainers-vault = { module = "org.testcontainers:testcontainers-vault" }
+testcontainers-grafana = { module = "org.testcontainers:testcontainers-grafana" }
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 modulith-core = { module = "org.springframework.modulith:spring-modulith-core" }
 springdoc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 spring-web = { module = "org.springframework:spring-web" }

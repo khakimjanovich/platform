@@ -1,6 +1,6 @@
 // Logs, traces and metrics the same way in every service: logs with their trace on the console and
-// over OTLP, traces carried on every call, and metrics over OTLP. Adding the jar is enough: its
-// observability-defaults.yaml loads itself, below the service's own configuration.
+// over OTLP, traces carried on every call, and metrics over OTLP. Adding the jar is enough: the
+// config library loads its observability-defaults.yaml, below the service's own configuration.
 plugins {
     id 'ecom.library'
     id 'ecom.integration-test'
@@ -8,6 +8,7 @@ plugins {
 
 dependencies {
     api platform(libs.spring.boot.bom)
+    runtimeOnly project(':config') // loads the files in META-INF/spring/…LibraryDefaults.imports
     api libs.starter.opentelemetry
     api libs.opentelemetry.logback.appender
     api libs.starter.restclient

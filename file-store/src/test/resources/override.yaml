@@ -1,6 +1,0 @@
-# An app's own value for a library default.
-exception:
-  starter:
-    error:
-      FILE_STORE_FILE_EMPTY:
-        http-code: 422

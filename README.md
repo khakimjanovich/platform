@@ -7,6 +7,7 @@ adapter include it (`includeBuild`), so Gradle builds these projects in place of
 | Library | What it gives |
 |---|---|
 | [error](error/README.md) | one error format: RFC 9457 problem details with a stable code, in three languages |
+| [config](config/README.md) | every library's own defaults and error definitions, loaded below the app's configuration |
 | [masking](masking/README.md) | what must never reach a log, hidden the same way everywhere |
 | [observability](observability/README.md) | logs, traces and metrics, masked, with a request id on every response |
 | [security](security/README.md) | Keycloak tokens, route rules, public routes, service-to-service tokens |

@@ -1,5 +1,5 @@
 # Errors the keycloak library returns: HTTP status, title and message in English, Russian and Uzbek.
-# Loaded by the library itself (KeycloakDefaultsPostProcessor); {0} is what already exists.
+# Loaded by the library itself (its LibraryDefaults.imports); {0} is what already exists.
 exception:
   starter:
     error:

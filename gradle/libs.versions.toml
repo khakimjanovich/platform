@@ -71,6 +71,7 @@ springdoc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", v
 spring-web = { module = "org.springframework:spring-web" }
 spring-webmvc = { module = "org.springframework:spring-webmvc" }
 spring-boot-http-client = { module = "org.springframework.boot:spring-boot-http-client" }
+spring-boot-core = { module = "org.springframework.boot:spring-boot" }
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
 spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
 jakarta-validation = { module = "jakarta.validation:jakarta.validation-api" }
@@ -93,6 +94,7 @@ ecom-crypto = { module = "uz.heeypay.ecom:crypto", version.ref = "ecom-platform"
 ecom-vault = { module = "uz.heeypay.ecom:vault", version.ref = "ecom-platform" }
 ecom-observability = { module = "uz.heeypay.ecom:observability", version.ref = "ecom-platform" }
 ecom-masking = { module = "uz.heeypay.ecom:masking", version.ref = "ecom-platform" }
+ecom-config = { module = "uz.heeypay.ecom:config", version.ref = "ecom-platform" }
 ecom-commission-api = { module = "uz.heeypay.ecom:commission-api", version.ref = "ecom-platform" }
 ecom-epos-api = { module = "uz.heeypay.ecom:epos-api", version.ref = "ecom-platform" }
 ecom-card-api = { module = "uz.heeypay.ecom:card-api", version.ref = "ecom-platform" }

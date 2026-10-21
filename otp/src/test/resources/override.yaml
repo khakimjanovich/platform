@@ -1,6 +1,0 @@
-# An app's own value for a library default.
-exception:
-  starter:
-    error:
-      OTP_SEND_LIMIT:
-        http-code: 503

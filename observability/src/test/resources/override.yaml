@@ -1,6 +1,0 @@
-# An app's own value for a library default.
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info

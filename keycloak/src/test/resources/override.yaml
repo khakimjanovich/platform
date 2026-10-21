@@ -1,6 +1,0 @@
-# An app's own value for a library default.
-exception:
-  starter:
-    error:
-      KEYCLOAK_UNAVAILABLE:
-        http-code: 502

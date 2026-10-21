@@ -22,6 +22,7 @@ import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
@@ -164,6 +165,8 @@ class ModulePersistenceIT {
   @Qualifier("aEntityManagerFactory")
   EntityManagerFactory aEntities;
 
+  @Autowired Environment environment;
+
   /** Only migrations, for module "d", to see them switched off. */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties
@@ -209,6 +212,11 @@ class ModulePersistenceIT {
             () -> new JdbcTemplate(a).queryForObject("select count(*) from b.note", Integer.class))
         .isInstanceOf(DataAccessException.class)
         .hasStackTraceContaining("permission denied for schema b");
+  }
+
+  @Test
+  void theLibraryDefaultsLoadWithoutAnImport() {
+    assertThat(environment.getProperty("spring.jpa.open-in-view")).isEqualTo("false");
   }
 
   @Test

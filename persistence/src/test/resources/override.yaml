@@ -1,0 +1,4 @@
+# An app's own value for a library default.
+spring:
+  jpa:
+    open-in-view: true

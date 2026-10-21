@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.zaxxer.hikari.HikariDataSource;
+import jakarta.persistence.EntityManagerFactory;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ResourceBundle;
 import javax.sql.DataSource;
 import liquibase.integration.spring.SpringLiquibase;
@@ -46,7 +49,7 @@ class ModulePersistenceIT {
 
   @DynamicPropertySource
   static void databases(DynamicPropertyRegistry registry) {
-    for (var module : new String[] {"a", "b", "c"}) {
+    for (var module : new String[] {"a", "b", "c", "d"}) {
       registry.add("ecom.db." + module + ".url", POSTGRES::getJdbcUrl);
       registry.add("ecom.db." + module + ".username", () -> module + "_user");
       registry.add("ecom.db." + module + ".password", () -> "test");
@@ -75,12 +78,17 @@ class ModulePersistenceIT {
       return ModulePersistence.liquibase("a", "db/a/changelog.yaml", dataSource);
     }
 
+    /** The pool as module a's entity manager sees it, counting the batches it sends. */
+    @Bean
+    CountingDataSource aCounting(@Qualifier("aDataSource") DataSource dataSource) {
+      return new CountingDataSource(dataSource);
+    }
+
     @Bean
     LocalContainerEntityManagerFactoryBean aEntityManagerFactory(
-        @Qualifier("aDataSource") DataSource dataSource,
-        @Qualifier("aLiquibase") SpringLiquibase migrationsFirst) {
+        CountingDataSource aCounting, @Qualifier("aLiquibase") SpringLiquibase migrationsFirst) {
       return ModulePersistence.entityManagerFactory(
-          "a", uz.heeypay.ecom.persistence.a.Note.class, dataSource);
+          "a", uz.heeypay.ecom.persistence.a.Note.class, aCounting.dataSource);
     }
   }
 
@@ -150,6 +158,34 @@ class ModulePersistenceIT {
   @Qualifier("bDataSource")
   HikariDataSource b;
 
+  @Autowired CountingDataSource aCounting;
+
+  @Autowired
+  @Qualifier("aEntityManagerFactory")
+  EntityManagerFactory aEntities;
+
+  /** Only migrations, for module "d", to see them switched off. */
+  @Configuration(proxyBeanMethods = false)
+  @EnableConfigurationProperties
+  @ImportAutoConfiguration(PersistenceAutoConfiguration.class)
+  static class ModuleD {
+    @Bean
+    @ConfigurationProperties("ecom.db.d")
+    DataSourceProperties dDataSourceProperties() {
+      return new DataSourceProperties();
+    }
+
+    @Bean
+    HikariDataSource dDataSource(DataSourceProperties dDataSourceProperties) {
+      return ModulePersistence.dataSource("d", dDataSourceProperties);
+    }
+
+    @Bean
+    SpringLiquibase dLiquibase(@Qualifier("dDataSource") DataSource dataSource) {
+      return ModulePersistence.liquibase("d", "db/d/changelog.yaml", dataSource);
+    }
+  }
+
   @Test
   void eachModuleMigratesItsOwnSchemaAndKeepsItsBookkeepingThere() {
     var jdbc = new JdbcTemplate(a);
@@ -180,6 +216,59 @@ class ModulePersistenceIT {
     assertThat(a.getMaximumPoolSize()).isEqualTo(3);
     assertThat(b.getMaximumPoolSize()).as("Hikari's own default").isEqualTo(10);
     assertThat(a.getPoolName()).isEqualTo("a");
+  }
+
+  @Test
+  void fiftyInsertsGoInThreeBatches() {
+    var entities = aEntities.createEntityManager();
+    entities.getTransaction().begin();
+    for (long i = 1; i <= 50; i++) {
+      var note = new uz.heeypay.ecom.persistence.a.Note();
+      note.id = 1000 + i;
+      note.text = "note " + i;
+      entities.persist(note);
+    }
+    var before = aCounting.batches.get();
+    entities.getTransaction().commit();
+    entities.close();
+    assertThat(aCounting.batches.get() - before).as("20 + 20 + 10").isEqualTo(3);
+  }
+
+  @Test
+  void aTimeIsStoredAndReadAsUtc() {
+    var written = OffsetDateTime.of(2026, 10, 21, 15, 30, 0, 0, ZoneOffset.ofHours(5));
+    var entities = aEntities.createEntityManager();
+    entities.getTransaction().begin();
+    var note = new uz.heeypay.ecom.persistence.a.Note();
+    note.id = 1L;
+    note.writtenAt = written;
+    entities.persist(note);
+    entities.getTransaction().commit();
+    entities.clear();
+    var read = entities.find(uz.heeypay.ecom.persistence.a.Note.class, 1L).writtenAt;
+    entities.close();
+    assertThat(read.getOffset()).isEqualTo(ZoneOffset.UTC);
+    assertThat(read.toInstant()).isEqualTo(written.toInstant());
+  }
+
+  @Test
+  void migrationsCanBeSwitchedOff() {
+    try (var context =
+        new SpringApplicationBuilder(ModuleD.class)
+            .web(WebApplicationType.NONE)
+            .properties(
+                "ecom.db.d.url=" + POSTGRES.getJdbcUrl(),
+                "ecom.db.d.username=d_user",
+                "ecom.db.d.password=test",
+                "ecom.persistence.liquibase.enabled=false")
+            .run()) {
+      var tables =
+          new JdbcTemplate(context.getBean("dDataSource", DataSource.class))
+              .queryForObject(
+                  "select count(*) from information_schema.tables where table_schema = 'd'",
+                  Integer.class);
+      assertThat(tables).isZero();
+    }
   }
 
   @Test

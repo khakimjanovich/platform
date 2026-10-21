@@ -60,7 +60,9 @@ public class ModulePersistence {
 
   /**
    * Hibernate for the module's entities only. It validates the tables against the entities and
-   * never changes them: Liquibase owns the schema.
+   * never changes them: Liquibase owns the schema. Times are written as UTC, and inserts and
+   * updates go in ordered batches; {@code ecom.persistence.jpa.properties} adds to or overrides
+   * these for every module.
    */
   public static LocalContainerEntityManagerFactoryBean entityManagerFactory(
       String schema, Class<?> anyEntity, DataSource dataSource) {
@@ -74,7 +76,11 @@ public class ModulePersistence {
             AvailableSettings.HBM2DDL_AUTO, Action.VALIDATE.getExternalHbm2ddlName(),
             AvailableSettings.DEFAULT_SCHEMA, schema,
             AvailableSettings.PHYSICAL_NAMING_STRATEGY,
-                PhysicalNamingStrategySnakeCaseImpl.class.getName()));
+                PhysicalNamingStrategySnakeCaseImpl.class.getName(),
+            AvailableSettings.JDBC_TIME_ZONE, PersistenceConstants.UTC,
+            AvailableSettings.STATEMENT_BATCH_SIZE, PersistenceConstants.BATCH_SIZE,
+            AvailableSettings.ORDER_INSERTS, Boolean.TRUE.toString(),
+            AvailableSettings.ORDER_UPDATES, Boolean.TRUE.toString()));
     return factory;
   }
 

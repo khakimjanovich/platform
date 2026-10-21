@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /** One module's beans, built the same way for every module. */
 class ModulePersistenceTest {
@@ -64,5 +66,45 @@ class ModulePersistenceTest {
           .containsEntry("hibernate.hbm2ddl.auto", "validate")
           .containsEntry("hibernate.default_schema", "card");
     }
+  }
+
+  @Test
+  void everyEntityManagerGetsUtcAndOrderedBatches() {
+    try (var pool = ModulePersistence.dataSource("card", database())) {
+      var factory =
+          ModulePersistence.entityManagerFactory("card", ModulePersistenceTest.class, pool);
+      assertThat(factory.getJpaPropertyMap())
+          .containsEntry("hibernate.jdbc.time_zone", "UTC")
+          .containsEntry("hibernate.jdbc.batch_size", "20")
+          .containsEntry("hibernate.order_inserts", "true")
+          .containsEntry("hibernate.order_updates", "true");
+    }
+  }
+
+  @Test
+  void theAppsJpaPropertiesWinAndMigrationsCanBeSwitchedOff() {
+    var pool = ModulePersistence.dataSource("card", database());
+    new ApplicationContextRunner()
+        .withConfiguration(AutoConfigurations.of(PersistenceAutoConfiguration.class))
+        .withPropertyValues(
+            "ecom.persistence.jpa.properties[hibernate.jdbc.batch_size]=50",
+            "ecom.persistence.jpa.properties[hibernate.generate_statistics]=true",
+            "ecom.persistence.liquibase.enabled=false")
+        .run(
+            context -> {
+              var postProcessor =
+                  context.getBean("modulePersistenceSettings", BeanPostProcessor.class);
+              var factory =
+                  ModulePersistence.entityManagerFactory("card", ModulePersistenceTest.class, pool);
+              postProcessor.postProcessBeforeInitialization(factory, "cardEntityManagerFactory");
+              assertThat(factory.getJpaPropertyMap())
+                  .containsEntry("hibernate.jdbc.batch_size", "50")
+                  .containsEntry("hibernate.generate_statistics", "true")
+                  .containsEntry("hibernate.jdbc.time_zone", "UTC");
+              var liquibase = ModulePersistence.liquibase("card", "db/card.yaml", pool);
+              postProcessor.postProcessBeforeInitialization(liquibase, "cardLiquibase");
+              assertThat(ReflectionTestUtils.getField(liquibase, "shouldRun")).isEqualTo(false);
+            });
+    pool.close();
   }
 }

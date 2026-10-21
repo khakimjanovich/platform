@@ -1,0 +1,7 @@
+# What every app with module persistence shares (loaded by PersistenceDefaultsPostProcessor, below
+# the app's own configuration).
+spring:
+  jpa:
+    # A request never holds a database connection while its view renders: each module's
+    # transactions open and close their own.
+    open-in-view: false

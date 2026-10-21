@@ -148,6 +148,26 @@ paths:
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+    post:
+      tags: [EposAdmin]
+      operationId: registerEposAtUzcard
+      summary: Registers a UZCARD e-POS terminal we already have in SV-Gate, for one SV-Gate never got
+      description: |
+        For a live or suspended terminal saved before UZCARD terminals were registered in SV-Gate: terminal.add,
+        then terminal.check, as on register. Nothing changes here but the audit (UZCARD_ADDED). A repeat is safe:
+        a terminal SV-Gate already has (-249) is accepted once terminal.check confirms it. A revoked terminal is
+        refused (EPOS_REVOKED), a HUMO one too (EPOS_NOT_UZCARD); EPOS_UZCARD_REJECTED carries Uzcard's code in
+        subErrors, EPOS_UZCARD_UNAVAILABLE means Uzcard didn't answer.
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
+      responses:
+        "200": { $ref: "#/components/responses/Epos" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}/suspend:
     post:
@@ -307,7 +327,7 @@ components:
       type: object
       required: [action, actor, occurredAt]
       properties:
-        action: { type: string, enum: [REGISTERED, SUSPENDED, RESUMED, REVOKED] }
+        action: { type: string, enum: [REGISTERED, UZCARD_ADDED, SUSPENDED, RESUMED, REVOKED] }
         actor: { type: string }
         reason: { type: string }
         occurredAt: { type: string, format: date-time }

@@ -2,10 +2,16 @@
 // transactions, connecting as its own database user to its own schema.
 plugins {
     id 'ecom.library'
+    id 'ecom.integration-test'
 }
 
 dependencies {
     api platform(libs.spring.boot.bom)
     api libs.starter.data.jpa
     api libs.liquibase.core
+
+    testRuntimeOnly libs.postgresql
+
+    integrationTestImplementation libs.testcontainers.postgresql
+    integrationTestImplementation libs.testcontainers.junit
 }

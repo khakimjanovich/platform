@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-note
+      author: test
+      changes:
+        - createTable:
+            tableName: note
+            columns:
+              - column: { name: id, type: bigint, constraints: { primaryKey: true } }
+              - column: { name: text, type: varchar(200) }

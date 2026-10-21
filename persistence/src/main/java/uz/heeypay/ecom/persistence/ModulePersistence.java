@@ -9,6 +9,7 @@ import lombok.experimental.UtilityClass;
 import org.hibernate.boot.model.naming.PhysicalNamingStrategySnakeCaseImpl;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.tool.schema.Action;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
@@ -20,15 +21,31 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 @UtilityClass
 public class ModulePersistence {
 
-  /** A pool that connects as the module's own user, with the module's schema as default. */
-  public static HikariDataSource dataSource(String schema, ModuleDatabaseProperties db) {
-    var pool = new HikariDataSource();
+  /**
+   * A pool that connects as the module's own user (Boot's {@link DataSourceProperties}, bound to
+   * the module's prefix, e.g. {@code ecom.db.card}), with the module's schema as default. The
+   * module's bean method binds {@code <prefix>.hikari.*} onto it, so every Hikari setting (pool
+   * size, timeouts, keepalive) is set per environment; unset ones are Hikari's own defaults.
+   */
+  public static HikariDataSource dataSource(String schema, DataSourceProperties db) {
+    var pool = db.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     pool.setPoolName(schema);
-    pool.setJdbcUrl(db.getUrl());
-    pool.setUsername(db.getUsername());
-    pool.setPassword(db.getPassword());
     pool.setSchema(schema);
     return pool;
+  }
+
+  /**
+   * Hikari quietly drops a keepalive that isn't shorter than the connections' lifetime; a pool set
+   * up that way is a mistake, so it stops startup instead.
+   */
+  public static void checkKeepalive(HikariDataSource pool) {
+    var keepalive = pool.getKeepaliveTime();
+    var lifetime = pool.getMaxLifetime();
+    if (keepalive > 0 && lifetime > 0 && keepalive >= lifetime) {
+      throw new IllegalStateException(
+          PersistenceConstants.KEEPALIVE_TOO_LONG.formatted(
+              pool.getPoolName(), keepalive, lifetime));
+    }
   }
 
   /** The module's migrations; Liquibase keeps its own bookkeeping tables inside the schema too. */

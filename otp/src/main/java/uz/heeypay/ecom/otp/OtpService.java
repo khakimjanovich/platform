@@ -1,14 +1,19 @@
 package uz.heeypay.ecom.otp;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import uz.heeypay.ecom.error.GeneralException;
@@ -18,25 +23,36 @@ import uz.heeypay.ecom.error.GeneralException;
  * secret) of each code, so a copy of Redis alone can't be brute-forced; the subject in each key is
  * hashed the same way. Issuing and checking each run as one Lua script, so limits hold and a code
  * works once even under concurrent requests.
+ *
+ * <p>Wrong codes count for the whole send window, across codes, so a lockout holds until the window
+ * ends; a new code waits {@code resend-after} after the last one. Every refusal that lifts by
+ * itself says when ({@code Retry-After}). Without Redis nothing is issued or accepted: {@code
+ * OTP_UNAVAILABLE}.
  */
 public class OtpService {
 
   private static final SecureRandom RANDOM = new SecureRandom();
-  private static final RedisScript<Long> ISSUE =
-      RedisScript.of(new ClassPathResource(OtpConstants.ISSUE_SCRIPT), Long.class);
-  private static final RedisScript<Long> VERIFY =
-      RedisScript.of(new ClassPathResource(OtpConstants.VERIFY_SCRIPT), Long.class);
+
+  @SuppressWarnings("rawtypes")
+  private static final RedisScript<List> ISSUE =
+      RedisScript.of(new ClassPathResource(OtpConstants.ISSUE_SCRIPT), List.class);
+
+  @SuppressWarnings("rawtypes")
+  private static final RedisScript<List> VERIFY =
+      RedisScript.of(new ClassPathResource(OtpConstants.VERIFY_SCRIPT), List.class);
 
   private final StringRedisTemplate redis;
   private final OtpProperties properties;
+  private final MeterRegistry meters;
   private final SecretKeySpec key;
 
-  public OtpService(StringRedisTemplate redis, OtpProperties properties) {
+  public OtpService(StringRedisTemplate redis, OtpProperties properties, MeterRegistry meters) {
     if (properties.secret() == null || properties.secret().isBlank()) {
       throw new IllegalStateException(OtpConstants.SECRET_MISSING);
     }
     this.redis = redis;
     this.properties = properties;
+    this.meters = meters;
     this.key =
         new SecretKeySpec(
             properties.secret().getBytes(StandardCharsets.UTF_8), OtpConstants.HASH_ALGORITHM);
@@ -47,21 +63,29 @@ public class OtpService {
    */
   public String issue(String flow, String subject) {
     var code = randomDigits(properties.length());
-    var sends =
-        redis.execute(
-            ISSUE,
-            keys(
-                flow,
-                subject,
-                OtpConstants.KEY_SENDS,
-                OtpConstants.KEY_CODE,
-                OtpConstants.KEY_ATTEMPTS),
-            String.valueOf(properties.maxSends()),
-            String.valueOf(properties.sendWindow().toMillis()),
-            hash(code),
-            String.valueOf(properties.ttl().toMillis()));
-    if (sends == null || sends < 0) {
-      throw new GeneralException(OtpExceptionStatus.OTP_SEND_LIMIT);
+    var result =
+        run(
+            () ->
+                redis.execute(
+                    ISSUE,
+                    keys(
+                        flow,
+                        subject,
+                        OtpConstants.KEY_SENDS,
+                        OtpConstants.KEY_CODE,
+                        OtpConstants.KEY_ATTEMPTS,
+                        OtpConstants.KEY_LAST),
+                    String.valueOf(properties.maxSends()),
+                    String.valueOf(properties.sendWindow().toMillis()),
+                    hash(code),
+                    String.valueOf(properties.ttl().toMillis()),
+                    String.valueOf(properties.maxAttempts()),
+                    String.valueOf(properties.resendAfter().toMillis())));
+    switch (status(result)) {
+      case -1 -> throw refused(OtpExceptionStatus.OTP_SEND_LIMIT, result);
+      case -2 -> throw refused(OtpExceptionStatus.OTP_RESEND_TOO_EARLY, result);
+      case -3 -> throw refused(OtpExceptionStatus.OTP_ATTEMPTS_EXCEEDED, result);
+      default -> meters.counter(OtpConstants.METER_ISSUED, OtpConstants.TAG_FLOW, flow).increment();
     }
     return code;
   }
@@ -69,25 +93,62 @@ public class OtpService {
   /** Returns normally if the code is right; the code can then never be used again. */
   public void verify(String flow, String subject, String code) {
     var result =
-        redis.execute(
-            VERIFY,
-            keys(flow, subject, OtpConstants.KEY_CODE, OtpConstants.KEY_ATTEMPTS),
-            String.valueOf(properties.maxAttempts()),
-            String.valueOf(properties.ttl().toMillis()),
-            hash(code));
-    switch (result == null ? 0 : result.intValue()) {
-      case 1 -> {}
-      case -1 -> throw new GeneralException(OtpExceptionStatus.OTP_INVALID);
-      case -2 -> throw new GeneralException(OtpExceptionStatus.OTP_ATTEMPTS_EXCEEDED);
-      default -> throw new GeneralException(OtpExceptionStatus.OTP_EXPIRED);
+        run(
+            () ->
+                redis.execute(
+                    VERIFY,
+                    keys(flow, subject, OtpConstants.KEY_CODE, OtpConstants.KEY_ATTEMPTS),
+                    String.valueOf(properties.maxAttempts()),
+                    String.valueOf(properties.sendWindow().toMillis()),
+                    hash(code)));
+    switch (status(result)) {
+      case 1 ->
+          meters.counter(OtpConstants.METER_VERIFIED, OtpConstants.TAG_FLOW, flow).increment();
+      case -1 -> throw rejected(flow, new GeneralException(OtpExceptionStatus.OTP_INVALID));
+      case -2 -> throw rejected(flow, refused(OtpExceptionStatus.OTP_ATTEMPTS_EXCEEDED, result));
+      default -> throw rejected(flow, new GeneralException(OtpExceptionStatus.OTP_EXPIRED));
+    }
+  }
+
+  private GeneralException rejected(String flow, GeneralException e) {
+    meters
+        .counter(
+            OtpConstants.METER_REJECTED,
+            OtpConstants.TAG_FLOW,
+            flow,
+            OtpConstants.TAG_REASON,
+            e.getStatus().getType())
+        .increment();
+    return e;
+  }
+
+  /** A refusal that lifts by itself: Retry-After is the Redis key's remaining lifetime. */
+  private static GeneralException refused(OtpExceptionStatus status, List<?> result) {
+    var wait = Math.max(1, ((Number) result.get(1)).longValue());
+    return new GeneralException(status).retryAfter(Duration.ofMillis(wait));
+  }
+
+  private static int status(List<?> result) {
+    return result == null || result.isEmpty() ? 0 : ((Number) result.getFirst()).intValue();
+  }
+
+  /** Fail closed: without Redis, no code is issued or accepted. */
+  private static List<?> run(Supplier<List<?>> script) {
+    try {
+      return script.get();
+    } catch (DataAccessException e) {
+      throw new GeneralException(OtpExceptionStatus.OTP_UNAVAILABLE);
     }
   }
 
   /** The Redis key for each part; the subject (often an email) is stored only as a keyed hash. */
   private List<String> keys(String flow, String subject, String... parts) {
     var hashedSubject = hash(subject);
-    return java.util.Arrays.stream(parts)
-        .map(part -> OtpConstants.KEY_FORMAT.formatted(flow, hashedSubject, part))
+    return Arrays.stream(parts)
+        .map(
+            part ->
+                OtpConstants.KEY_FORMAT.formatted(
+                    properties.keyPrefix(), flow, hashedSubject, part))
         .toList();
   }
 

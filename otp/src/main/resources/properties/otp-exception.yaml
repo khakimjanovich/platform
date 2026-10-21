@@ -31,3 +31,17 @@ exception:
         message-en: "Too many codes sent. Try again later."
         message-ru: "Отправлено слишком много кодов. Попробуйте позже."
         message-uz: "Juda koʻp kod yuborildi. Keyinroq urinib koʻring."
+      OTP_RESEND_TOO_EARLY:
+        http-code: 429
+        title: otp-resend-too-early
+        is-loggable: false
+        message-en: "A code was just sent. Wait a moment before asking for another."
+        message-ru: "Код только что отправлен. Подождите немного, прежде чем запросить новый."
+        message-uz: "Kod hozirgina yuborildi. Yangisini soʻrashdan oldin biroz kuting."
+      OTP_UNAVAILABLE:
+        http-code: 503
+        title: otp-unavailable
+        is-loggable: true
+        message-en: "Codes can't be sent or checked right now. Please try again later."
+        message-ru: "Сейчас нельзя отправить или проверить код. Попробуйте позже."
+        message-uz: "Hozir kodni yuborib yoki tekshirib boʻlmaydi. Keyinroq urinib koʻring."

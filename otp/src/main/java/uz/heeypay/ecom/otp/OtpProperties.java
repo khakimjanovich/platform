@@ -2,6 +2,7 @@ package uz.heeypay.ecom.otp;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import java.time.Duration;
 import org.hibernate.validator.constraints.time.DurationMin;
@@ -17,7 +18,10 @@ import org.springframework.validation.annotation.Validated;
  * @param ttl how long a code stays valid
  * @param maxAttempts wrong codes allowed before the code is locked
  * @param maxSends codes sent to one subject in one send window
- * @param sendWindow the window {@code max-sends} counts in
+ * @param sendWindow the window {@code max-sends} and wrong codes count in; a lockout lasts until it
+ *     ends
+ * @param resendAfter how long after a code the next one may be sent; 0 for no wait
+ * @param keyPrefix the first part of every Redis key the library writes
  */
 @Validated
 @ConfigurationProperties(OtpConstants.PROPERTIES_PREFIX)
@@ -27,4 +31,6 @@ public record OtpProperties(
     @DefaultValue(OtpConstants.DEFAULT_TTL) @DurationMin(nanos = 1) Duration ttl,
     @DefaultValue(OtpConstants.DEFAULT_MAX_ATTEMPTS) @Positive int maxAttempts,
     @DefaultValue(OtpConstants.DEFAULT_MAX_SENDS) @Positive int maxSends,
-    @DefaultValue(OtpConstants.DEFAULT_SEND_WINDOW) @DurationMin(nanos = 1) Duration sendWindow) {}
+    @DefaultValue(OtpConstants.DEFAULT_SEND_WINDOW) @DurationMin(nanos = 1) Duration sendWindow,
+    @DefaultValue(OtpConstants.DEFAULT_RESEND_AFTER) @DurationMin(nanos = 0) Duration resendAfter,
+    @DefaultValue(OtpConstants.DEFAULT_KEY_PREFIX) @NotBlank String keyPrefix) {}

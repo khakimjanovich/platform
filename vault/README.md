@@ -40,6 +40,11 @@ Where Vault is and how to sign in are Spring Cloud Vault's `spring.cloud.vault.*
 
 `VaultUnavailableException`: callers fail closed (the payment module refuses the request).
 
+## Health
+
+With the actuator, `vaultToken`: UP while Vault accepts the app's token (a lookup of itself). Spring
+Cloud Vault's own `vault` checks that Vault is up and unsealed.
+
 ## Beans you can replace
 
 `VaultSecrets`, `SigningKeys`.

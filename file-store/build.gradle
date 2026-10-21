@@ -14,7 +14,10 @@ dependencies {
     implementation libs.spring.boot.autoconfigure
     implementation libs.starter.validation // the properties are checked at startup
     implementation libs.aws.s3
+    compileOnly libs.spring.boot.health // the health indicator, when the app has the actuator
 
+    testImplementation libs.spring.boot.health
+    integrationTestImplementation libs.spring.boot.health
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
 }

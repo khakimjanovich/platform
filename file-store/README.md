@@ -42,6 +42,13 @@ files.delete("partner-documents", stored.id());
 | `FILE_STORE_FILE_CORRUPT` | 500 | the stored bytes no longer match the checksum |
 | `FILE_STORE_STORAGE_UNAVAILABLE` | 503 | the store didn't answer |
 
+## Health
+
+With the actuator, `fileStore`: UP while every configured bucket answers a HeadBucket with the app's
+credentials (3 s limit). DOWN lists each failing bucket with the store's error code, or its HTTP
+status (403: the signature or key is rejected; 404: no such bucket). Details show only to callers
+who may see them (`management.endpoint.health.show-details`).
+
 ## Beans you can replace
 
 `S3Client`, `FileStore`.

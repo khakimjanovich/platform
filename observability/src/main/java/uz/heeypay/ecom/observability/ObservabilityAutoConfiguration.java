@@ -2,6 +2,7 @@ package uz.heeypay.ecom.observability;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Tracer;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
@@ -13,6 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.registry.HealthContributorRegistry;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -81,6 +83,21 @@ public class ObservabilityAutoConfiguration {
     @ConditionalOnMissingBean
     RequestIdFilter requestIdFilter(ObjectProvider<Tracer> tracer) {
       return new RequestIdFilter(tracer);
+    }
+  }
+
+  /**
+   * With the actuator: every health indicator as a gauge, for alerts on a dependency going DOWN.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(HealthContributorRegistry.class)
+  static class Health {
+
+    @Bean
+    @ConditionalOnMissingBean
+    HealthMetrics healthMetrics(
+        ObjectProvider<HealthContributorRegistry> registry, ObjectProvider<MeterRegistry> meters) {
+      return new HealthMetrics(registry, meters);
     }
   }
 }

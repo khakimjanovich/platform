@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -90,6 +92,28 @@ class VaultSecretsIT {
             context ->
                 assertThatThrownBy(() -> context.getBean(VaultSecrets.class).get("merchants/x"))
                     .isInstanceOf(VaultUnavailableException.class));
+  }
+
+  @Test
+  void healthIsUpWithAValidTokenAndDownWithAWrongOne() {
+    withToken("test")
+        .run(
+            context ->
+                assertThat(
+                        context
+                            .getBean("vaultTokenHealthIndicator", HealthIndicator.class)
+                            .health()
+                            .getStatus())
+                    .isEqualTo(Status.UP));
+    withToken("wrong")
+        .run(
+            context ->
+                assertThat(
+                        context
+                            .getBean("vaultTokenHealthIndicator", HealthIndicator.class)
+                            .health()
+                            .getStatus())
+                    .isEqualTo(Status.DOWN));
   }
 
   @Test

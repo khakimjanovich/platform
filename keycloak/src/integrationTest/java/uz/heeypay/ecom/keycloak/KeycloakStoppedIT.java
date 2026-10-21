@@ -7,13 +7,18 @@ import java.time.Duration;
 import java.util.ResourceBundle;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 import uz.heeypay.ecom.error.GeneralException;
 
-/** Keycloak going away mid-life is KEYCLOAK_UNAVAILABLE, never a raw client exception. */
+/**
+ * Keycloak going away mid-life is KEYCLOAK_UNAVAILABLE, never a raw client exception, and the
+ * health turns DOWN.
+ */
 class KeycloakStoppedIT {
 
   @Test
@@ -43,7 +48,10 @@ class KeycloakStoppedIT {
             context -> {
               var admin = context.getBean(KeycloakAdmin.class);
               var issued = admin.createConfidentialClient("stopped-it");
+              var health = context.getBean("keycloakHealthIndicator", HealthIndicator.class);
+              assertThat(health.health().getStatus()).isEqualTo(Status.UP);
               keycloak.stop();
+              assertThat(health.health().getStatus()).isEqualTo(Status.DOWN);
               assertThatThrownBy(() -> admin.rotateSecret(issued.id()))
                   .isInstanceOfSatisfying(
                       GeneralException.class,

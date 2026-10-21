@@ -14,9 +14,11 @@ dependencies {
     api libs.starter.restclient
     api project(":masking")
     implementation libs.spring.boot.autoconfigure
+    compileOnly libs.spring.boot.health // health gauges, when the app has the actuator
     compileOnly libs.jakarta.servlet // X-Request-Id, in a web app only
 
     testImplementation libs.starter.webmvc
+    testImplementation libs.spring.boot.health
 
     integrationTestImplementation libs.starter.webmvc
     integrationTestImplementation libs.spring.boot.testcontainers

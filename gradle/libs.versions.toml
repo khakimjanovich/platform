@@ -73,6 +73,7 @@ spring-web = { module = "org.springframework:spring-web" }
 spring-webmvc = { module = "org.springframework:spring-webmvc" }
 spring-boot-http-client = { module = "org.springframework.boot:spring-boot-http-client" }
 spring-boot-core = { module = "org.springframework.boot:spring-boot" }
+spring-boot-health = { module = "org.springframework.boot:spring-boot-health" } # HealthIndicator, for libraries that offer one when the app has the actuator
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
 spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
 jakarta-validation = { module = "jakarta.validation:jakarta.validation-api" }

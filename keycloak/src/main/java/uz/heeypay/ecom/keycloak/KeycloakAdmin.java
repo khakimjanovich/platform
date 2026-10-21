@@ -33,6 +33,14 @@ public class KeycloakAdmin {
   /** A machine-to-machine client and its secret. The secret is shown only here. */
   public record IssuedClient(String id, String secret) {}
 
+  /**
+   * Reads one realm role: logging in (a token, replaced if refused) and the admin API both work.
+   * Throws {@code KEYCLOAK_UNAVAILABLE} if not.
+   */
+  public void ping() {
+    call(() -> keycloak.get().uri(KeycloakConstants.ROLES_ONE).retrieve().toBodilessEntity());
+  }
+
   /** Creates an enabled user with a password; returns its id. */
   public String createUser(String username, String email, String password, boolean emailVerified) {
     return call(() -> newUser(username, email, password, emailVerified));

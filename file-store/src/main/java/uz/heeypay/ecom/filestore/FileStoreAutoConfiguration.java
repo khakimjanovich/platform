@@ -2,9 +2,11 @@ package uz.heeypay.ecom.filestore;
 
 import java.net.URI;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -58,6 +60,14 @@ public class FileStoreAutoConfiguration {
     var store = new FileStore(s3, properties);
     store.checkBuckets();
     return store;
+  }
+
+  /** With the actuator: a store that rejects our credentials turns the app's health DOWN. */
+  @Bean
+  @ConditionalOnClass(HealthIndicator.class)
+  @ConditionalOnMissingBean(name = "fileStoreHealthIndicator")
+  HealthIndicator fileStoreHealthIndicator(S3Client s3, FileStoreProperties properties) {
+    return new FileStoreHealthIndicator(s3, properties);
   }
 
   /** The configured key pair, or AWS's default chain (an instance or container role) if chosen. */

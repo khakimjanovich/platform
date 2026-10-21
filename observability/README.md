@@ -35,6 +35,11 @@ attribute `HttpClientLogging.NO_BODIES` and is logged without either body (Keycl
 `/client-secret` calls do). A client built on its own request factory (a SOAP one) adds the
 `HttpClientLogging` bean itself.
 
+## Health as a metric
+
+With the actuator, every health indicator is the gauge `ecom.health.up{component}` (1 UP, 0
+otherwise), so an alert can see a component go DOWN (ecom-infra's "Health DOWN").
+
 ## Beans you can replace
 
 `Masking` (the log masking), `HttpClientLogging`, `RequestIdFilter`.

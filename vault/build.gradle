@@ -11,8 +11,11 @@ dependencies {
     api platform(libs.spring.cloud.bom)
     api libs.spring.cloud.starter.vault.config
     implementation libs.spring.boot.autoconfigure
+    compileOnly libs.spring.boot.health // the health indicator, when the app has the actuator
     implementation libs.starter.validation // the properties are checked at startup
 
+    testImplementation libs.spring.boot.health
+    integrationTestImplementation libs.spring.boot.health
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
     integrationTestImplementation libs.testcontainers.vault

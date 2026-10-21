@@ -13,10 +13,13 @@ dependencies {
     api project(':error') // failures are GeneralExceptions with their own codes
     implementation libs.spring.security.oauth2.client
     implementation libs.spring.boot.autoconfigure
+    compileOnly libs.spring.boot.health // the health indicator, when the app has the actuator
     implementation libs.spring.boot.http.client // timeouts on the admin and token calls
     implementation libs.starter.validation // the properties are checked at startup
     runtimeOnly libs.jackson3.databind // Keycloak's JSON, read into maps
 
+    testImplementation libs.spring.boot.health
+    integrationTestImplementation libs.spring.boot.health
     integrationTestImplementation testFixtures(project(':keycloak'))
     integrationTestImplementation project(':observability') // every call logged, as in an app
     integrationTestImplementation libs.testcontainers.core

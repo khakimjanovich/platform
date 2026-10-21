@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.web.MockMultipartFile;
@@ -24,7 +26,10 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import uz.heeypay.ecom.error.GeneralException;
 
@@ -89,6 +94,8 @@ class FileStoreIT {
 
   @Autowired FileStore files;
   @Autowired S3Client s3;
+  @Autowired FileStoreProperties properties;
+  @Autowired HealthIndicator fileStoreHealthIndicator;
 
   @Test
   void aFileIsStoredWithItsTypeAndChecksumAndReadBackAsIs() {
@@ -159,6 +166,24 @@ class FileStoreIT {
         RequestBody.fromBytes("%PDF-1.4 tampered %%EOF".getBytes(StandardCharsets.US_ASCII)));
     assertThatThrownBy(() -> files.read("partner-documents", stored.id()))
         .satisfies(e -> hasCode(e, FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT));
+  }
+
+  @Test
+  void healthIsUpWithOurCredentialsAndDownWithTheStoresErrorCodeWithWrong() {
+    assertThat(fileStoreHealthIndicator.health().getStatus()).isEqualTo(Status.UP);
+    try (var wrong =
+        S3Client.builder()
+            .endpointOverride(java.net.URI.create(endpoint()))
+            .region(Region.US_EAST_1)
+            .forcePathStyle(true)
+            .credentialsProvider(
+                StaticCredentialsProvider.create(AwsBasicCredentials.create("ecom", "wrong-key")))
+            .build()) {
+      var health = new FileStoreHealthIndicator(wrong, properties).health();
+      assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+      assertThat(health.getDetails()).containsKeys("partner-documents", "sales-point-logos");
+      assertThat(health.getDetails().toString()).contains("403").doesNotContain("wrong-key");
+    }
   }
 
   private static void hasCode(Throwable e, FileStoreExceptionStatus status) {

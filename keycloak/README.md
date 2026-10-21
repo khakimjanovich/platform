@@ -38,6 +38,11 @@ var secret = keycloak.rotateSecret(client.id());
 | `KEYCLOAK_REJECTED` | 400 | Keycloak refused the input (a 4xx other than 401/403, e.g. its password policy); its message is a sub-error |
 | `KEYCLOAK_UNAVAILABLE` | 503 | a 5xx, a refused login, a timeout, no token, or a broken answer; Keycloak's own message is a sub-error, and a failure without an answer names only its kind |
 
+## Health
+
+With the actuator, `keycloak`: UP while the app can log in and read from the admin API (`ping()`);
+DOWN names the error code only.
+
 ## Beans you can replace
 
 `KeycloakAdmin`.

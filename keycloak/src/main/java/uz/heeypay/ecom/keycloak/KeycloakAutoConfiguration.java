@@ -2,9 +2,11 @@ package uz.heeypay.ecom.keycloak;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
 import org.springframework.boot.http.client.autoconfigure.HttpClientAutoConfiguration;
@@ -76,6 +78,14 @@ public class KeycloakAutoConfiguration {
             .requestInterceptor(new RetryOnceOnUnauthorized())
             .requestInterceptor(login)
             .build());
+  }
+
+  /** With the actuator: no token from Keycloak, or an admin API that refuses it, is DOWN. */
+  @Bean
+  @ConditionalOnClass(HealthIndicator.class)
+  @ConditionalOnMissingBean(name = "keycloakHealthIndicator")
+  HealthIndicator keycloakHealthIndicator(KeycloakAdmin admin) {
+    return new KeycloakHealthIndicator(admin);
   }
 
   /** Client credentials as Spring Security requests them, over the same timeouts. */

@@ -1,0 +1,32 @@
+# What every contract must hold, checked on every pull request (redocly lint): each operation has a
+# unique operationId and a tag, an /internal operation's tag ends in Internal (Swagger UI groups
+# them), and no contract defines its own Problem: they share common/problem-v1.yaml.
+extends: []
+rules:
+  struct: error
+  operation-operationId: error
+  operation-operationId-unique: error
+  rule/operation-has-a-tag:
+    subject:
+      type: Operation
+      property: tags
+    assertions:
+      defined: true
+      nonEmpty: true
+  rule/internal-operations-are-tagged-internal:
+    subject:
+      type: Operation
+      property: tags
+    where:
+      - subject:
+          type: PathItem
+          matchParentKeys: /^\/internal\//
+        assertions:
+          defined: true
+    assertions:
+      pattern: /Internal$/
+  rule/no-own-problem-schema:
+    subject:
+      type: NamedSchemas
+    assertions:
+      disallowed: [Problem]

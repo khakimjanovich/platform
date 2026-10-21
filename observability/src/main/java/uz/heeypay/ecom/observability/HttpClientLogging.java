@@ -11,22 +11,29 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
+import uz.heeypay.ecom.masking.Masking;
 
 /**
  * Every call this service makes, in three readable lines at most: what went out ({@code →}), what
  * came back ({@code ←}) with its status and time, or why it failed ({@code ✗}). Bodies are masked
- * ({@link BodyMasking}); headers are never logged. A 4xx or 5xx answer is a warning. Every
- * RestClient gets it; a client built on a ClientHttpRequestFactory (a SOAP one) adds it itself.
+ * ({@link Masking}); headers are never logged. A 4xx or 5xx answer is a warning. Every RestClient
+ * gets it; a client built on a ClientHttpRequestFactory (a SOAP one) adds it itself.
  */
 public class HttpClientLogging implements ClientHttpRequestInterceptor {
 
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
 
+  private final Masking masking;
+
+  public HttpClientLogging(Masking masking) {
+    this.masking = masking;
+  }
+
   @Override
   public ClientHttpResponse intercept(
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
     var call = request.getMethod() + " " + request.getURI();
-    log.info("→ {} | {}", call, BodyMasking.masked(body, request.getHeaders().getContentType()));
+    log.info("→ {} | {}", call, masking.body(body, type(request.getHeaders())));
     var started = System.nanoTime();
     ClientHttpResponse response;
     try {
@@ -38,10 +45,15 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     var bytes = response.getBody().readAllBytes();
     var status = response.getStatusCode();
     var line = "← {} {} | {} ms | {}";
-    var masked = BodyMasking.masked(bytes, response.getHeaders().getContentType());
+    var masked = masking.body(bytes, type(response.getHeaders()));
     if (status.isError()) log.warn(line, status.value(), call, millis(started), masked);
     else log.info(line, status.value(), call, millis(started), masked);
     return new Read(response, bytes);
+  }
+
+  private static String type(HttpHeaders headers) {
+    var type = headers.getContentType();
+    return type == null ? null : type.toString();
   }
 
   private static long millis(long started) {

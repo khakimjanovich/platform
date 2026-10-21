@@ -5,7 +5,7 @@ pluginManagement { includeBuild 'build-logic' }
 rootProject.name = 'platform'
 
 include('versioning')
-include('error', 'otp', 'security', 'keycloak', 'persistence', 'crypto', 'vault', 'file-store', 'observability')
+include('masking', 'error', 'otp', 'security', 'keycloak', 'persistence', 'crypto', 'vault', 'file-store', 'observability')
 include('openapi:partner-api', 'openapi:commission-api', 'openapi:epos-api', 'openapi:card-api', 'openapi:payment-api',
         'openapi:uzcard-adapter-api', 'openapi:humo-adapter-api', 'openapi:bin-api')
 

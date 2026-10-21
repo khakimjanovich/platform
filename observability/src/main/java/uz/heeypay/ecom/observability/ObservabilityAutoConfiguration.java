@@ -8,8 +8,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
+import uz.heeypay.ecom.masking.Masking;
 
 /**
  * Sends every log line over OTLP with its trace, beside the console (Spring Boot's own: readable
@@ -34,8 +36,15 @@ public class ObservabilityAutoConfiguration {
             });
   }
 
+  /** For a client not built from Boot's RestClient.Builder (a SOAP one) to add itself. */
   @Bean
-  RestClientCustomizer httpClientLogging() {
-    return builder -> builder.requestInterceptor(new HttpClientLogging());
+  @ConditionalOnMissingBean
+  HttpClientLogging httpClientLogging() {
+    return new HttpClientLogging(Masking.defaults());
+  }
+
+  @Bean
+  RestClientCustomizer httpClientLoggingCustomizer(HttpClientLogging httpClientLogging) {
+    return builder -> builder.requestInterceptor(httpClientLogging);
   }
 }

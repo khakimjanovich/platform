@@ -12,6 +12,10 @@ characters kept) and secrets (hidden whole), by field name, in JSON, XML, forms,
 `key=value` text, plus any run of 13 to 19 digits. The `value` of any object with a `type` is a
 secret (Keycloak's credentials and client secrets). Plain Java and Jackson, no Spring.
 
+It errs on the side of hiding: every run of 13 to 19 digits is masked, with no Luhn check (epoch
+millis and long ids too), and text hides any `code` value, so log an error code as `error CODE`,
+not `code=CODE`.
+
 ```java
 var masking = new Masking(MaskingRules.defaults().with(List.of("EMBOS_NAME"), List.of("hpan"), List.of()));
 masking.body(bytes, "application/json");

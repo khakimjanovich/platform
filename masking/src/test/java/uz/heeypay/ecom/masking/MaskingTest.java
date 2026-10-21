@@ -94,6 +94,12 @@ class MaskingTest {
         .isEqualTo(
             "token refresh failed: client_secret=*** pan=860030******7890 for card"
                 + " 986009******1238, price=$5");
+    assertThat(MASKING.text("password=\"hunter2\" password: hunter2"))
+        .isEqualTo("password=\"***\" password: ***");
+    assertThat(MASKING.text("failed: password: hunter2, at 12:30"))
+        .isEqualTo("failed: password: ***, at 12:30");
+    assertThat(MASKING.text("{\"client_secret\":\"s3cr3t\"}"))
+        .isEqualTo("{\"client_secret\":\"***\"}");
     assertThat(MASKING.text(null)).isNull();
   }
 

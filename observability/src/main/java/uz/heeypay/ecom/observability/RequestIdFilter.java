@@ -7,13 +7,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.Ordered;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Every response names its request: the trace id, the same one on every log line the request wrote,
- * in this service and in every service it called. A caller quotes it to support.
+ * in this service and in every service it called. A caller quotes it to support. It runs right
+ * after Boot's observation filter opens the span and before Spring Security, so a 401 or 403
+ * carries it too.
  */
-public class RequestIdFilter extends OncePerRequestFilter {
+public class RequestIdFilter extends OncePerRequestFilter implements Ordered {
 
   public static final String REQUEST_ID_HEADER = "X-Request-Id";
 
@@ -21,6 +24,11 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
   public RequestIdFilter(ObjectProvider<Tracer> tracer) {
     this.tracer = tracer;
+  }
+
+  @Override
+  public int getOrder() {
+    return Ordered.HIGHEST_PRECEDENCE + 2;
   }
 
   @Override

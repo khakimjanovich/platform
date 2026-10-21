@@ -3,8 +3,10 @@
 Logs, traces and metrics the same way in every service: logs with their trace on the console
 (readable text, or ECS JSON with `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`) and over OTLP, one trace
 per request carried to every call it makes, metrics over OTLP, every response naming its trace in
-`X-Request-Id`, and every outgoing call logged. Every log line, on every sink, is masked (card
-numbers, `key=value` secrets).
+`X-Request-Id` (a 401 or 403 too), and every outgoing call logged. Every log line, on every sink,
+is masked (card numbers, `key=value` secrets): messages and stack traces are masked; exception
+attributes are not exported to OTLP (the masked trace travels in the message). Lines logged before
+the context starts (the banner, the auto-configuration report, Vault's bootstrap) are not masked.
 
 ```groovy
 implementation libs.ecom.observability
@@ -40,6 +42,6 @@ attribute `HttpClientLogging.NO_BODIES` and is logged without either body (Keycl
 ## Tests
 
 - `./gradlew -p platform :observability:test`: masked console and ECS lines, extra names, masked
-  URIs, bounded client-log buffering, the self-loading defaults.
+  stack traces (console, ECS, OTLP), masked URIs, bounded client-log buffering.
 - `./gradlew -p platform :observability:integrationTest`: Grafana's LGTM stack: one request's trace
   in Tempo and its masked log lines in Loki under the same trace id as `X-Request-Id`.

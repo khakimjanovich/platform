@@ -30,8 +30,18 @@ public final class Masking {
       Pattern.compile("(<name>\\s*([\\w:]+)\\s*</name>\\s*<value>)([^<]*)(</value>)");
   private static final Pattern XML_ELEMENT =
       Pattern.compile("(<(?:[\\w-]+:)?([\\w-]+)(?:\\s[^>]*)?>)([^<]*)(</)");
-  private static final Pattern KEY_VALUE =
-      Pattern.compile("(?<![\\w.-])([A-Za-z_][\\w.-]*=)([^\\s&,;\"']*)");
+
+  /** {@code name=value} and {@code name="value"}. */
+  private static final Pattern KEY_EQUALS =
+      Pattern.compile("(?<![\\w.-])([A-Za-z_][\\w.-]*)(=)(\"?)([^\\s&,;\"']*)\\3");
+
+  /**
+   * {@code name: value} and JSON's {@code "name":"value"}, after {@link #KEY_EQUALS}: a value never
+   * holds a colon, so {@code failed: password: x} still finds {@code password}.
+   */
+  private static final Pattern KEY_COLON =
+      Pattern.compile(
+          "(?<![\\w.-])([A-Za-z_][\\w.-]*)(\"?\\s*:\\s*)(\"?)([^\\s&,;\"':]*+)\\3(?!:)");
 
   private final MaskingRules rules;
 
@@ -61,9 +71,7 @@ public final class Masking {
   /** A log message or an exception's: {@code key=value} pairs by name, and any card number. */
   public @Nullable String text(@Nullable String text) {
     if (text == null || text.isEmpty()) return text;
-    return cards(
-        replace(
-            KEY_VALUE, text, m -> m.group(1) + valueFor(m.group(1).replace("=", ""), m.group(2))));
+    return cards(pairs(KEY_COLON, pairs(KEY_EQUALS, text)));
   }
 
   /** A URI with its query values masked by name, and any card number in it. */
@@ -137,6 +145,13 @@ public final class Masking {
     if (rules.tokenFields().contains(key)) return last4(value);
     if (rules.cardFields().contains(key)) return card(value);
     return value;
+  }
+
+  private String pairs(Pattern pattern, String text) {
+    return replace(
+        pattern,
+        text,
+        m -> m.group(1) + m.group(2) + m.group(3) + valueFor(m.group(1), m.group(4)) + m.group(3));
   }
 
   private static String cards(String text) {

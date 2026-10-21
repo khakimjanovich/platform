@@ -77,6 +77,7 @@ class ObservabilityIT {
       @GetMapping("/pay")
       String pay() {
         log.info("paid with card {}", PAN);
+        log.error("declined", new IllegalStateException("card " + PAN));
         return scheme.get().uri("/cards?access_token=" + TOKEN).retrieve().body(String.class);
       }
     }
@@ -118,6 +119,7 @@ class ObservabilityIT {
               assertThat(lines)
                   .contains("paid with card 860030******7890")
                   .contains("/cards?access_token=…1234")
+                  .contains("IllegalStateException")
                   .doesNotContain(PAN, TOKEN);
             });
   }

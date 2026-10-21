@@ -63,6 +63,11 @@ paths:
       tags: [EposAdmin]
       operationId: registerEpos
       summary: Registers an e-POS terminal the processing center issued; it is live at once
+      description: |
+        A UZCARD terminal is registered in SV-Gate first (terminal.add, then terminal.check) and is kept only
+        if Uzcard accepts it: EPOS_UZCARD_REJECTED carries Uzcard's code in subErrors, EPOS_UZCARD_UNAVAILABLE
+        means Uzcard didn't answer and nothing was saved. A retry is safe: a terminal SV-Gate already has
+        (-249) is accepted once terminal.check confirms it.
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       requestBody:
         required: true
@@ -76,6 +81,8 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/epos/route:
     get:
@@ -123,10 +130,30 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /api/v1/admin/epos/{eposId}/uzcard:
+    get:
+      tags: [EposAdmin]
+      operationId: checkEposAtUzcard
+      summary: The UZCARD e-POS terminal as SV-Gate has it (terminal.check and terminal.get), changing nothing
+      parameters: [{ $ref: "#/components/parameters/EposId" }]
+      responses:
+        "200":
+          description: SV-Gate's view of the terminal
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UzcardTerminalResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
   /api/v1/admin/epos/{eposId}/suspend:
     post:
       tags: [EposAdmin]
       operationId: suspendEpos
+      description: Ours only; SV-Gate has no method to pause a terminal, so payments stop at our route.
       parameters: [{ $ref: "#/components/parameters/EposId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
@@ -141,6 +168,7 @@ paths:
     post:
       tags: [EposAdmin]
       operationId: resumeEpos
+      description: Ours only, like suspend.
       parameters: [{ $ref: "#/components/parameters/EposId" }]
       responses:
         "200": { $ref: "#/components/responses/Epos" }
@@ -153,6 +181,10 @@ paths:
     post:
       tags: [EposAdmin]
       operationId: revokeEpos
+      description: |
+        A UZCARD terminal is removed from SV-Gate first (terminal.remove); one SV-Gate no longer has (-254, -255)
+        counts as removed. If Uzcard refuses (EPOS_UZCARD_REJECTED) or doesn't answer (EPOS_UZCARD_UNAVAILABLE),
+        nothing changes here and the terminal stays as it was: suspend it to stop payments, and revoke again later.
       parameters: [{ $ref: "#/components/parameters/EposId" }]
       requestBody: { $ref: "#/components/requestBodies/Reason" }
       responses:
@@ -162,6 +194,8 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/epos/{eposId}/audit:
     get:
@@ -242,6 +276,22 @@ components:
         status: { $ref: "#/components/schemas/EposStatus" }
         registeredBy: { type: string }
         createdAt: { type: string, format: date-time }
+    UzcardTerminalResponse:
+      type: object
+      description: Each part is absent when SV-Gate doesn't know the MID/TID that way
+      properties:
+        check: { $ref: "#/components/schemas/UzcardTerminalDetails" }
+        listing: { $ref: "#/components/schemas/UzcardTerminalDetails" }
+    UzcardTerminalDetails:
+      type: object
+      properties:
+        username: { type: string, description: Our SV-Gate login }
+        name: { type: string }
+        type: { type: integer, format: int32, description: "1 debit, 2 credit, 3 P2P" }
+        purpose: { type: string }
+        port: { type: integer, format: int32 }
+        instId: { type: string, description: terminal.get only }
+        pid: { type: string, description: terminal.get only }
     EposPage:
       type: object
       required: [items, page, size, totalItems, totalPages]

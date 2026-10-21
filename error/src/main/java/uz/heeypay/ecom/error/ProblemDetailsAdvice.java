@@ -25,6 +25,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.util.UriComponentsBuilder;
 import uz.heeypay.ecom.masking.Masking;
 
 /**
@@ -37,7 +38,8 @@ import uz.heeypay.ecom.masking.Masking;
  *
  * <p>Every error response is logged once, with its request: a 5xx as an error, one whose definition
  * says {@code is-loggable} as a warning, anything else (a caller's mistake) as info. The line holds
- * the English message without its parameters, masked, so no caller's data reaches the log.
+ * the English message without its parameters (for Spring's own errors, the exception's class name),
+ * masked as a whole, so no caller's data reaches the log.
  */
 @RestControllerAdvice
 class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
@@ -171,7 +173,9 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
         problem.setProperty(
             ErrorConstants.CODE_PROPERTY,
             named == null ? String.valueOf(status.value()) : named.name());
-        log(problem, ex.getMessage(), false);
+        // Spring's messages quote the caller's input ("For input string: …"); its class name
+        // doesn't.
+        log(problem, ex.getClass().getSimpleName(), false);
       }
       identify(problem);
     }
@@ -214,7 +218,13 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   /** RFC 9457 §3.1.5: the request this problem answers, and its trace id when it is traced. */
   private static void identify(ProblemDetail problem) {
     if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes current) {
-      problem.setInstance(URI.create(current.getRequest().getRequestURI()));
+      var path = current.getRequest().getRequestURI();
+      try {
+        problem.setInstance(URI.create(path));
+      } catch (IllegalArgumentException notAUri) {
+        // A path the server let through (relaxedPathChars) that no URI holds as it is: encoded.
+        problem.setInstance(UriComponentsBuilder.fromPath(path).encode().build().toUri());
+      }
     }
     var traceId = MDC.get(ErrorConstants.TRACE_ID_MDC);
     if (traceId != null && !traceId.isBlank()) {
@@ -222,7 +232,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     }
   }
 
-  /** One line per error response: status, code, request, and the English reason, masked. */
+  /** One line per error response: status, code, request and the English reason, all masked. */
   private void log(ProblemDetail problem, @Nullable String reason, boolean loggable) {
     var properties = problem.getProperties() == null ? Map.of() : problem.getProperties();
     var line =
@@ -230,7 +240,8 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
             problem.getStatus(),
             properties.get(ErrorConstants.CODE_PROPERTY),
             request(),
-            masking.text(reason == null ? String.valueOf(problem.getTitle()) : reason));
+            reason == null ? String.valueOf(problem.getTitle()) : reason);
+    line = String.valueOf(masking.text(line));
     if (problem.getStatus() >= 500) log.error(line);
     else if (loggable) log.warn(line);
     else log.info(line);

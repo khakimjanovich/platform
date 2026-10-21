@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
@@ -77,7 +78,15 @@ public final class ErrorDefinitions {
 
   /** Every constant of every StatusThrowable enum under the package. */
   private static List<StatusThrowable> statuses(String basePackage) {
-    var scanner = new ClassPathScanningCandidateComponentProvider(false);
+    // An enum whose constants have bodies compiles to an abstract class, which the default
+    // filter (concrete classes only) would skip.
+    var scanner =
+        new ClassPathScanningCandidateComponentProvider(false) {
+          @Override
+          protected boolean isCandidateComponent(AnnotatedBeanDefinition definition) {
+            return definition.getMetadata().isIndependent();
+          }
+        };
     scanner.addIncludeFilter(new AssignableTypeFilter(StatusThrowable.class));
     var statuses = new ArrayList<StatusThrowable>();
     for (var candidate : scanner.findCandidateComponents(basePackage)) {

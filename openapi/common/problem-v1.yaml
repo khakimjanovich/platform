@@ -57,7 +57,7 @@ components:
         title: { type: string }
         status: { type: integer }
         detail: { type: string, description: In the caller's language (Accept-Language) }
-        instance: { type: string, description: The path of the request this problem answers }
+        instance: { type: string, format: uri, description: The path of the request this problem answers }
         code: { type: string, example: VALIDATION_FAILED }
         requestId: { type: string, description: "The request's trace id, as in X-Request-Id; quote it to support" }
         errors:

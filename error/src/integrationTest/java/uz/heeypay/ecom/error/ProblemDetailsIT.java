@@ -16,6 +16,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
@@ -44,6 +46,7 @@ class ProblemDetailsIT {
 
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
+  @EnableMethodSecurity
   static class App {
 
     @RestController
@@ -53,6 +56,12 @@ class ProblemDetailsIT {
 
       @GetMapping({"/admin/report", "/me/profile"})
       String secured() {
+        return "ok";
+      }
+
+      @PreAuthorize("hasRole('ADMIN')")
+      @GetMapping("/method")
+      String method() {
         return "ok";
       }
 
@@ -123,6 +132,15 @@ class ProblemDetailsIT {
     var response =
         client().get().uri("/admin/report").header(HttpHeaders.AUTHORIZATION, "Basic " + basic);
     assertThat(problem(response.exchange(), HttpStatus.FORBIDDEN, "/admin/report"))
+        .containsEntry("code", "FORBIDDEN");
+  }
+
+  @Test
+  void methodSecurityRefusingTheRoleIsA403() {
+    var basic = Base64.getEncoder().encodeToString("partner:local-only".getBytes());
+    var response =
+        client().get().uri("/method").header(HttpHeaders.AUTHORIZATION, "Basic " + basic);
+    assertThat(problem(response.exchange(), HttpStatus.FORBIDDEN, "/method"))
         .containsEntry("code", "FORBIDDEN");
   }
 

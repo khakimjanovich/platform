@@ -32,8 +32,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -96,6 +98,15 @@ class ProblemDetailsAdviceTest {
     @GetMapping("/denied")
     void denied() {
       throw new AuthorizationDeniedException("denied", new AuthorizationDecision(false));
+    }
+
+    @GetMapping("/bins/{digits}")
+    void bins(@PathVariable int digits, @RequestParam(required = false) Integer page) {}
+
+    /** A path Tomcat lets through (relaxedPathChars) but no URI can hold. */
+    @GetMapping("/odd{rest}")
+    void odd() {
+      throw new IllegalStateException("odd");
     }
 
     @GetMapping("/boom")
@@ -223,6 +234,36 @@ class ProblemDetailsAdviceTest {
         .contains("409 EMAIL_TAKEN | GET /taken | {0} is already registered.")
         .contains("400 VALIDATION_FAILED | POST /service")
         .doesNotContain("aziz@example.uz", "allaqachon", "nope");
+  }
+
+  @Test
+  void aSpringErrorLogsItsClassNotTheCallersInput(CapturedOutput output) throws Exception {
+    mvc.perform(get("/bins/12").param("page", "aziz@example.uz"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+    assertThat(output)
+        .contains("400 BAD_REQUEST | GET /bins/12 | MethodArgumentTypeMismatchException")
+        .doesNotContain("aziz@example.uz");
+  }
+
+  @Test
+  void theWholeLineIsMasked(CapturedOutput output) throws Exception {
+    mvc.perform(get("/bins/8600301234567890")).andExpect(status().isBadRequest());
+    assertThat(output).contains("GET /bins/860030******7890").doesNotContain("8600301234567890");
+  }
+
+  @Test
+  void aPathNoUriCanHoldIsStillAProblem() throws Exception {
+    mvc.perform(
+            get("/odd")
+                .with(
+                    request -> {
+                      request.setRequestURI("/odd|path");
+                      return request;
+                    }))
+        .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.code").exists())
+        .andExpect(jsonPath("$.instance").value("/odd%7Cpath"));
   }
 
   private static MockMvc mvc() {

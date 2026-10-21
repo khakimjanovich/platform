@@ -71,7 +71,7 @@ empty for an HTML page or no body), `Problems.code(problem)` its code and
 ## Tests
 
 - `./gradlew -p platform :error:test`: every kind of failure as a problem detail, the log line,
-  `Problems`, the self-loading definitions, and `ErrorDefinitions` against fixture definitions.
+  `Problems`, and `ErrorDefinitions` against fixture definitions.
 - `./gradlew -p platform :error:integrationTest`: on a real server with Spring Security and Boot's
   own problem-details handler switched on, and `Problems` against WireMock.
 - Every service runs `ErrorDefinitions.assertComplete("uz.heeypay.ecom")` in a unit test: each code

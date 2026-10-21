@@ -25,6 +25,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
+import uz.heeypay.ecom.error.GeneralException;
 
 /** The admin client against a real Keycloak: users, roles, and client secrets that rotate. */
 @Testcontainers
@@ -83,7 +84,9 @@ class KeycloakAdminIT {
     var token = passwordToken(email, "correct-horse-42");
     assertThat(token).isNotBlank();
     assertThatThrownBy(() -> admin.createUser(email, email, "another-password", false))
-        .isInstanceOf(KeycloakConflictException.class);
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT));
   }
 
   @Test

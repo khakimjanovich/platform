@@ -21,6 +21,13 @@ public class KeycloakConstants {
   public static final String CLIENT_SERVICE_ACCOUNT = "/clients/{id}/service-account-user";
   public static final String ID = "id";
 
+  /* ------- Keycloak's own error bodies ------- */
+  public static final String ERROR_MESSAGE = "errorMessage";
+  public static final String ERROR = "error";
+
+  public static final String DEFAULT_CONNECT_TIMEOUT = "5s";
+  public static final String DEFAULT_READ_TIMEOUT = "10s";
+
   /* ------- representation fields ------- */
   public static final String USERNAME = "username";
   public static final String EMAIL = "email";

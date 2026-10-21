@@ -1,0 +1,19 @@
+# Errors the keycloak library returns: HTTP status, title and message in English, Russian and Uzbek.
+# Loaded by the library itself (KeycloakDefaultsPostProcessor); {0} is what already exists.
+exception:
+  starter:
+    error:
+      KEYCLOAK_CONFLICT:
+        http-code: 409
+        title: keycloak-conflict
+        is-loggable: false
+        message-en: "{0} already exists."
+        message-ru: "{0} уже существует."
+        message-uz: "{0} allaqachon mavjud."
+      KEYCLOAK_UNAVAILABLE:
+        http-code: 503
+        title: keycloak-unavailable
+        is-loggable: true
+        message-en: "Sign-in service is unavailable. Please try again later."
+        message-ru: "Служба входа недоступна. Попробуйте позже."
+        message-uz: "Kirish xizmati mavjud emas. Keyinroq urinib koʻring."

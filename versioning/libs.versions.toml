@@ -63,6 +63,7 @@ modulith-core = { module = "org.springframework.modulith:spring-modulith-core" }
 springdoc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 spring-web = { module = "org.springframework:spring-web" }
 spring-webmvc = { module = "org.springframework:spring-webmvc" }
+spring-boot-http-client = { module = "org.springframework.boot:spring-boot-http-client" }
 spring-boot-autoconfigure = { module = "org.springframework.boot:spring-boot-autoconfigure" }
 spring-boot-configuration-processor = { module = "org.springframework.boot:spring-boot-configuration-processor" }
 jakarta-validation = { module = "jakarta.validation:jakarta.validation-api" }

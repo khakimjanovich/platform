@@ -8,10 +8,12 @@ plugins {
 dependencies {
     api platform(libs.spring.boot.bom)
     api libs.spring.web
+    api project(':error') // failures are GeneralExceptions with their own codes
     implementation libs.spring.security.oauth2.client
     implementation libs.spring.boot.autoconfigure
+    implementation libs.spring.boot.http.client // timeouts on the admin and token calls
     implementation libs.starter.validation // the properties are checked at startup
-    implementation libs.jackson3.databind
+    runtimeOnly libs.jackson3.databind // Keycloak's JSON, read into maps
 
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit

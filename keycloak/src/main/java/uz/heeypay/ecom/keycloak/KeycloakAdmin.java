@@ -3,12 +3,22 @@ package uz.heeypay.ecom.keycloak;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
+import uz.heeypay.ecom.error.GeneralException;
 
-/** Keycloak's admin API, for the few things our modules need. */
+/**
+ * Keycloak's admin API, for the few things our modules need. Every failure is a {@link
+ * GeneralException}: {@code KEYCLOAK_CONFLICT} when what we create already exists, {@code
+ * KEYCLOAK_UNAVAILABLE} for anything else (an error status, a timeout, no token), with Keycloak's
+ * own message as a sub-error.
+ */
 @RequiredArgsConstructor
 public class KeycloakAdmin {
 
@@ -22,6 +32,10 @@ public class KeycloakAdmin {
 
   /** Creates an enabled user with a password; returns its id. */
   public String createUser(String username, String email, String password, boolean emailVerified) {
+    return call(() -> newUser(username, email, password, emailVerified));
+  }
+
+  private String newUser(String username, String email, String password, boolean emailVerified) {
     var user =
         Map.of(
             KeycloakConstants.USERNAME, username,
@@ -46,22 +60,35 @@ public class KeycloakAdmin {
             .onStatus(
                 status -> status.isSameCodeAs(HttpStatus.CONFLICT),
                 (request, response) -> {
-                  throw new KeycloakConflictException(username);
+                  throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_CONFLICT, username);
                 })
             .toBodilessEntity();
     return idOf(created.getHeaders().getLocation());
   }
 
   public void markEmailVerified(String userId) {
-    // Keycloak replaces the whole user on update, so change the field on the full representation.
-    var user = keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON);
-    user.put(KeycloakConstants.EMAIL_VERIFIED, true);
-    keycloak.put().uri(KeycloakConstants.USER, userId).body(user).retrieve().toBodilessEntity();
+    call(
+        () -> {
+          // Keycloak replaces the whole user on update, so change the field on the full
+          // representation.
+          var user = keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON);
+          user.put(KeycloakConstants.EMAIL_VERIFIED, true);
+          return keycloak
+              .put()
+              .uri(KeycloakConstants.USER, userId)
+              .body(user)
+              .retrieve()
+              .toBodilessEntity();
+        });
   }
 
   public void grantRealmRole(String userId, String role) {
+    call(() -> realmRole(userId, role));
+  }
+
+  private Object realmRole(String userId, String role) {
     var representation = keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON);
-    keycloak
+    return keycloak
         .post()
         .uri(KeycloakConstants.USER_REALM_ROLES, userId)
         .body(List.of(representation))
@@ -74,6 +101,10 @@ public class KeycloakAdmin {
    * roles.
    */
   public IssuedClient createConfidentialClient(String clientId, String... realmRoles) {
+    return call(() -> newClient(clientId, realmRoles));
+  }
+
+  private IssuedClient newClient(String clientId, String... realmRoles) {
     var client =
         Map.of(
             KeycloakConstants.CLIENT_ID, clientId,
@@ -91,7 +122,7 @@ public class KeycloakAdmin {
             .onStatus(
                 status -> status.isSameCodeAs(HttpStatus.CONFLICT),
                 (request, response) -> {
-                  throw new KeycloakConflictException(clientId);
+                  throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_CONFLICT, clientId);
                 })
             .toBodilessEntity();
     var id = idOf(created.getHeaders().getLocation());
@@ -104,14 +135,41 @@ public class KeycloakAdmin {
                   .retrieve()
                   .body(JSON)
                   .get(KeycloakConstants.ID);
-      for (var role : realmRoles) grantRealmRole(serviceAccount, role);
+      for (var role : realmRoles) realmRole(serviceAccount, role);
     }
     return new IssuedClient(id, secretOf(keycloak.get().uri(KeycloakConstants.CLIENT_SECRET, id)));
   }
 
   /** Issues a new secret; the old one stops working at once. */
   public String rotateSecret(String clientInternalId) {
-    return secretOf(keycloak.post().uri(KeycloakConstants.CLIENT_SECRET, clientInternalId));
+    return call(
+        () -> secretOf(keycloak.post().uri(KeycloakConstants.CLIENT_SECRET, clientInternalId)));
+  }
+
+  /** Any failure but a conflict is Keycloak being unavailable, with its own message kept. */
+  private static <T> T call(Supplier<T> request) {
+    try {
+      return request.get();
+    } catch (RestClientResponseException e) {
+      throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE)
+          .subError(String.valueOf(e.getStatusCode().value()), errorMessage(e));
+    } catch (RestClientException | OAuth2AuthorizationException e) {
+      throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE)
+          .subError(e.getClass().getSimpleName(), e.getMessage());
+    }
+  }
+
+  /** Keycloak's {@code errorMessage} (admin API) or {@code error_description} (token endpoint). */
+  private static String errorMessage(RestClientResponseException e) {
+    try {
+      var body = e.getResponseBodyAs(JSON);
+      if (body == null) return e.getStatusText();
+      var message =
+          body.getOrDefault(KeycloakConstants.ERROR_MESSAGE, body.get(KeycloakConstants.ERROR));
+      return message == null ? e.getStatusText() : message.toString();
+    } catch (RuntimeException notJson) {
+      return e.getStatusText();
+    }
   }
 
   private static String secretOf(RestClient.RequestHeadersSpec<?> request) {

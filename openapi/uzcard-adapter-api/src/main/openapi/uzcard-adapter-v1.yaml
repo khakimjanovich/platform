@@ -1055,6 +1055,7 @@ components:
         terminalId: { type: string }
         merchantId: { type: string }
         username: { type: string }
+        ttype: { type: integer, format: int32, description: "SV-Gate's TType (t_type in the PDF)" }
         terminalType: { type: integer, format: int32 }
         instId: { type: string }
         name: { type: string }

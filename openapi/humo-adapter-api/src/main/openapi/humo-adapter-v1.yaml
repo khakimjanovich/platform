@@ -49,7 +49,7 @@ paths:
     post:
       summary: Capture (confirm) an authorized DMS card debit payment
       description: 'Confirms a previously authorized SOAP_DMS card debit payment with the unchanged (originally
-        authorized) amount, causing the held funds to be debited from the cardholder''s account. paymentRef must
+        authorized) amount or, with amount, a changed one, causing the held funds to be debited from the cardholder''s account. paymentRef must
         be the same one used in the authorize request. Adapter proxies the request to the HUMO Payment Server SOAP
         method Payment (urn:PaymentServer) with confirmed = true and finished = true. If the cardholder cancels
         the payment instead, CancelRequest must be used.
@@ -351,6 +351,84 @@ paths:
           $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
           $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v1/p2p/authorize:
+    post:
+      summary: Authorize a P2P card-to-card transfer inside HUMO
+      description: 'P2P transfer between cards registered in HUMO (HUMO, co-badge): the Payment Server SOAP method Request (urn:PaymentServer) with switchingID and autoSwitch (HUMOPAYMENT.pdf §2.1). A response with action = 4 must be confirmed with p2pConfirm. A P2P transfer can be neither cancelled nor returned; a refund goes through HUMO''s reversal form.
+
+        '
+      operationId: p2pAuthorize
+      tags:
+      - HumoPaymentService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/P2pAuthorizeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/P2pResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v1/p2p/confirm:
+    post:
+      summary: Confirm an authorized P2P transfer
+      description: 'Confirms a P2P transfer by the paymentRef of its authorization: the Payment Server SOAP method Payment with confirmed = true and finished = true (HUMOPAYMENT.pdf §2.2). action = 10 means the transfer is confirmed.
+
+        '
+      operationId: p2pConfirm
+      tags:
+      - HumoPaymentService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/P2pConfirmRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/P2pResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v1/credit/to-card:
+    post:
+      summary: Credit a HUMO card (SOAP_TOCARD_2)
+      description: 'Credits a card account through the front-office instrument SOAP_TOCARD_2: the Payment Server SOAP method Request with billerRef and payinstrRef SOAP_TOCARD_2 (HUMOPAYMENT.pdf §4). One call, no confirmation: sending it again credits the card twice. action = 4 means success. It cannot be cancelled; a refund goes through HUMO''s reversal form.
+
+        '
+      operationId: creditToCard
+      tags:
+      - HumoPaymentService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditToCardRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditToCardResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
 components:
   schemas:
     AuthorizePaymentRequest:
@@ -630,8 +708,8 @@ components:
           $ref: '#/components/schemas/HumoAdapterStatusCode'
     CapturePaymentRequest:
       type: object
-      description: 'Request to confirm a previously authorized SOAP_DMS card debit payment with the amount unchanged
-        from the authorization request.
+      description: 'Request to confirm a previously authorized SOAP_DMS card debit payment, with the authorized amount
+        or a changed one.
 
         '
       required:
@@ -644,6 +722,14 @@ components:
           type: string
           maxLength: 64
           description: Payment reference number used in the authorize request
+        amount:
+          type: string
+          maxLength: 12
+          pattern: '^[0-9]{1,12}$'
+          description: 'New amount in minor units (tiyin) when the captured amount differs from the authorized one
+            (HUMOPAYMENT.pdf §3.2.2). Left out: the authorized amount is captured unchanged (§3.2.1).
+
+            '
         confirmed:
           type: boolean
           description: Confirms the payment. Must be true to debit the held funds
@@ -1524,3 +1610,529 @@ components:
           $ref: '#/components/schemas/HumoAdapterStatusCode'
         data:
           $ref: '#/components/schemas/SmsSendResponse'
+    P2pAuthorizeRequest:
+      type: object
+      description: P2P authorization, the Payment Server's Request (HUMOPAYMENT.pdf §2 p.5, §2.1 p.6)
+      required:
+      - language
+      - switchingId
+      - autoSwitch
+      - paymentRef
+      - pan
+      - expiry
+      - pan2
+      - amount
+      - ccyCode
+      - merchantId
+      - terminalId
+      - paymentOriginator
+      properties:
+        language:
+          type: string
+          description: Language code, for example en
+        switchingId:
+          type: string
+          description: 'Root switching identifier, sent as switchingID/value: 48 in-bank, 50 inter-bank, 77 with co-badge
+            cards (199 on the test stand)
+
+            '
+        autoSwitch:
+          type: string
+          description: Automatic switching happens only when 1 is sent
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: 'The sender''s unique, alphanumeric payment identifier (a UUID, for example); the status can
+            be asked by it when no answer came
+
+            '
+        pan:
+          type: string
+          maxLength: 16
+          description: Sender card PAN
+        expiry:
+          type: string
+          maxLength: 4
+          description: Sender card expiry (YYMM)
+        pan2:
+          type: string
+          maxLength: 16
+          description: Receiver card PAN
+        amount:
+          type: string
+          maxLength: 12
+          pattern: '^[0-9]{1,12}$'
+          description: Amount in minor units (tiyin), digits only, at most 999999999999
+        ccyCode:
+          type: string
+          maxLength: 3
+          description: Currency numeric code, 860 for UZS
+        merchantId:
+          type: string
+          maxLength: 15
+          description: Merchant identifier
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Terminal identifier
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    P2pConfirmRequest:
+      type: object
+      description: P2P confirmation by the authorization's paymentRef (HUMOPAYMENT.pdf §2.2 p.8)
+      required:
+      - paymentRef
+      - confirmed
+      - finished
+      - paymentOriginator
+      properties:
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: paymentRef of the P2P authorization
+        confirmed:
+          type: boolean
+          description: Confirms the transfer, true
+        finished:
+          type: boolean
+          description: Finishes the transfer, true
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    P2pResponse:
+      type: object
+      description: 'The Payment Server''s answer to a P2P authorization (RequestResponse, action 4) or confirmation
+        (PaymentResponse, action 10); the confirmation adds both legs'' authorization details
+
+        '
+      required:
+      - paymentId
+      - action
+      properties:
+        sessionId:
+          type: string
+          description: Payment Server session (sessionID), authorization only
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        action:
+          type: integer
+          description: 4 = authorized, waits for confirmation; 10 = confirmed
+        paymentInstruments:
+          type: array
+          description: Payment instruments used (paymentInstruments/item), authorization only
+          items:
+            $ref: '#/components/schemas/PaymentInstrument'
+        details:
+          type: object
+          description: Payment attributes returned by the Processing Center
+          properties:
+            pan:
+              type: string
+              description: Sender card PAN (pan)
+            expiry:
+              type: string
+              description: Sender card expiry, YYMM (expiry)
+            pan2:
+              type: string
+              description: Receiver card PAN (pan2)
+            amount:
+              type: string
+              description: Amount in tiyin (amount)
+            ccyCode:
+              type: string
+              description: Currency numeric code (ccy_code)
+            merchantId:
+              type: string
+              description: Merchant identifier (merchant_id)
+            terminalId:
+              type: string
+              description: Terminal identifier (terminal_id)
+            internalPanMasked:
+              type: string
+              description: Masked sender PAN (internal_pan_masked)
+            internalPan2Masked:
+              type: string
+              description: Masked receiver PAN (internal_pan2_masked)
+            fld126P2pr:
+              type: string
+              description: Field 126 P2PR (fld_126_P2PR)
+            amountFee:
+              type: string
+              description: Amount with fee (amount_fee)
+            merchantName:
+              type: string
+              description: Merchant name (merchant_name)
+            pointCode:
+              type: string
+              description: Point of service code (point_code)
+            transactionAmount:
+              type: string
+              description: Transaction amount (transaction_amount)
+            cardholderAmount:
+              type: string
+              description: Cardholder billing amount (cardholder_amount)
+            cardholderCcyCode:
+              type: string
+              description: Cardholder billing currency (cardholder_ccy_code)
+            conversionRate:
+              type: string
+              description: Conversion rate (conversion_rate)
+            authActionCode:
+              type: string
+              description: Debit leg action code (auth_action_code)
+            authActionCodeFinal:
+              type: string
+              description: Final action code (auth_action_code_final)
+            authApprCode:
+              type: string
+              description: Debit leg approval code (auth_appr_code)
+            authRefNumber:
+              type: string
+              description: Debit leg reference number (auth_ref_number)
+            authStan:
+              type: string
+              description: Debit leg STAN (auth_stan)
+            authTime:
+              type: string
+              description: Debit leg time, YYYYMMDDHHMMSS (auth_time)
+            stipClientId:
+              type: string
+              description: STIP client identifier (stip_client_id)
+            cardType:
+              type: string
+              description: Sender card type (card_type)
+            acqInst:
+              type: string
+              description: Acquirer institution (acq_inst)
+            authRowNumb1:
+              type: string
+              description: Debit leg row number (auth_row_numb1)
+            reconcileInfo:
+              type: string
+              description: Reconciliation information (reconcile_info)
+            issRefData:
+              type: string
+              description: Issuer reference data (iss_ref_data)
+            authMsgRef1:
+              type: string
+              description: Debit leg message reference (auth_msg_ref1)
+            authActionCode2:
+              type: string
+              description: Credit leg action code (auth_action_code2)
+            authApprCode2:
+              type: string
+              description: Credit leg approval code (auth_appr_code2)
+            authRefNumber2:
+              type: string
+              description: Credit leg reference number (auth_ref_number2)
+            authStan2:
+              type: string
+              description: Credit leg STAN (auth_stan2)
+            authTime2:
+              type: string
+              description: Credit leg time (auth_time2)
+            cardType2:
+              type: string
+              description: Receiver card type (card_type2)
+            merchantName2:
+              type: string
+              description: Credit leg merchant name (merchant_name2)
+            acqInst2:
+              type: string
+              description: Credit leg acquirer institution (acq_inst2)
+            authRowNumb3:
+              type: string
+              description: Credit leg row number (auth_row_numb3)
+            reconcileInfo2:
+              type: string
+              description: Credit leg reconciliation information (reconcile_info2)
+            issRefData2:
+              type: string
+              description: Credit leg issuer reference data (iss_ref_data2)
+            authMsgRef3:
+              type: string
+              description: Credit leg message reference (auth_msg_ref3)
+    P2pResult:
+      type: object
+      description: Envelope of the P2P authorize and confirm operations
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/P2pResponse'
+    PaymentInstrument:
+      type: object
+      description: One paymentInstruments item
+      properties:
+        label:
+          type: string
+          description: Instrument label
+        reference:
+          type: string
+          description: Instrument reference
+    CreditToCardRequest:
+      type: object
+      description: 'SOAP_TOCARD_2 credit, the Payment Server''s Request (HUMOPAYMENT.pdf §4 p.27–29). The sender_*
+        fields go on as details; sender_retrieval_ref_number, sender_person_code and sender_pan are what terminals
+        xx66xxxx need.
+
+        '
+      required:
+      - billerRef
+      - payinstrRef
+      - paymentRef
+      - pan2
+      - expiry
+      - ccyCode
+      - amount
+      - merchantId
+      - terminalId
+      - senderRetrievalRefNumber
+      - senderSurname
+      - senderPan
+      - senderFirstName
+      - paymentOriginator
+      properties:
+        billerRef:
+          type: string
+          description: Biller to pay, SOAP_TOCARD_2
+        payinstrRef:
+          type: string
+          description: Payment instrument, SOAP_TOCARD_2
+        sessionId:
+          type: string
+          description: Payment Server session identifier; the PDF's table marks it M, its example leaves it out
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: The sender's unique payment identifier
+        pan2:
+          type: string
+          maxLength: 16
+          description: Card PAN to credit
+        expiry:
+          type: string
+          maxLength: 4
+          description: Card expiry (YYMM)
+        ccyCode:
+          type: string
+          maxLength: 3
+          description: Currency numeric code, 860 for UZS
+        amount:
+          type: string
+          maxLength: 12
+          pattern: '^[0-9]{1,12}$'
+          description: Amount in minor units (tiyin), digits only, at most 999999999999
+        merchantId:
+          type: string
+          maxLength: 15
+          description: Merchant identifier
+        terminalId:
+          type: string
+          maxLength: 8
+          description: Terminal identifier
+        centreId:
+          type: string
+          description: Bank identifier (centre_id); in the PDF's example, not its table
+        senderRetrievalRefNumber:
+          type: string
+          maxLength: 12
+          description: Sender's payment identification number (sender_retrieval_ref_number), mandatory for terminals xx66xxxx
+        senderNationality:
+          type: string
+          maxLength: 3
+          description: Sender citizenship, for example UZB or USA
+        senderDocType:
+          type: string
+          maxLength: 3
+          description: Sender document type, 001 passport, 002 driving licence, 003 insurance policy, NIC national id card
+        senderSerialNo:
+          type: string
+          description: Sender document series; required above 50 BRV
+        senderIdCard:
+          type: string
+          maxLength: 16
+          description: Sender document number; required above 50 BRV
+        senderDocValidthrough:
+          type: string
+          description: Sender document validity, YYYY-MM-DD
+        senderPersonCode:
+          type: string
+          maxLength: 20
+          description: Sender PINFL
+        senderSurname:
+          type: string
+          maxLength: 20
+          description: Sender surname
+        senderPan:
+          type: string
+          maxLength: 16
+          description: Sender card PAN, mandatory for terminals xx66xxxx
+        senderFirstName:
+          type: string
+          maxLength: 34
+          description: Sender first name
+        senderMiddleName:
+          type: string
+          maxLength: 20
+          description: Sender middle name
+        senderBirthDate:
+          type: string
+          description: Sender birth date, YYYY-MM-DD
+        paymentOriginator:
+          type: string
+          description: Name of the payment originator (login)
+    CreditToCardResponse:
+      type: object
+      description: The Payment Server's RequestResponse to SOAP_TOCARD_2; action 4 = credited
+      required:
+      - paymentId
+      - action
+      properties:
+        sessionId:
+          type: string
+          description: Payment Server session (sessionID)
+        paymentId:
+          type: integer
+          format: int64
+          description: Unique payment identifier in the Payment Server
+        paymentRef:
+          type: string
+          maxLength: 64
+          description: Payment reference number
+        action:
+          type: integer
+          description: 4 = the card was credited
+        details:
+          type: object
+          description: Payment attributes returned by the Processing Center
+          properties:
+            pan2:
+              type: string
+              description: Credited card PAN (pan2)
+            expiry:
+              type: string
+              description: Card expiry, YYMM (expiry)
+            amount:
+              type: string
+              description: Amount in tiyin (amount)
+            merchantId:
+              type: string
+              description: Merchant identifier (merchant_id)
+            terminalId:
+              type: string
+              description: Terminal identifier (terminal_id)
+            ccyCode:
+              type: string
+              description: Currency numeric code (ccy_code)
+            pointCode:
+              type: string
+              description: Point of service code (point_code)
+            centreId:
+              type: string
+              description: Bank identifier (centre_id)
+            senderSerialNo:
+              type: string
+              description: Sender document series (sender_serial_no)
+            senderIdCard:
+              type: string
+              description: Sender document number (sender_id_card)
+            senderSurname:
+              type: string
+              description: Sender surname (sender_surname)
+            senderFirstName:
+              type: string
+              description: Sender first name (sender_first_name)
+            senderRetrievalRefNumber:
+              type: string
+              description: Sender retrieval reference number (sender_retrieval_ref_number)
+            senderPersonCode:
+              type: string
+              description: Sender PINFL (sender_person_code)
+            senderPan:
+              type: string
+              description: Sender card PAN (sender_pan)
+            internalPan2Masked:
+              type: string
+              description: Masked credited PAN (internal_pan2_masked)
+            checkSenderData3:
+              type: string
+              description: Sender data check, OK when passed (check_sender_data3)
+            fld126Mssd:
+              type: string
+              description: Field 126 MSSD, the sender data as sent on (fld_126_MSSD)
+            authActionCode:
+              type: string
+              description: Action code (auth_action_code)
+            authActionCodeFinal:
+              type: string
+              description: Final action code (auth_action_code_final)
+            authApprCode:
+              type: string
+              description: Approval code (auth_appr_code)
+            authRefNumber:
+              type: string
+              description: Reference number (auth_ref_number)
+            authStan:
+              type: string
+              description: STAN (auth_stan)
+            authTime:
+              type: string
+              description: Time, YYYYMMDDHHMMSS (auth_time)
+            stipClientId:
+              type: string
+              description: STIP client identifier (stip_client_id)
+            cardType:
+              type: string
+              description: Card type (card_type)
+            merchantName:
+              type: string
+              description: Merchant name (merchant_name)
+            acqInst:
+              type: string
+              description: Acquirer institution (acq_inst)
+            authRowNumb1:
+              type: string
+              description: Row number (auth_row_numb1)
+            reconcileInfo:
+              type: string
+              description: Reconciliation information (reconcile_info)
+            issRefData:
+              type: string
+              description: Issuer reference data (iss_ref_data)
+            authMsgRef1:
+              type: string
+              description: Message reference (auth_msg_ref1)
+            transactionAmount:
+              type: string
+              description: Transaction amount (transaction_amount)
+            cardholderAmount:
+              type: string
+              description: Cardholder billing amount (cardholder_amount)
+            cardholderCcyCode:
+              type: string
+              description: Cardholder billing currency (cardholder_ccy_code)
+            conversionRate:
+              type: string
+              description: Conversion rate (conversion_rate)
+    CreditToCardResult:
+      type: object
+      description: Envelope of the SOAP_TOCARD_2 credit operation
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/CreditToCardResponse'

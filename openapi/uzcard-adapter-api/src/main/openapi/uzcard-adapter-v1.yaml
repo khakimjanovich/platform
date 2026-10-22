@@ -28,6 +28,10 @@ tags:
     description: Reports for reconciliation (SV-Gate report.* methods)
   - name: UzcardP2PService
     description: Card to card (SV-Gate p2p.* methods)
+  - name: UzcardHoldService
+    description: Holds on a card (SV-Gate hold.* methods)
+  - name: UzcardHistoryService
+    description: A card's history (SV-Gate trans.history* methods)
 
 paths:
   /v1/cards/new-otp:
@@ -573,6 +577,126 @@ paths:
             schema: { $ref: "#/components/schemas/P2PInfoGetPinflRequest" }
       responses:
         "200": { description: The PINFL, content: { application/json: { schema: { $ref: "#/components/schemas/PinflResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/holds:
+    post:
+      tags: [UzcardHoldService]
+      operationId: holdCreate
+      summary: Holds an amount on the card for a number of minutes (hold.create)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HoldCreateRequest" }
+      responses:
+        "200": { description: Held, content: { application/json: { schema: { $ref: "#/components/schemas/HoldCreatedResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/holds/dismiss:
+    post:
+      tags: [UzcardHoldService]
+      operationId: holdDismiss
+      summary: Cancels a hold; the amount is free again (hold.dismiss)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HoldDismissRequest" }
+      responses:
+        "200": { description: Cancelled, content: { application/json: { schema: { $ref: "#/components/schemas/HoldDismissedResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/holds/dismiss-charge:
+    post:
+      tags: [UzcardHoldService]
+      operationId: holdDismissCharge
+      summary: Charges a held amount (hold.dismiss.charge)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HoldDismissChargeRequest" }
+      responses:
+        "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/holds/get-id:
+    post:
+      tags: [UzcardHoldService]
+      operationId: holdGetId
+      summary: A hold by its id (hold.get.id)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HoldGetIdRequest" }
+      responses:
+        "200": { description: The hold, content: { application/json: { schema: { $ref: "#/components/schemas/HoldInfoResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/holds/get-card-id:
+    post:
+      tags: [UzcardHoldService]
+      operationId: holdGetCardId
+      summary: A card's holds (hold.get.cardId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdRequest" }
+      responses:
+        "200": { description: The holds, content: { application/json: { schema: { $ref: "#/components/schemas/HoldInfoListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/history/filter:
+    post:
+      tags: [UzcardHistoryService]
+      operationId: transHistoryFilter
+      summary: Cards' debits, credits or both over up to 60 days (trans.history.filter)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransHistoryFilterRequest" }
+      responses:
+        "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/TransHistoryResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/history:
+    post:
+      tags: [UzcardHistoryService]
+      operationId: transHistory
+      summary: Cards' history over up to 60 days (trans.history)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransHistoryRequest" }
+      responses:
+        "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/TransHistoryResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/history/extended:
+    post:
+      tags: [UzcardHistoryService]
+      operationId: transHistoryExtended
+      summary: One card's history between 61 and 365 days back (trans.history.extended)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransHistoryExtendedRequest" }
+      responses:
+        "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/TransHistoryResult" } } } }
         "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
@@ -1197,3 +1321,175 @@ components:
         requestId: { type: string }
         status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
         data: { $ref: "#/components/schemas/Pinfl" }
+
+    HoldCreateRequest:
+      type: object
+      required: [cardId, merchantId, terminalId, amount, time]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        time: { type: integer, format: int32, description: Minutes }
+    HoldCreated:
+      type: object
+      properties:
+        id: { type: integer, format: int64, description: "The hold's id" }
+        status: { type: integer, format: int32 }
+        description: { type: string }
+
+    HoldCreatedResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/HoldCreated" }
+
+    HoldDismissRequest:
+      type: object
+      required: [holdId, merchantId, terminalId, amount]
+      properties:
+        holdId: { type: string, maxLength: 6 }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+    HoldDismissed:
+      type: object
+      properties:
+        id: { type: string, description: "The hold's id" }
+        status: { type: string, description: "0: cancelled" }
+        description: { type: string }
+
+    HoldDismissedResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/HoldDismissed" }
+
+    HoldDismissChargeRequest:
+      type: object
+      required: [holdId, ext, merchantId, terminalId, port, amount]
+      properties:
+        holdId: { type: string, maxLength: 6 }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        port: { type: integer, format: int32 }
+        stan: { type: string, maxLength: 6 }
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        date12: { type: string, maxLength: 12, description: yyMMddHHmmss }
+    HoldGetIdRequest:
+      type: object
+      required: [id]
+      properties:
+        id: { type: integer, format: int64, description: "The hold's id" }
+    HoldInfo:
+      type: object
+      properties:
+        hid: { type: integer, format: int64 }
+        crefNo: { type: string }
+        reqamt: { type: integer, format: int64, description: In tiyin }
+        createTime: { type: string }
+        waitingTime: { type: string }
+        status: { type: integer, format: int32, description: "0 held, 1 charged, 2 cancelled, 3 expired" }
+        remark: { type: string }
+        accNo: { type: string }
+        userName: { type: string }
+
+    HoldInfoResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/HoldInfo" }
+
+    HoldInfoListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/HoldInfo" }
+
+    TransHistoryFilterRequest:
+      type: object
+      required: [cardIds, startDate, endDate, pageNumber, pageSize, isCredit]
+      properties:
+        cardIds: { type: array, minItems: 1, items: { type: string, maxLength: 32 } }
+        startDate: { type: string, maxLength: 8, description: yyyyMMdd }
+        endDate: { type: string, maxLength: 8, description: yyyyMMdd }
+        pageNumber: { type: integer, format: int32 }
+        pageSize: { type: integer, format: int32, minimum: 1, maximum: 50 }
+        isCredit: { type: integer, format: int32, minimum: 0, maximum: 2, description: "0 debit, 1 credit, 2 both" }
+    TransHistoryRequest:
+      type: object
+      required: [cardIds, startDate, endDate, pageNumber, pageSize]
+      properties:
+        cardIds: { type: array, minItems: 1, items: { type: string, maxLength: 32 } }
+        startDate: { type: string, maxLength: 8, description: yyyyMMdd }
+        endDate: { type: string, maxLength: 8, description: yyyyMMdd }
+        pageNumber: { type: integer, format: int32 }
+        pageSize: { type: integer, format: int32, minimum: 1, maximum: 50 }
+    TransHistoryExtendedRequest:
+      type: object
+      required: [cardId, extId, startDate, endDate, pageNumber, pageSize]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "One card's token" }
+        extId: { type: string, maxLength: 75 }
+        startDate: { type: string, maxLength: 8, description: yyyyMMdd }
+        endDate: { type: string, maxLength: 8, description: yyyyMMdd }
+        pageNumber: { type: integer, format: int32 }
+        pageSize: { type: integer, format: int32 }
+    TransHistory:
+      type: object
+      properties:
+        utrnno: { type: string, description: "SV's transaction number" }
+        extId: { type: string }
+        transType: { type: integer, format: int32 }
+        hpan: { type: string }
+        utime: { type: integer, format: int32, description: HHmmss }
+        udate: { type: integer, format: int32, description: yyyyMMdd }
+        bankDate: { type: integer, format: int32 }
+        reqamt: { type: integer, format: int64, description: In tiyin }
+        resp: { type: integer, format: int32, description: "-1 is success" }
+        reversal: { type: boolean }
+        orgdev: { type: integer, format: int64 }
+        merchant: { type: string }
+        terminal: { type: string }
+        merchantName: { type: string }
+        street: { type: string }
+        city: { type: string }
+        isCredit: { type: boolean }
+        credit: { type: boolean }
+        mcc: { type: integer, format: int32 }
+        currency: { type: integer, format: int32 }
+        actamt: { type: integer, format: int64 }
+        acctbal: { type: integer, format: int64 }
+        conamt: { type: integer, format: int64 }
+        oked: { type: string }
+        inn: { type: string }
+    TransHistoryPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: "#/components/schemas/TransHistory" }
+        last: { type: boolean }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer, format: int32 }
+        size: { type: integer, format: int32 }
+        number: { type: integer, format: int32 }
+        numberOfElements: { type: integer, format: int32 }
+        first: { type: boolean }
+        totalDebit: { type: integer, format: int64 }
+        totalCredit: { type: integer, format: int64 }
+        extId: { type: string }
+
+    TransHistoryResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/TransHistoryPage" }

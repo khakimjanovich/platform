@@ -244,6 +244,231 @@ paths:
         "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /v1/cards/get-tokens:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsGetTokens
+      summary: The partners the card is bound to, by temporary token (cards.get.tokens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsGetTokensRequest" }
+      responses:
+        "200": { description: Partners, content: { application/json: { schema: { $ref: "#/components/schemas/CardPartnerListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/block-tokens:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsBlockTokens
+      summary: Blocks tokens for a number of minutes (cards.block.tokens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsBlockTokensRequest" }
+      responses:
+        "200": { description: Each token and its code, content: { application/json: { schema: { $ref: "#/components/schemas/CardTokenCodeListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/unblock-tokens:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsUnblockTokens
+      summary: Unblocks tokens (cards.unblock.tokens)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsUnblockTokensRequest" }
+      responses:
+        "200": { description: Each token and its code, content: { application/json: { schema: { $ref: "#/components/schemas/CardTokenCodeListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/get:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsGet
+      summary: The cards behind the tokens (cards.get)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdsRequest" }
+      responses:
+        "200": { description: The cards, content: { application/json: { schema: { $ref: "#/components/schemas/CardBalanceListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/cvv:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardGetCvv
+      summary: Sends the card's CVV to its phone (card.get.cvv)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdRequest" }
+      responses:
+        "200": { description: Sent, content: { application/json: { schema: { $ref: "#/components/schemas/CodeMessageResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/cvv2:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardGetCvv2
+      summary: The card's CVV (card.get.cvv2)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdRequest" }
+      responses:
+        "200": { description: The CVV, content: { application/json: { schema: { $ref: "#/components/schemas/CardCvvResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/get-exceed:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsGetExceed
+      summary: The cards behind the tokens with what is left of their credit limit (cards.get.exceed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdsRequest" }
+      responses:
+        "200": { description: The cards, content: { application/json: { schema: { $ref: "#/components/schemas/CardBalanceListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/status-change:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardStatusChange
+      summary: Changes the status of a card our bank issued (card.status.change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardStatusChangeRequest" }
+      responses:
+        "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/pin-reset-otp:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardPinResetOtp
+      summary: Sends an OTP to reset the card's wrong PIN count (card.pin.reset.otp)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdRequest" }
+      responses:
+        "200": { description: Sent, content: { application/json: { schema: { $ref: "#/components/schemas/CodeMessageResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/pin-reset-verify:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardPinResetVerify
+      summary: Resets the card's wrong PIN count with the OTP (card.pin.reset.verify)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardPinResetVerifyRequest" }
+      responses:
+        "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/list-token:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsListToken
+      summary: The cards bound to a phone number (cards.list.token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsListTokenRequest" }
+      responses:
+        "200": { description: The cards, content: { application/json: { schema: { $ref: "#/components/schemas/CardListTokenListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/check-pinfl:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardCheckPinfl
+      summary: Whether the card belongs to the PINFL (card.check.pinfl)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardCheckPinflRequest" }
+      responses:
+        "200": { description: It does; -392 and -393 are errors, content: { application/json: { schema: { $ref: "#/components/schemas/CodeMessageResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/balance:
+    post:
+      tags: [UzcardCardService]
+      operationId: balanceGet
+      summary: The balances of the cards behind the tokens (balance.get)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdsRequest" }
+      responses:
+        "200": { description: Balances, content: { application/json: { schema: { $ref: "#/components/schemas/BalanceResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/sdkid:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsGetSdkid
+      summary: Tokenizes the card into the UzcardPay SDK (cards.get.sdkid)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsGetSdkidRequest" }
+      responses:
+        "200": { description: The SDK id, content: { application/json: { schema: { $ref: "#/components/schemas/CardSdkIdResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/cards/transcheme:
+    post:
+      tags: [UzcardCardService]
+      operationId: cardsSetTranscheme
+      summary: Sets a transaction scheme on the card (cards.set.transcheme)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardsSetTranschemeRequest" }
+      responses:
+        "200": { description: Set, content: { application/json: { schema: { $ref: "#/components/schemas/CodeMessageResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
 components:
   schemas:
     UzcardSvGateStatusCode:
@@ -532,3 +757,202 @@ components:
         data:
           type: array
           items: { $ref: "#/components/schemas/ReportShortResponse" }
+
+    CardIdRequest:
+      type: object
+      required: [cardId]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+    CardIdsRequest:
+      type: object
+      required: [ids]
+      properties:
+        ids: { type: array, minItems: 1, items: { type: string, maxLength: 32 }, description: "Card tokens" }
+    CodeMessage:
+      type: object
+      properties:
+        code: { type: integer, format: int32, description: "0 is done" }
+        message: { type: string }
+
+    CodeMessageResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/CodeMessage" }
+
+    CardsGetTokensRequest:
+      type: object
+      required: [cardId]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token; sent to SV-Gate as id" }
+    CardPartner:
+      type: object
+      properties:
+        id: { type: string, description: Temporary token }
+        appName: { type: string }
+        registrationDate: { type: string, description: "dd.MM.yyyy HH:mm:ss" }
+
+    CardPartnerListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardPartner" }
+
+    CardsBlockTokensRequest:
+      type: object
+      required: [tokens]
+      properties:
+        tokens:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/CardTokenBlock" }
+    CardTokenBlock:
+      type: object
+      required: [id, time]
+      properties:
+        id: { type: string, maxLength: 32, description: "The card's token" }
+        time: { type: integer, format: int32, description: Minutes }
+    CardsUnblockTokensRequest:
+      type: object
+      required: [tokens]
+      properties:
+        tokens: { type: array, minItems: 1, items: { type: string, maxLength: 32 } }
+    CardTokenCode:
+      type: object
+      properties:
+        id: { type: string }
+        code: { type: integer, format: int32 }
+        message: { type: string }
+
+    CardTokenCodeListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardTokenCode" }
+
+    CardBalanceListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardBalanceResponse" }
+
+    CardCvv:
+      type: object
+      properties:
+        cvv: { type: string }
+
+    CardCvvResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/CardCvv" }
+
+    CardStatusChangeRequest:
+      type: object
+      required: [cardId, terminalId, merchantId, port, stan, statusId]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        terminalId: { type: string, maxLength: 16 }
+        merchantId: { type: string, maxLength: 16 }
+        port: { type: string, maxLength: 6 }
+        stan: { type: string, maxLength: 6, description: "Unique within the transaction" }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id" }
+        statusId: { type: integer, format: int32, description: "0 VALID_CARD, 20 TEMPORARY_BLOCKED_BY_CLIENT" }
+    CardPinResetVerifyRequest:
+      type: object
+      required: [cardId, terminalId, merchantId, port, stan, code]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        terminalId: { type: string, maxLength: 16 }
+        merchantId: { type: string, maxLength: 16 }
+        port: { type: string, maxLength: 6 }
+        stan: { type: string, maxLength: 6 }
+        ext: { type: string, maxLength: 75 }
+        code: { type: integer, format: int32, description: "The OTP" }
+    CardsListTokenRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone: { type: string, maxLength: 12 }
+    CardListToken:
+      type: object
+      properties:
+        id: { type: string, description: "The card's token" }
+        pan: { type: string, description: Masked }
+        mfo: { type: string }
+        fullName: { type: string }
+        contractId: { type: string }
+        instId: { type: string }
+
+    CardListTokenListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardListToken" }
+
+    CardCheckPinflRequest:
+      type: object
+      required: [cardId, pinfl]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        pinfl: { type: string, maxLength: 14 }
+    BalanceInfo:
+      type: object
+      properties:
+        id: { type: string }
+        pan: { type: string }
+        balance: { type: integer, format: int64 }
+    Balance:
+      type: object
+      properties:
+        balanceInfo:
+          type: array
+          items: { $ref: "#/components/schemas/BalanceInfo" }
+        totalBalance: { type: integer, format: int64 }
+
+    BalanceResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/Balance" }
+
+    CardsGetSdkidRequest:
+      type: object
+      required: [cardId, phone]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        phone: { type: string, maxLength: 12, description: "The phone the user registered in the app with" }
+    CardSdkId:
+      type: object
+      properties:
+        sdkId: { type: string }
+
+    CardSdkIdResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/CardSdkId" }
+
+    CardsSetTranschemeRequest:
+      type: object
+      required: [cardId, schemeId, duration]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        schemeId: { type: integer, format: int32, description: "-1 is the default scheme" }
+        duration: { type: integer, format: int32, description: "Hours; 0 keeps it" }

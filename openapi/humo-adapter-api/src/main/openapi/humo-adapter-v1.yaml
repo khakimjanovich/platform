@@ -2432,8 +2432,9 @@ components:
     CreditToCardRequest:
       type: object
       description: 'SOAP_TOCARD_2 credit, the Payment Server''s Request (HUMOPAYMENT.pdf §4 p.27–29). The sender_*
-        fields go on as details; sender_retrieval_ref_number, sender_person_code and sender_pan are what terminals
-        xx66xxxx need.
+        fields go on as details. A reversal terminal (terminalId xx66xxxx: third and fourth digits 66) must send
+        senderRetrievalRefNumber, senderPersonCode and senderPan, else the adapter answers 400; other terminals
+        need none of them (confirmed by HUMO). No sessionID is sent (confirmed by HUMO).
 
         '
       required:
@@ -2446,9 +2447,7 @@ components:
       - amount
       - merchantId
       - terminalId
-      - senderRetrievalRefNumber
       - senderSurname
-      - senderPan
       - senderFirstName
       - paymentOriginator
       properties:
@@ -2458,9 +2457,6 @@ components:
         payinstrRef:
           type: string
           description: Payment instrument, SOAP_TOCARD_2
-        sessionId:
-          type: string
-          description: Payment Server session identifier; the PDF's table marks it M, its example leaves it out
         paymentRef:
           type: string
           maxLength: 64
@@ -2496,8 +2492,7 @@ components:
         senderRetrievalRefNumber:
           type: string
           maxLength: 12
-          description: 'Sender''s payment identification number (sender_retrieval_ref_number). Required: the PDF''s table
-            marks it M (p.27), its text says for terminals xx66xxxx'
+          description: 'Sender''s payment identification number (sender_retrieval_ref_number); mandatory for reversal terminals xx66xxxx'
         senderNationality:
           type: string
           maxLength: 3
@@ -2519,8 +2514,7 @@ components:
         senderPersonCode:
           type: string
           maxLength: 20
-          description: 'Sender PINFL. Optional in the PDF''s table (p.27); its change history (v2.1, p.2) makes it mandatory
-            for terminals xx66xxxx, so send it for those'
+          description: 'Sender PINFL (sender_person_code); mandatory for reversal terminals xx66xxxx'
         senderSurname:
           type: string
           maxLength: 20
@@ -2528,8 +2522,7 @@ components:
         senderPan:
           type: string
           maxLength: 16
-          description: 'Sender card PAN. Required: the PDF''s table marks it M (p.27), its text and change history say
-            for terminals xx66xxxx'
+          description: 'Sender card PAN (sender_pan); mandatory for reversal terminals xx66xxxx'
         senderFirstName:
           type: string
           maxLength: 34

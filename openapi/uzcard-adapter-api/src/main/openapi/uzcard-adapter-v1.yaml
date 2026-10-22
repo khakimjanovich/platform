@@ -939,12 +939,13 @@ components:
     MerchantInfo:
       type: object
       description: "Required from aggregators and payment organisations that settle with merchants themselves"
+      required: [mcc, legalName, legalType, legalId]
       properties:
         mcc: { type: string, maxLength: 4 }
         legalName: { type: string, maxLength: 80 }
         legalType: { type: integer, format: int32 }
         legalId: { type: string, maxLength: 14 }
-        legalOKED: { type: string, maxLength: 5 }
+        legalOKED: { type: string, maxLength: 5, description: "Required unless legalType is 3 (ИП)" }
     TransExtRequest:
       type: object
       required: [extId]

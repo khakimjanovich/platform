@@ -32,6 +32,12 @@ tags:
     description: Holds on a card (SV-Gate hold.* methods)
   - name: UzcardHistoryService
     description: A card's history (SV-Gate trans.history* methods)
+  - name: UzcardLimitService
+    description: A card's limits (SV-Gate card.limit.* methods)
+  - name: UzcardAutopayService
+    description: Debt autopayment (SV-Gate autopay.* methods)
+  - name: UzcardPinService
+    description: Online PIN change and set (SV-Gate online.pin.* methods)
 
 paths:
   /v1/cards/new-otp:
@@ -697,6 +703,121 @@ paths:
             schema: { $ref: "#/components/schemas/TransHistoryExtendedRequest" }
       responses:
         "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/TransHistoryResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/limits/add:
+    post:
+      tags: [UzcardLimitService]
+      operationId: cardLimitAdd
+      summary: Sets limits on a card (card.limit.add)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardLimitAddRequest" }
+      responses:
+        "200": { description: Each limit and its code, content: { application/json: { schema: { $ref: "#/components/schemas/CardLimitCodeListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/limits/info:
+    post:
+      tags: [UzcardLimitService]
+      operationId: cardLimitInfo
+      summary: A card's limits and what is used of them (card.limit.info)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardIdRequest" }
+      responses:
+        "200": { description: The limits, content: { application/json: { schema: { $ref: "#/components/schemas/CardLimitInfoListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/limits/remove:
+    post:
+      tags: [UzcardLimitService]
+      operationId: cardLimitRemove
+      summary: Removes limits from a card (card.limit.remove)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CardLimitRemoveRequest" }
+      responses:
+        "200": { description: Each limit and its code, content: { application/json: { schema: { $ref: "#/components/schemas/CardLimitCodeListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/limits:
+    get:
+      tags: [UzcardLimitService]
+      operationId: cardLimitList
+      summary: The limit types (card.limit.list)
+      responses:
+        "200": { description: Limit types, content: { application/json: { schema: { $ref: "#/components/schemas/CardLimitTypeListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/autopay/cards:
+    post:
+      tags: [UzcardAutopayService]
+      operationId: autopayCardsGet
+      summary: A borrower's cards by PINFL, for debt autopayment (autopay.cards.get)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutopayCardsGetRequest" }
+      responses:
+        "200": { description: The cards, content: { application/json: { schema: { $ref: "#/components/schemas/AutopayCardListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/autopay/subscribe:
+    post:
+      tags: [UzcardAutopayService]
+      operationId: autopayCardsSubscribe
+      summary: Turns a card's subscription on or off (autopay.cards.subscribe)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AutopayCardsSubscribeRequest" }
+      responses:
+        "200": { description: Done, content: { application/json: { schema: { $ref: "#/components/schemas/CodeMessageResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/pin/change:
+    post:
+      tags: [UzcardPinService]
+      operationId: onlinePinChange
+      summary: The page where the cardholder changes the PIN (online.pin.change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnlinePinChangeRequest" }
+      responses:
+        "200": { description: The page, content: { application/json: { schema: { $ref: "#/components/schemas/OnlinePinResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/pin/set:
+    post:
+      tags: [UzcardPinService]
+      operationId: onlinePinSet
+      summary: The page where the cardholder sets the PIN (online.pin.set)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnlinePinSetRequest" }
+      responses:
+        "200": { description: The page, content: { application/json: { schema: { $ref: "#/components/schemas/OnlinePinResult" } } } }
         "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
@@ -1493,3 +1614,144 @@ components:
         requestId: { type: string }
         status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
         data: { $ref: "#/components/schemas/TransHistoryPage" }
+
+    CardLimitAddRequest:
+      type: object
+      required: [cardId, limits]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        limits:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/CardLimitAmount" }
+    CardLimitAmount:
+      type: object
+      required: [limitId, amount]
+      properties:
+        limitId: { type: integer, format: int32, description: "The limit type (card.limit.list)" }
+        amount: { type: integer, format: int64, description: In tiyin }
+    CardLimitRemoveRequest:
+      type: object
+      required: [cardId, limits]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        limits: { type: array, minItems: 1, items: { type: integer, format: int32 }, description: "Limit types" }
+    CardLimitCode:
+      type: object
+      properties:
+        limitId: { type: integer, format: int32 }
+        code: { type: integer, format: int32, description: "0 is done" }
+        message: { type: string }
+
+    CardLimitCodeListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardLimitCode" }
+
+    CardLimitInfo:
+      type: object
+      properties:
+        limitId: { type: integer, format: int32 }
+        description: { type: string }
+        limitAmount: { type: integer, format: int64, description: In tiyin }
+        usedAmount: { type: integer, format: int64, description: In tiyin }
+
+    CardLimitInfoListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardLimitInfo" }
+
+    CardLimitType:
+      type: object
+      properties:
+        limitId: { type: integer, format: int32 }
+        name: { type: string }
+
+    CardLimitTypeListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/CardLimitType" }
+
+    AutopayCardsGetRequest:
+      type: object
+      required: [pinfl, owner, loanId, contractNumber, contractDateStart, contractDateEnd, creditType, creditSource, creditDestination, subscribe, merchantId, terminalId]
+      properties:
+        pinfl: { type: string, maxLength: 14 }
+        owner: { type: string, maxLength: 80, description: "The borrower's full name" }
+        loanId: { type: string, maxLength: 50 }
+        contractNumber: { type: string, maxLength: 50 }
+        contractDateStart: { type: integer, format: int32, description: yyyyMMdd }
+        contractDateEnd: { type: integer, format: int32, description: yyyyMMdd }
+        creditType: { type: integer, format: int32, minimum: 1, maximum: 5, description: "1 car, 2 mortgage, 3 microloan, 4 education, 5 consumer" }
+        creditSource: { type: string, maxLength: 50 }
+        creditDestination: { type: string, maxLength: 50, description: "account:… or card:…" }
+        subscribe: { type: integer, format: int32 }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+    AutopayCard:
+      type: object
+      properties:
+        id: { type: string, description: "The card's token" }
+        pan: { type: string, description: Masked }
+        fullName: { type: string }
+        phone: { type: string }
+
+    AutopayCardListResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/AutopayCard" }
+
+    AutopayCardsSubscribeRequest:
+      type: object
+      required: [subscribe, toggle]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        subscribe: { type: integer, format: int32, description: "1 balance information" }
+        toggle: { type: integer, format: int32, minimum: 0, maximum: 1, description: "0 off, 1 on" }
+    OnlinePinChangeRequest:
+      type: object
+      required: [cardId, merchantId, terminalId, ext]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id" }
+        redirectUrl: { type: string, maxLength: 100, description: "Where to go after a success" }
+    OnlinePinSetRequest:
+      type: object
+      required: [cardId, merchantId, terminalId, ext]
+      properties:
+        cardId: { type: string, maxLength: 32, description: "The card's token" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id" }
+        redirectUrl: { type: string, maxLength: 100, description: "Where to go after a success" }
+        preset: { type: integer, format: int32, minimum: 0, maximum: 1, description: "0 standard, 1 ahead of time" }
+    OnlinePin:
+      type: object
+      properties:
+        ext: { type: string }
+        url: { type: string, description: "The page; result=success or result=error is added after" }
+
+    OnlinePinResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/OnlinePin" }

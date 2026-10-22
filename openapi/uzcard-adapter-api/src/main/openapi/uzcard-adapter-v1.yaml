@@ -1015,14 +1015,14 @@ components:
         merchantId: { type: string, maxLength: 16 }
     TerminalAddRequest:
       type: object
-      required: [terminalId, merchantId, name, type]
+      required: [terminalId, merchantId, name, type, purpose]
       properties:
         terminalId: { type: string, maxLength: 16 }
         merchantId: { type: string, maxLength: 16 }
         port: { type: integer, format: int32 }
         name: { type: string, maxLength: 20 }
         type: { type: integer, format: int32, minimum: 1, maximum: 3, description: "1 debit, 2 credit, 3 P2P" }
-        purpose: { type: string, maxLength: 10, description: "payment when absent" }
+        purpose: { type: string, minLength: 1, maxLength: 10, description: "Always sent: SV-Gate's PDF makes it optional, but an absent purpose made the real stand store an empty one and refuse payments (-316). payment for e-commerce" }
     TerminalCodeResponse:
       type: object
       properties:

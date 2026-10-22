@@ -26,6 +26,8 @@ tags:
     description: e-POS terminals (SV-Gate terminal.* methods)
   - name: UzcardReportService
     description: Reports for reconciliation (SV-Gate report.* methods)
+  - name: UzcardP2PService
+    description: Card to card (SV-Gate p2p.* methods)
 
 paths:
   /v1/cards/new-otp:
@@ -469,6 +471,111 @@ paths:
         "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /v1/trans/sv:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: transSv
+      summary: The transactions under an SV refNum (trans.sv)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TransSvRequest" }
+      responses:
+        "200": { description: The transactions, content: { application/json: { schema: { $ref: "#/components/schemas/TransactionListResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/trans/curr:
+    post:
+      tags: [UzcardTransactionService]
+      operationId: currTrans
+      summary: A transaction by its RRN, for banks (curr.trans)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CurrTransRequest" }
+      responses:
+        "200": { description: The transaction, content: { application/json: { schema: { $ref: "#/components/schemas/CurrTransResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/p2p/universal:
+    post:
+      tags: [UzcardP2PService]
+      operationId: p2pUniversal
+      summary: Card to card by the sender's token and the recipient's token or PAN (p2p.universal)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/P2PUniversalRequest" }
+      responses:
+        "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/p2p/universal-credit:
+    post:
+      tags: [UzcardP2PService]
+      operationId: p2pUniversalCredit
+      summary: Credits a card by its token or PAN for a sender in another system (p2p.universal.credit)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/P2PUniversalCreditRequest" }
+      responses:
+        "200": { description: "SUCCESS, or ERROR with the declined transaction", content: { application/json: { schema: { $ref: "#/components/schemas/TransactionResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/p2p/info:
+    post:
+      tags: [UzcardP2PService]
+      operationId: p2pInfo
+      summary: The recipient card behind a PAN (p2p.info)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HpanRequest" }
+      responses:
+        "200": { description: The card, content: { application/json: { schema: { $ref: "#/components/schemas/P2PInfoResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/p2p/info-additional:
+    post:
+      tags: [UzcardP2PService]
+      operationId: p2pInfoAdditional
+      summary: The recipient card behind a PAN, with the holder's birth date (p2p.info.additional)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HpanRequest" }
+      responses:
+        "200": { description: The card, content: { application/json: { schema: { $ref: "#/components/schemas/P2PInfoAdditionalResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /v1/p2p/info-pinfl:
+    post:
+      tags: [UzcardP2PService]
+      operationId: p2pInfoGetPinfl
+      summary: The PINFL behind an SV transaction (p2p.info.get.pinfl)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/P2PInfoGetPinflRequest" }
+      responses:
+        "200": { description: The PINFL, content: { application/json: { schema: { $ref: "#/components/schemas/PinflResult" } } } }
+        "4XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "5XX": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
 components:
   schemas:
     UzcardSvGateStatusCode:
@@ -636,6 +743,8 @@ components:
         respText: { type: string }
         respSV: { type: string }
         status: { type: string, description: "OK, ERR, ROK or RER" }
+        refNumDebit: { type: string, description: "p2p.universal: the debit's refNum (781)" }
+        refNumCredit: { type: string, description: "p2p.universal: the credit's refNum (785)" }
     TransactionResult:
       type: object
       properties:
@@ -956,3 +1065,135 @@ components:
         cardId: { type: string, maxLength: 32, description: "The card's token" }
         schemeId: { type: integer, format: int32, description: "-1 is the default scheme" }
         duration: { type: integer, format: int32, description: "Hours; 0 keeps it" }
+
+    TransSvRequest:
+      type: object
+      required: [svId]
+      properties:
+        svId: { type: string, maxLength: 12, description: "The transaction's refNum" }
+    CurrTransRequest:
+      type: object
+      required: [pph]
+      properties:
+        pph: { type: string, maxLength: 12, description: "The transaction's RRN" }
+    CurrTrans:
+      type: object
+      description: "SV-Gate's REF, AMOUNT, MERCHANT, TERMINAL, PAN, FIO, TRANS_TYPE, UDATE, SERVICE_ID, REVERSAL"
+      properties:
+        ref: { type: string }
+        amount: { type: integer, format: int64, description: In tiyin }
+        merchant: { type: string }
+        terminal: { type: string }
+        pan: { type: string }
+        fio: { type: string }
+        transType: { type: integer, format: int32 }
+        udate: { type: integer, format: int32, description: yyyyMMdd }
+        serviceId: { type: string }
+        reversal: { type: boolean }
+
+    CurrTransResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/CurrTrans" }
+
+    P2PUniversalRequest:
+      type: object
+      required: [amount, ext, merchantId, terminalId, sender, recipient]
+      properties:
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        feeAmount: { type: integer, format: int64, minimum: 0, description: In tiyin }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        sender: { type: string, maxLength: 32, description: "The sender card's token" }
+        recipient: { type: string, maxLength: 32, description: "The recipient card's token or PAN" }
+    P2PUniversalCreditRequest:
+      type: object
+      required: [amount, ext, merchantId, terminalId, recipient, sender]
+      properties:
+        amount: { type: integer, format: int64, minimum: 1, description: In tiyin }
+        ext: { type: string, maxLength: 75, description: "The caller's unique id" }
+        merchantId: { type: string, maxLength: 16 }
+        terminalId: { type: string, maxLength: 16 }
+        recipient: { type: string, maxLength: 32, description: "The recipient card's token or PAN" }
+        sender: { $ref: "#/components/schemas/P2PSender" }
+    P2PSender:
+      type: object
+      required: [id, legalName, system, lastName, firstName, middleName, refNum]
+      properties:
+        id: { type: string, maxLength: 32, description: "The sender's id or card" }
+        legalName: { type: string, maxLength: 80 }
+        system: { type: string, maxLength: 80, description: "The sender's payment system" }
+        lastName: { type: string, maxLength: 50 }
+        firstName: { type: string, maxLength: 50 }
+        middleName: { type: string, maxLength: 50 }
+        refNum: { type: string, maxLength: 12, description: "The debit's number in the other system" }
+        doc: { $ref: "#/components/schemas/P2PSenderDoc" }
+    P2PSenderDoc:
+      type: object
+      description: "Required above 36 BRV inside the country, 50 BRV across borders"
+      required: [nationality, type, seriesNumber, birthDate, validTo, mrz]
+      properties:
+        nationality: { type: string, maxLength: 3 }
+        type: { type: string, maxLength: 10 }
+        seriesNumber: { type: string, maxLength: 25 }
+        birthDate: { type: string, maxLength: 10 }
+        validTo: { type: string, maxLength: 10 }
+        mrz: { type: string, maxLength: 14, description: PINFL }
+    HpanRequest:
+      type: object
+      required: [hpan]
+      properties:
+        hpan: { type: string, maxLength: 16, description: "The card's PAN" }
+    P2PInfo:
+      type: object
+      description: "SV-Gate's CREF_NO, EMBOS_NAME, CARDTYPE, CARDSTATUS, CARDID, PINCNT"
+      properties:
+        crefNo: { type: string }
+        embosName: { type: string }
+        cardType: { type: string }
+        cardStatus: { type: string }
+        cardId: { type: string, description: "The card's token, for credits only" }
+        pincnt: { type: integer, format: int32 }
+
+    P2PInfoResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/P2PInfo" }
+
+    P2PInfoAdditional:
+      type: object
+      properties:
+        id: { type: string, description: "The card's token, for credits only" }
+        fullName: { type: string }
+        cardType: { type: string }
+        status: { type: string }
+        birthDate: { type: string, description: ddMMyyyy }
+
+    P2PInfoAdditionalResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/P2PInfoAdditional" }
+
+    P2PInfoGetPinflRequest:
+      type: object
+      required: [utrnno]
+      properties:
+        utrnno: { type: string, maxLength: 16, description: "The SV transaction's number" }
+    Pinfl:
+      type: object
+      properties:
+        pinfl: { type: string }
+
+    PinflResult:
+      type: object
+      properties:
+        requestId: { type: string }
+        status: { $ref: "#/components/schemas/UzcardSvGateStatusCode" }
+        data: { $ref: "#/components/schemas/Pinfl" }

@@ -83,7 +83,9 @@ paths:
         to the HUMO Payment Server SOAP method CancelRequest (urn:PaymentServer). Cancellation must be performed
         within 14 days of the payment; otherwise the response returns auth_action_code_final "914 - Decline reason
         message: not able to trace back to original transaction", in which case the refund must be requested via
-        the "№1 Reversal form" and the payment is cancelled by the HUMO Processing Center.
+        the "№1 Reversal form" and the payment is cancelled by the HUMO Processing Center. HUMO refuses with a
+        PaymentServerException: the adapter answers humo-soap-fault (502) with HUMO''s error code (914 here) in
+        subErrors, and the hold is not released.
 
         '
       operationId: cancelPayment
@@ -111,7 +113,8 @@ paths:
       summary: Return (refund) a finished DMS card debit payment
       description: 'Returns (refunds) a payment identified by paymentId or paymentRef. Usable only for payments
         in "finished" status. Funds are returned to the cardholder after the nearest clearing cycle. Adapter proxies
-        the request to the HUMO Payment Server SOAP method ReturnPayment (urn:PaymentServer).
+        the request to the HUMO Payment Server SOAP method ReturnPayment (urn:PaymentServer). A refusal
+        (PaymentServerException) is humo-soap-fault (502) with HUMO''s error code in subErrors.
 
         '
       operationId: refundPayment

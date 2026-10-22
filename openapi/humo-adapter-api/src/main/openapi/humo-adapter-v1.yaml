@@ -2493,7 +2493,8 @@ components:
         senderRetrievalRefNumber:
           type: string
           maxLength: 12
-          description: Sender's payment identification number (sender_retrieval_ref_number), mandatory for terminals xx66xxxx
+          description: 'Sender''s payment identification number (sender_retrieval_ref_number). Required: the PDF''s table
+            marks it M (p.27), its text says for terminals xx66xxxx'
         senderNationality:
           type: string
           maxLength: 3
@@ -2515,7 +2516,8 @@ components:
         senderPersonCode:
           type: string
           maxLength: 20
-          description: Sender PINFL
+          description: 'Sender PINFL. Optional in the PDF''s table (p.27); its change history (v2.1, p.2) makes it mandatory
+            for terminals xx66xxxx, so send it for those'
         senderSurname:
           type: string
           maxLength: 20
@@ -2523,7 +2525,8 @@ components:
         senderPan:
           type: string
           maxLength: 16
-          description: Sender card PAN, mandatory for terminals xx66xxxx
+          description: 'Sender card PAN. Required: the PDF''s table marks it M (p.27), its text and change history say
+            for terminals xx66xxxx'
         senderFirstName:
           type: string
           maxLength: 34
@@ -2717,7 +2720,7 @@ components:
           description: 'Incoming channel identifier, "-" by default'
     MbCard:
       type: object
-      description: 'Mobile banking card (p.9); state and expiry come only in answers'
+      description: 'A mobile banking card as HUMO answers it (p.12–15), with its state and expiry'
       required:
       - pan
       properties:
@@ -2746,6 +2749,33 @@ components:
         expiry:
           type: string
           description: 'Card expiry YYMM, answers only'
+    MbCardRequest:
+      type: object
+      description: 'A card to register or edit (HUMOMIDDLEWARE.pdf p.9: pan and Service are M; Service may be empty)'
+      required:
+      - pan
+      - services
+      properties:
+        pan:
+          type: string
+          maxLength: 20
+          description: 'Card PAN'
+        label:
+          type: string
+          maxLength: 256
+          description: 'Card label, may be used in SMS'
+        ownerId:
+          type: string
+          maxLength: 128
+          description: 'Card owner identifier, registers supplementary cards (ownerID)'
+        services:
+          type: array
+          minItems: 0
+          description: 'Service packages (Service)'
+          items:
+            $ref: '#/components/schemas/MbService'
+        charge:
+          $ref: '#/components/schemas/MbCharge'
     MbPhone:
       type: object
       description: 'Customer phone (p.8); state comes only in answers'
@@ -2813,7 +2843,7 @@ components:
         charge:
           $ref: '#/components/schemas/MbCharge'
         card:
-          $ref: '#/components/schemas/MbCard'
+          $ref: '#/components/schemas/MbCardRequest'
         phone:
           $ref: '#/components/schemas/MbPhone'
         email:
@@ -3004,7 +3034,7 @@ components:
       - card
       properties:
         card:
-          $ref: '#/components/schemas/MbCard'
+          $ref: '#/components/schemas/MbCardRequest'
     IiacsCard2Request:
       type: object
       description: 'Card information by PAN (§3.2.1 p.30)'

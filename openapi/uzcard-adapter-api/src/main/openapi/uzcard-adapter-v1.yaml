@@ -260,10 +260,12 @@ components:
         sms: { $ref: "#/components/schemas/CardsNewOtpSmsParam" }
     CardsNewOtpSmsParam:
       type: object
+      required: [serviceName]
       properties:
         ussd: { type: string, maxLength: 160 }
         hash: { type: string, maxLength: 12 }
         templateId: { type: integer, format: int32 }
+        serviceName: { type: string, maxLength: 20 }
     CardsNewOtpResponse:
       type: object
       properties:
@@ -394,11 +396,12 @@ components:
         pan2: { type: string }
         expiry: { type: string }
         tranType: { type: string, description: "DEBIT, REVERSAL, CREDIT…" }
+        transType: { type: integer, format: int32, description: "Transaction type code" }
         date7: { type: string }
         date12: { type: string }
         amount: { type: integer, format: int64 }
-        currency: { type: integer, format: int32 }
-        stan: { type: integer, format: int32 }
+        currency: { type: string, description: "ISO 4217, 860" }
+        stan: { type: string, description: "6 digits, leading zeros kept" }
         field38: { type: string }
         field48: { type: string }
         field91: { type: string }

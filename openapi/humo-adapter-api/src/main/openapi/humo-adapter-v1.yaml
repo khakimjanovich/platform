@@ -1,4 +1,4 @@
-# Humo adapter: the open_banking humo-adapter contract, its e-commerce operations (no SMS3, card2 or PINFL lookups).
+# Humo adapter: every operation of HUMOPAYMENT.pdf v2.2 and HUMOMIDDLEWARE.pdf v3.0.5, plus the card-add OTP (/v1/send/*) from open_banking.
 openapi: 3.0.3
 info:
   title: Humo Adapter
@@ -633,6 +633,344 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v3/iiacs/card2:
+    post:
+      summary: Get card information and tied accounts
+      description: 'Card information, statuses and tied accounts, without balance and mobile banking: HUMO Middleware /v3/iiacs/card2 (HUMOMIDDLEWARE.pdf §3.2.1 p.29–31; the PDF gives examples only).
+
+        '
+      operationId: iiacsCard2
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IiacsCard2Request'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IiacsCardResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/customer/cards/by-passport:
+    post:
+      summary: Find customer cards by passport
+      description: 'HUMO Middleware /cs/v1/customer/cards/by-passport (§3.3.1).
+
+        '
+      operationId: cardsByPassport
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardsByPassportRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardholderCardsResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/customer/cards/by-person-code:
+    post:
+      summary: Find customer cards by person code (PINFL)
+      description: 'HUMO Middleware /cs/v1/customer/cards/by-person-code (§3.3.2).
+
+        '
+      operationId: cardsByPersonCode
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardsByPersonCodeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardholderCardsResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/pan-by-person-code:
+    post:
+      summary: Get a card owner's person code (PINFL)
+      description: 'HUMO Middleware /cs/v1/pan-by-person-code (§3.3.2.1): the PINFL of the card''s owner.
+
+        '
+      operationId: pinflByPan
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinflResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/transactions/scoring:
+    post:
+      summary: Score card transactions by month
+      description: 'Transaction counts and amounts per month and type, up to one year: HUMO Middleware /cs/v1/transactions/scoring (§3.3.3), flattened to one row per month and type.
+
+        '
+      operationId: scoring
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoringRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/rrn/transaction:
+    post:
+      summary: Get transactions by RRN
+      description: 'HUMO Middleware /cs/v1/rrn/transaction (§3.3.4).
+
+        '
+      operationId: rrnTransaction
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RrnRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RrnTransactionsResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/transaction/cashback:
+    post:
+      summary: Get cashback transactions of a terminal
+      description: 'HUMO Middleware /cs/v1/transaction/cashback (§3.3.5). The PDF''s answer has no id/result envelope; the adapter reads both shapes.
+
+        '
+      operationId: cashback
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CashbackRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashbackResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/customer/cards/by-person-code/pan:
+    post:
+      summary: Check that a card belongs to a person code
+      description: 'HUMO Middleware /cs/v1/customer/cards/by-person-code/pan (§3.3.6): Yes or No.
+
+        '
+      operationId: personCodePan
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonCodePanRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonCodePanResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/transactions/scoring-by-person-code:
+    post:
+      summary: Score all of a person's cards by month
+      description: 'HUMO Middleware /cs/v1/transactions/scoring-by-person-code (§3.3.7), flattened to one row per card, month and type.
+
+        '
+      operationId: scoringByPersonCode
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonCodeScoringRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /cs/v1/transactions/scoring-sorted:
+    post:
+      summary: Score card transactions by month and category
+      description: 'The newer scoring (§3.3.8): per month, categories Payments, P2P, Auto-Repayment and REPLENISHMENT; flattened to one row per month and category.
+
+        '
+      operationId: scoringSorted
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScoringRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoringResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v1/ws/transaction-history:
+    post:
+      summary: Get a cards transaction history
+      description: 'Up to one year for the bank''s own cards, three months for other banks'' cards: HUMO Middleware /v1/ws/transaction-history (§3.4.1).
+
+        '
+      operationId: transactionHistory
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionHistoryRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionHistoryResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/pm/masked-pan:
+    post:
+      summary: Get the masked PAN of a real PAN
+      description: 'HUMO Middleware /v2/pm/masked-pan (§3.5.1).
+
+        '
+      operationId: maskedPan
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PanRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanMapResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/pm/real-pan:
+    post:
+      summary: Get the real PAN of a masked PAN
+      description: 'HUMO Middleware /v2/pm/real-pan (§3.5.2).
+
+        '
+      operationId: realPan
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RealPanRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PanMapResult'
         4XX:
           $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
@@ -2667,3 +3005,528 @@ components:
       properties:
         card:
           $ref: '#/components/schemas/MbCard'
+    IiacsCard2Request:
+      type: object
+      description: 'Card information by PAN (§3.2.1 p.30)'
+      required:
+      - pan
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: 'Card PAN, sent as primaryAccountNumber'
+    CardsByPassportRequest:
+      type: object
+      description: 'Customer cards by passport (§3.3.1 p.31)'
+      required:
+      - serialNo
+      - idCard
+      properties:
+        serialNo:
+          type: string
+          maxLength: 2
+          description: 'Identification document series (serial_no)'
+        idCard:
+          type: string
+          maxLength: 7
+          description: 'Identification document number (id_card)'
+    CardsByPersonCodeRequest:
+      type: object
+      description: 'Customer cards by person code (§3.3.2 p.33)'
+      required:
+      - personCode
+      properties:
+        personCode:
+          type: string
+          maxLength: 14
+          description: 'Personal code, PINFL (person_code)'
+    CardholderCard:
+      type: object
+      description: 'A cardholder card (§3.3.1–3.3.2)'
+      properties:
+        name:
+          type: string
+          maxLength: 34
+          description: 'Cardholder name'
+        card:
+          type: string
+          maxLength: 16
+          description: 'Card number'
+        expiry:
+          type: string
+          maxLength: 4
+          description: 'Card expiry YYMM'
+    CardholderCardsResult:
+      type: object
+      description: 'Envelope of the cards-by-passport and cards-by-person-code operations'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          description: 'Cardholder cards'
+          items:
+            $ref: '#/components/schemas/CardholderCard'
+    PanRequest:
+      type: object
+      description: 'A card PAN (§3.3.2.1, §3.5.1)'
+      required:
+      - pan
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: 'Card PAN'
+    PinflResponse:
+      type: object
+      description: 'A card owner''s person code'
+      properties:
+        pnfl:
+          type: string
+          maxLength: 14
+          description: 'Person code, PINFL'
+    PinflResult:
+      type: object
+      description: 'Envelope of /cs/v1/pan-by-person-code'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/PinflResponse'
+    ScoringRequest:
+      type: object
+      description: 'Card scoring over a period (§3.3.3 p.35, §3.3.8 p.44)'
+      required:
+      - card
+      - dateFrom
+      - dateTo
+      properties:
+        card:
+          type: string
+          maxLength: 16
+          description: 'Card PAN'
+        dateFrom:
+          type: string
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00) (date_from)'
+        dateTo:
+          type: string
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00) (date_to)'
+    PersonCodeScoringRequest:
+      type: object
+      description: 'Scoring of a person''s cards over a period (§3.3.7 p.41)'
+      required:
+      - personCode
+      - dateFrom
+      - dateTo
+      properties:
+        personCode:
+          type: string
+          maxLength: 14
+          description: 'Person code, PINFL (person_code)'
+        dateFrom:
+          type: string
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00)'
+        dateTo:
+          type: string
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00)'
+    ScoringRow:
+      type: object
+      description: 'One month and transaction type of a scoring'
+      properties:
+        pan:
+          type: string
+          description: 'Card PAN, scoring-by-person-code only'
+        month:
+          type: string
+          description: 'Month abbreviation as HUMO keys it, for example Jan'
+        category:
+          type: string
+          description: 'Payments, P2P, Auto-Repayment or REPLENISHMENT, scoring-sorted only'
+        type:
+          type: string
+          description: 'Transaction type: 11V, 110, 205-209, 225-228'
+        count:
+          type: string
+          description: 'Number of transactions in the month'
+        amount:
+          type: string
+          description: 'Amount of transactions in the month'
+    ScoringResult:
+      type: object
+      description: 'Envelope of the scoring operations'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          description: 'One row per (card,) month (, category) and type'
+          items:
+            $ref: '#/components/schemas/ScoringRow'
+    RrnRequest:
+      type: object
+      description: 'Transactions by RRN (§3.3.4 p.37)'
+      required:
+      - rrn
+      properties:
+        rrn:
+          type: string
+          maxLength: 12
+          description: 'Reference Retrieval Number'
+    RrnTransaction:
+      type: object
+      description: 'A transaction by RRN (§3.3.4 p.37–38)'
+      properties:
+        terminal:
+          type: string
+          description: 'Terminal id'
+        rrn:
+          type: string
+          maxLength: 12
+          description: 'Reference Retrieval Number'
+        responDate:
+          type: string
+          description: 'Transaction time (respon_Date)'
+        merchant:
+          type: string
+          maxLength: 15
+          description: 'Merchant'
+        tranAmount:
+          type: string
+          description: 'Amount with the fee (tran_Amount)'
+        amount:
+          type: string
+          description: 'Transaction amount'
+        commissionFee:
+          type: string
+          description: 'Fee (commision_Fee in the example, commission_Fee in the table)'
+    RrnTransactionsResult:
+      type: object
+      description: 'Envelope of /cs/v1/rrn/transaction'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          description: 'Transactions'
+          items:
+            $ref: '#/components/schemas/RrnTransaction'
+    CashbackRequest:
+      type: object
+      description: 'Cashback of a terminal over a period (§3.3.5 p.38)'
+      required:
+      - terminal
+      - dateFrom
+      - dateTo
+      properties:
+        terminal:
+          type: string
+          maxLength: 8
+          description: 'Terminal number'
+        dateFrom:
+          type: string
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00) (date_from)'
+        dateTo:
+          type: string
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00) (date_to)'
+    CashbackRecord:
+      type: object
+      description: 'A cashback transaction (§3.3.5 p.39–40)'
+      properties:
+        acqFile:
+          type: string
+          description: 'File type (acq_File)'
+        cardType:
+          type: string
+          description: 'Card type (card_Type)'
+        rrn:
+          type: string
+          maxLength: 12
+          description: 'Reference Retrieval Number'
+        card:
+          type: string
+          maxLength: 16
+          description: 'PAN'
+        termId:
+          type: string
+          maxLength: 8
+          description: 'Terminal id (term_Id)'
+        merchantName:
+          type: string
+          description: 'Merchant name'
+        tranDate:
+          type: string
+          description: 'Transaction date'
+        trType:
+          type: string
+          description: 'Transaction type'
+        totalAmount:
+          type: string
+          description: 'Transaction amount'
+        summAmount:
+          type: string
+          description: 'Amount before cashback (summ_amount)'
+        commission:
+          type: string
+          maxLength: 12
+          description: 'Commission fee; in the table, not in the example'
+        trFeeCashback:
+          type: string
+          description: 'Cashback fee (TR_FEE_cashback)'
+    CashbackResult:
+      type: object
+      description: 'Envelope of /cs/v1/transaction/cashback'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          description: 'Cashback transactions'
+          items:
+            $ref: '#/components/schemas/CashbackRecord'
+    PersonCodePanRequest:
+      type: object
+      description: 'Card and person code link (§3.3.6 p.40)'
+      required:
+      - personCode
+      - pan
+      properties:
+        personCode:
+          type: string
+          maxLength: 14
+          description: 'Person code, PINFL (person_code)'
+        pan:
+          type: string
+          maxLength: 16
+          description: 'Card PAN'
+    PersonCodePanResponse:
+      type: object
+      description: "HUMO's answer"
+      properties:
+        result:
+          type: string
+          description: 'Yes or No'
+    PersonCodePanResult:
+      type: object
+      description: 'Envelope of /cs/v1/customer/cards/by-person-code/pan'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/PersonCodePanResponse'
+    TransactionHistoryRequest:
+      type: object
+      description: 'Card transaction history over a period (§3.4.1 p.47)'
+      required:
+      - pan
+      - dateFrom
+      - dateTo
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: 'Card PAN'
+        dateFrom:
+          type: string
+          maxLength: 19
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00)'
+        dateTo:
+          type: string
+          maxLength: 19
+          description: 'Date and time, yyyy-MM-ddTHH:mm:ss (for example 2023-08-01T00:00:00)'
+    TransactionHistoryRow:
+      type: object
+      description: 'A card transaction (§3.4.1 p.47–51); HUMO''s UPPER_CASE names in brackets, every value as text'
+      properties:
+        cardAcct:
+          type: string
+          description: 'Card account number (CARD_ACCT)'
+        accountNo:
+          type: string
+          description: 'Internal account number (ORASEQ) (ACCOUNT_NO)'
+        clAcctKey:
+          type: string
+          description: 'Internal account group number (CL_ACCT_KEY)'
+        client:
+          type: string
+          description: 'Client number (CLIENT)'
+        card:
+          type: string
+          description: 'Card number (CARD)'
+        expDate:
+          type: string
+          description: 'Card expiry date (EXP_DATE)'
+        tranType:
+          type: string
+          description: 'Transaction type; empty for a locking authorization (TRAN_TYPE)'
+        tranCcy:
+          type: string
+          description: 'Transaction currency (TRAN_CCY)'
+        tranAmt:
+          type: string
+          description: 'Transaction amount (TRAN_AMT)'
+        ccyExp:
+          type: string
+          description: 'Number of decimals in the transaction currency (CCY_EXP)'
+        tranDateTime:
+          type: string
+          description: 'Transaction date and time (TRAN_DATE_TIME)'
+        recDate:
+          type: string
+          description: 'Registration date (REC_DATE)'
+        postDate:
+          type: string
+          description: 'Posting date (POST_DATE)'
+        accntCcy:
+          type: string
+          description: 'Account currency (ACCNT_CCY)'
+        amountNet:
+          type: string
+          description: 'Amount in the account currency (AMOUNT_NET)'
+        acqrefNr:
+          type: string
+          description: 'Reference number (ACQREF_NR)'
+        aprCode:
+          type: string
+          description: 'Authorization code (APR_CODE)'
+        aprScr:
+          type: string
+          description: 'Authorization code source (APR_SCR)'
+        stan:
+          type: string
+          description: 'System trace audit number (STAN)'
+        termId:
+          type: string
+          description: 'Terminal ID (TERM_ID)'
+        merchant:
+          type: string
+          description: 'Merchant code (MERCHANT)'
+        pointCode:
+          type: string
+          description: 'Point-of-sale code (POINT_CODE)'
+        mccCode:
+          type: string
+          description: 'Merchant category code (MCC_CODE)'
+        abvrName:
+          type: string
+          description: 'Merchant name (ABVR_NAME)'
+        city:
+          type: string
+          description: 'Merchant city (CITY)'
+        country:
+          type: string
+          description: 'Merchant country (COUNTRY)'
+        dealDesc:
+          type: string
+          description: 'Transaction description (DEAL_DESC)'
+        counterparty:
+          type: string
+          description: 'Counter party (COUNTERPARTY)'
+        internalNo:
+          type: string
+          description: 'Internal row number (INTERNAL_NO)'
+        fld104:
+          type: string
+          description: 'Transaction description, name of the receiver (FLD_104)'
+        bankC:
+          type: string
+          description: 'Bank, row owner code (BANK_C)'
+        groupc:
+          type: string
+          description: 'Card group code (GROUPC)'
+        ctime:
+          type: string
+          description: 'Date and time of the last insert or update (CTIME)'
+        trCode:
+          type: string
+          description: 'Transaction fee code (TR_CODE)'
+        trFee:
+          type: string
+          description: 'Transaction fee (TR_FEE)'
+        trCode2:
+          type: string
+          description: 'Transaction fee code 2 (TR_CODE2)'
+        trFee2:
+          type: string
+          description: 'Transaction fee 2 (TR_FEE2)'
+        lockingFlag:
+          type: string
+          description: '1 for a locking authorization, else empty (LOCKING_FLAG)'
+        addInfo:
+          type: string
+          description: 'Additional info (ADD_INFO)'
+        refNumber:
+          type: string
+          description: 'Unique transaction number (REF_NUMBER)'
+    TransactionHistoryResult:
+      type: object
+      description: 'Envelope of /v1/ws/transaction-history'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          description: 'Transactions (rows)'
+          items:
+            $ref: '#/components/schemas/TransactionHistoryRow'
+    RealPanRequest:
+      type: object
+      description: 'A masked card number (§3.5.2 p.52)'
+      required:
+      - card
+      properties:
+        card:
+          type: string
+          maxLength: 16
+          description: 'Masked card number'
+    PanMapResponse:
+      type: object
+      description: 'A PAN and its masked form (§3.5.1–3.5.2)'
+      properties:
+        card:
+          type: string
+          maxLength: 16
+          description: 'Masked card number, masked-pan only'
+        pan:
+          type: string
+          maxLength: 16
+          description: 'Card PAN, real-pan only'
+        bankCode:
+          type: string
+          maxLength: 2
+          description: 'Bank, row owner code (bank_c)'
+        groupCode:
+          type: string
+          maxLength: 2
+          description: 'Card group code, local for each bank (group_c)'
+    PanMapResult:
+      type: object
+      description: 'Envelope of /v2/pm/masked-pan and /v2/pm/real-pan'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/PanMapResponse'

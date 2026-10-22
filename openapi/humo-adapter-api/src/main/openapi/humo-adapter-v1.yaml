@@ -429,6 +429,214 @@ paths:
           $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
         5XX:
           $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer/activate:
+    post:
+      summary: Activate mobile banking for a customer's card
+      description: 'Activates mobile banking (SMS) services for the customer''s card and phone: HUMO Middleware /v2/mb/customer/activate (HUMOMIDDLEWARE.pdf §3.1.1).
+
+        '
+      operationId: mbActivate
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbActivateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer:
+    post:
+      summary: Get a mobile banking customer
+      description: 'The customer''s mobile banking data: cards, phones, e-mails, charge: HUMO Middleware /v2/mb/customer (§3.1.2).
+
+        '
+      operationId: mbCustomer
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbCustomerRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbCustomerResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer-list:
+    post:
+      summary: Find mobile banking customers by phone
+      description: 'The customers registered with a phone number: HUMO Middleware /v2/mb/customer-list (§3.1.3).
+
+        '
+      operationId: mbCustomerList
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbCustomerListRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbCustomerListResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer/deactivate:
+    post:
+      summary: Deactivate mobile banking for a customer
+      description: 'HUMO Middleware /v2/mb/customer/deactivate (§3.1.4).
+
+        '
+      operationId: mbDeactivate
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbDeactivateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer/change-phone-number:
+    post:
+      summary: Change a customer's mobile banking phone
+      description: 'HUMO Middleware /v2/mb/customer/change-phone-number (§3.1.5); only one active phone is supported.
+
+        '
+      operationId: mbChangePhone
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbChangePhoneRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer/change-cardholders-message-lang:
+    post:
+      summary: Change a customer's SMS language
+      description: 'HUMO Middleware /v2/mb/customer/change-cardholders-message-lang (§3.1.6).
+
+        '
+      operationId: mbChangeLanguage
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbChangeLanguageRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer/remove-card:
+    post:
+      summary: Remove a card from mobile banking
+      description: 'HUMO Middleware /v2/mb/customer/remove-card (§3.1.7). The PDF''s table has a flat pan, its example Card.pan; the adapter sends both.
+
+        '
+      operationId: mbRemoveCard
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbRemoveCardRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+  /v2/mb/customer/edit-card:
+    post:
+      summary: Edit a customer's mobile banking card
+      description: 'HUMO Middleware /v2/mb/customer/edit-card (§3.1.8).
+
+        '
+      operationId: mbEditCard
+      tags:
+      - HumoMiddlewareService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MbEditCardRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MbStateResult'
+        4XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
+        5XX:
+          $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem"
 components:
   schemas:
     AuthorizePaymentRequest:
@@ -2136,3 +2344,326 @@ components:
           $ref: '#/components/schemas/HumoAdapterStatusCode'
         data:
           $ref: '#/components/schemas/CreditToCardResponse'
+    MbCharge:
+      type: object
+      description: 'Charge settings (HUMOMIDDLEWARE.pdf p.7). Sent to HUMO as both agreementCharge (examples) and chargeAgreement (table)'
+      required:
+      - agreementCharge
+      - chargeAccount
+      properties:
+        agreementCharge:
+          type: string
+          maxLength: 34
+          description: 'Charge product id holding amount, currency and conditions'
+        chargeAccount:
+          type: string
+          maxLength: 255
+          description: 'CMS charge account (account no / tranz acct)'
+        chargeDate:
+          type: string
+          maxLength: 8
+          description: 'Notification related date, YYYYMMDD'
+    MbService:
+      type: object
+      description: 'Service package (p.8–9)'
+      required:
+      - serviceId
+      properties:
+        serviceId:
+          type: string
+          maxLength: 34
+          description: 'Service package identifier, for example MB-ALL (serviceID)'
+        serviceChannel:
+          type: string
+          maxLength: 255
+          description: 'Incoming channel identifier, "-" by default'
+    MbCard:
+      type: object
+      description: 'Mobile banking card (p.9); state and expiry come only in answers'
+      required:
+      - pan
+      properties:
+        pan:
+          type: string
+          maxLength: 20
+          description: 'Card PAN'
+        label:
+          type: string
+          maxLength: 256
+          description: 'Card label, may be used in SMS'
+        ownerId:
+          type: string
+          maxLength: 128
+          description: 'Card owner identifier, registers supplementary cards (ownerID)'
+        services:
+          type: array
+          description: 'Service packages (Service)'
+          items:
+            $ref: '#/components/schemas/MbService'
+        charge:
+          $ref: '#/components/schemas/MbCharge'
+        state:
+          type: string
+          description: 'on or off, answers only'
+        expiry:
+          type: string
+          description: 'Card expiry YYMM, answers only'
+    MbPhone:
+      type: object
+      description: 'Customer phone (p.8); state comes only in answers'
+      required:
+      - msisdn
+      properties:
+        msisdn:
+          type: string
+          maxLength: 256
+          description: 'Phone number in international format'
+        deliveryChannel:
+          type: string
+          maxLength: 256
+          description: 'SMSC gateway identifier for push SMS, "-" by default'
+        state:
+          type: string
+          description: 'on or off, answers only'
+    MbEmail:
+      type: object
+      description: 'Customer e-mail (p.8). Sent to HUMO as both to (examples) and To (table)'
+      required:
+      - to
+      properties:
+        to:
+          type: string
+          maxLength: 256
+          description: '"To" address list separated by ";"'
+        state:
+          type: string
+          description: 'on or off, answers only'
+    MbNotification:
+      type: object
+      description: 'Notification settings (p.8)'
+      properties:
+        timeZone:
+          type: string
+          maxLength: 9
+          description: 'Time zone GMT+HH:MM'
+        timeInterval:
+          type: string
+          maxLength: 11
+          description: 'Interval for notifications HH:MM-HH:MM'
+        sender:
+          type: string
+          maxLength: 256
+          description: 'Sender phone or alphanumeric name'
+    MbActivateRequest:
+      type: object
+      description: 'Mobile banking activation (§3.1.1 p.9–10)'
+      required:
+      - bankId
+      - card
+      - phone
+      properties:
+        bankId:
+          type: string
+          maxLength: 256
+          description: 'CardSuite bank identifier, "MB_STD" by default'
+        language:
+          type: string
+          maxLength: 32
+          description: 'SMS language ("en", "ru_translit", ...), "en" by default'
+        notification:
+          $ref: '#/components/schemas/MbNotification'
+        charge:
+          $ref: '#/components/schemas/MbCharge'
+        card:
+          $ref: '#/components/schemas/MbCard'
+        phone:
+          $ref: '#/components/schemas/MbPhone'
+        email:
+          $ref: '#/components/schemas/MbEmail'
+        accessCode:
+          type: string
+          maxLength: 256
+          description: 'Customer access code for pull services'
+    MbStateResponse:
+      type: object
+      description: 'HUMO''s confirmation: state and message'
+      required:
+      - state
+      - message
+      properties:
+        state:
+          type: string
+          maxLength: 3
+          description: 'on (enabled / active) or off (disabled / removed)'
+        message:
+          type: string
+          maxLength: 256
+          description: 'Confirmation message'
+    MbStateResult:
+      type: object
+      description: 'Envelope of the mobile banking change operations'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/MbStateResponse'
+    MbCustomerRequest:
+      type: object
+      description: 'A mobile banking customer (§3.1.2 p.11)'
+      required:
+      - customerId
+      - bankId
+      properties:
+        customerId:
+          type: string
+          maxLength: 256
+          description: 'Customer identifier'
+        bankId:
+          type: string
+          maxLength: 256
+          description: 'CardSuite bank identifier, "MB_STD" by default'
+    MbCustomerResponse:
+      type: object
+      description: 'A mobile banking customer (§3.1.2 p.12–13, §3.1.3 p.14–15)'
+      properties:
+        customerId:
+          type: string
+          maxLength: 256
+          description: 'Customer identifier (CMS client id)'
+        state:
+          type: string
+          maxLength: 3
+          description: 'on (active) or off'
+        bankId:
+          type: string
+          maxLength: 256
+          description: 'CardSuite bank identifier'
+        cardholderName:
+          type: string
+          maxLength: 256
+          description: 'Customer name and surname'
+        language:
+          type: string
+          maxLength: 32
+          description: 'SMS language'
+        notification:
+          $ref: '#/components/schemas/MbNotification'
+        charge:
+          $ref: '#/components/schemas/MbCharge'
+        cards:
+          type: array
+          description: 'Customer cards (Card)'
+          items:
+            $ref: '#/components/schemas/MbCard'
+        phones:
+          type: array
+          description: 'Customer phones (Phone)'
+          items:
+            $ref: '#/components/schemas/MbPhone'
+        emails:
+          type: array
+          description: 'Customer e-mails (Email)'
+          items:
+            $ref: '#/components/schemas/MbEmail'
+        accessCode:
+          type: string
+          maxLength: 256
+          description: 'Customer access code'
+    MbCustomerResult:
+      type: object
+      description: 'Envelope of /v2/mb/customer'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          $ref: '#/components/schemas/MbCustomerResponse'
+    MbCustomerListRequest:
+      type: object
+      description: 'Customers by phone (§3.1.3 p.14)'
+      required:
+      - phone
+      properties:
+        phone:
+          type: string
+          maxLength: 13
+          description: 'Phone number in international format'
+        bankId:
+          type: string
+          maxLength: 256
+          description: 'CardSuite bank identifier, "MB_STD" by default'
+    MbCustomerListResult:
+      type: object
+      description: 'Envelope of /v2/mb/customer-list'
+      properties:
+        requestId:
+          type: string
+          description: Request identifier the operation was processed with
+        status:
+          $ref: '#/components/schemas/HumoAdapterStatusCode'
+        data:
+          type: array
+          description: 'Customers registered with the phone'
+          items:
+            $ref: '#/components/schemas/MbCustomerResponse'
+    MbDeactivateRequest:
+      type: object
+      description: 'Mobile banking deactivation (§3.1.4 p.15)'
+      required:
+      - customerId
+      properties:
+        customerId:
+          type: string
+          maxLength: 256
+          description: 'Customer identifier'
+    MbChangePhoneRequest:
+      type: object
+      description: 'Phone change (§3.1.5 p.16)'
+      required:
+      - customerId
+      - phone
+      properties:
+        customerId:
+          type: string
+          maxLength: 256
+          description: 'Customer identifier'
+        phone:
+          $ref: '#/components/schemas/MbPhone'
+    MbChangeLanguageRequest:
+      type: object
+      description: 'SMS language change (§3.1.6 p.17)'
+      required:
+      - customerId
+      - language
+      properties:
+        customerId:
+          type: string
+          maxLength: 256
+          description: 'Customer identifier'
+        language:
+          type: string
+          maxLength: 32
+          description: 'SMS language ("en", "ru_translit", ...)'
+    MbRemoveCardRequest:
+      type: object
+      description: 'Card removal (§3.1.7 p.18)'
+      required:
+      - pan
+      properties:
+        pan:
+          type: string
+          maxLength: 16
+          description: 'Card PAN'
+    MbEditCardRequest:
+      type: object
+      description: 'Card edit (§3.1.8 p.19)'
+      required:
+      - card
+      properties:
+        card:
+          $ref: '#/components/schemas/MbCard'

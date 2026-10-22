@@ -1140,7 +1140,7 @@ components:
       type: object
       required: [cardId]
       properties:
-        cardId: { type: string, maxLength: 32, description: "The card's token; sent to SV-Gate as id" }
+        cardId: { type: string, maxLength: 32, description: "The card's token; sent to SV-Gate as both id and cardId (SVGATE.pdf p.12)" }
     CardPartner:
       type: object
       properties:
@@ -1321,7 +1321,7 @@ components:
       type: object
       required: [pph]
       properties:
-        pph: { type: string, maxLength: 12, description: "The transaction's RRN" }
+        pph: { type: string, maxLength: 12, description: "The transaction's RRN; sent to SV-Gate as both pph and Pph (SVGATE.pdf p.40)" }
     CurrTrans:
       type: object
       description: "SV-Gate's REF, AMOUNT, MERCHANT, TERMINAL, PAN, FIO, TRANS_TYPE, UDATE, SERVICE_ID, REVERSAL"

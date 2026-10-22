@@ -786,6 +786,15 @@ components:
             authMsgRef1:
               type: string
               description: Authorization message reference
+            authActionCode1pr:
+              type: string
+              description: Authorization action code (1PR field), present when the amount was changed
+            authRowNumb1pr:
+              type: string
+              description: Authorization row number (1PR field), present when the amount was changed
+            authMsgRef1pr:
+              type: string
+              description: Authorization message reference (1PR field), present when the amount was changed
     CapturePaymentResult:
       type: object
       description: Envelope of the capture payment operation
@@ -980,28 +989,59 @@ components:
         accountType:
           type: string
           description: Account type
+        amountSetTime:
+          type: string
+          description: Time the amount was set (AMOUNT_SET_TIME)
         initialAmount:
           type: number
           description: Initial amount in minor units of the account currency
+        bonusAmount:
+          type: number
+          description: Bonus amount in minor units
+        bonusAmountExpiry:
+          type: string
+          description: Bonus amount expiry
+        creditLimit:
+          type: number
+          description: Credit limit in minor units
+        creditLimitExpiry:
+          type: string
+          description: Credit limit expiry
         lockedBackofficeAmount:
           type: number
           description: Amount locked by the back office in minor units
         lockTime:
           type: string
           description: Time of the last lock
+        lockedAmount:
+          type: number
+          description: Lock sum from STIP locks in minor units
         shadowAmount:
           type: number
           description: Shadow amount in minor units
+        commissionGroup:
+          type: string
+          description: Commission group of the account
+        timestamp:
+          type: string
+          description: Record time stamp (TIME_STAMP)
         priority:
           type: integer
           format: int32
           description: Account priority
         status:
           type: string
-          description: Account status, for example Active or Dormant
+          description: Account status, one of Active, Dormant, Closed
+        additionalInfo:
+          type: string
+          description: Additional information supplied by the processing centre
         availableAmount:
           type: number
           description: Available amount in minor units of the account currency
+        exponent:
+          type: integer
+          format: int32
+          description: Currency exponent of the account, returned when returnExponent is requested
     IiacsBalanceRecord:
       type: object
       description: Balance record calculated from the tied account balances
@@ -1052,21 +1092,31 @@ components:
           description: Card record last update date
         prefixNumber:
           type: integer
-          format: int32
-          description: Card prefix number
+          format: int64
+          description: Card prefix number (PREF_REC_NUM, Decimal(11))
         expiry:
           type: string
           description: Card expiry date (YYMM)
+        expiry2:
+          type: string
+          description: Second card expiry date (YYMM, EXPIRY_DATE_2)
         cardSequenceNumber:
           type: integer
           format: int32
           description: Card sequence number
+        cardSequenceNumber2:
+          type: integer
+          format: int32
+          description: Second card sequence number (CARD_SEQ_2)
         cardholderId:
           type: string
           description: Cardholder identifier in the processing centre
         nameOnCard:
           type: string
           description: Name embossed on the card
+        cardholderMessage:
+          type: string
+          description: Cardholder message (CRD_HOLDR_MSG). The card record's cardholderPassword is never passed on
         accountRestrictionsFlag:
           type: string
           description: Account restrictions flag

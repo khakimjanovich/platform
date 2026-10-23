@@ -1,0 +1,20 @@
+.gradle/
+build/
+# Eclipse build output (not the bin module)
+**/bin/main/
+**/bin/test/
+**/bin/integrationTest/
+**/bin/default/
+out/
+# IDE state (Eclipse/VS Code Java, IntelliJ)
+.settings/
+.project
+.classpath
+.factorypath
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Local secrets (test stands): Spring Boot reads config/application.yaml next to where a jar starts.
+/config/

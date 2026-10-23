@@ -1,10 +1,7 @@
 .gradle/
 build/
-# Eclipse build output (not the bin module)
-**/bin/main/
-**/bin/test/
-**/bin/integrationTest/
-**/bin/default/
+bin/
+**/bin/
 out/
 # IDE state (Eclipse/VS Code Java, IntelliJ)
 .settings/

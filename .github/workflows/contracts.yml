@@ -1,0 +1,47 @@
+# A pull request that changes a contract has its contracts linted and checked for breaking changes.
+name: contracts
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths: ['openapi/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # operationIds, tags, /internal tags and the shared Problem (openapi/redocly.yaml).
+      - name: Lint the contracts
+        run: >-
+          npx --yes @redocly/cli@2.65.0 lint --config openapi/redocly.yaml
+          openapi/*/src/main/openapi/*-v1.yaml
+      # Each contract against the base branch's; a breaking change needs the breaking-contract label.
+      # oasdiff v1.34.0, pinned by its digest.
+      - name: No breaking change without the breaking-contract label
+        env:
+          BASE: ${{ github.base_ref }}
+          BREAKING_ALLOWED: ${{ contains(github.event.pull_request.labels.*.name, 'breaking-contract') }}
+          OASDIFF: tufin/oasdiff@sha256:dd742562c1f3146f6e2a80bc01951cc87d15a249ac2aca05665339e30cf03620
+        run: |
+          git worktree add ../base "origin/$BASE"
+          status=0
+          for spec in openapi/*/src/main/openapi/*-v1.yaml; do
+            [ -f "../base/$spec" ] || continue
+            docker run --rm -v "$PWD/../base:/base" -v "$PWD:/revision" "$OASDIFF" \
+              breaking "/base/$spec" "/revision/$spec" --fail-on ERR || status=1
+          done
+          if [ "$status" -ne 0 ] && [ "$BREAKING_ALLOWED" != "true" ]; then
+            echo "::error::A contract has a breaking change. If it is meant, label the pull request breaking-contract."
+            exit 1
+          fi

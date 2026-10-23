@@ -1,0 +1,35 @@
+# Format check, unit and integration tests for every library and contract in the platform.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: platform check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew check
+      - name: Keep test reports of failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-platform
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/

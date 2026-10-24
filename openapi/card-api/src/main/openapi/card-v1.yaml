@@ -85,6 +85,24 @@ paths:
       tags: [CardInternal]
       operationId: cardPaymentStatus
       summary: "What the card's scheme knows about a payment we sent, by our id for it: asked when a debit got no answer"
+      description: >-
+        Inside the app only; never routed from outside. Read-only: it only asks the scheme and never
+        moves money (a Humo hold still waiting comes back APPROVED with held; capture it with
+        captureCardPayment). A payment the scheme has no record of is DECLINED with
+        CARD_PAYMENT_NOT_FOUND.
+      parameters: [{ $ref: "#/components/parameters/CardToken" }, { name: paymentRef, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200":
+          description: The scheme's answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperationResult" }
+
+  /internal/v1/cards/{cardToken}/payments/{paymentRef}/capture:
+    post:
+      tags: [CardInternal]
+      operationId: captureCardPayment
+      summary: "Takes a held payment (Humo authorized, not captured), by our id for it; Uzcard has no holds"
       description: Inside the app only; never routed from outside.
       parameters: [{ $ref: "#/components/parameters/CardToken" }, { name: paymentRef, in: path, required: true, schema: { type: string } }]
       responses:
@@ -274,3 +292,4 @@ components:
         declineCode: { type: string }
         processorRef: { type: string }
         rrn: { type: string }
+        held: { type: boolean, description: "A status answer only: APPROVED, but the money is only held (Humo authorized, not captured)" }

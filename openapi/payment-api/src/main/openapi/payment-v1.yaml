@@ -20,8 +20,8 @@ info:
     Payment links (`/api/v1/partner/payment-links`) are made by a merchant's user in the portal: the
     same page, for buyers reached in a chat, with no website checkout and no return address.
 
-    Webhooks: when a payment ends (PAID, DECLINED, FAILED, MANUAL_REVIEW, EXPIRED) or its money goes
-    back (REVERSED, REFUNDED), the bank POSTs it as JSON to the website's webhook URL, signed with
+    Webhooks: when a payment ends (PAID, DECLINED, FAILED, EXPIRED) or its money goes back (REVERSED,
+    REFUNDED), the bank POSTs it as JSON to the website's webhook URL, signed with
     the API client's key the Standard Webhooks way (standardwebhooks.com): webhook-id is the event's
     id, webhook-timestamp the Unix time it was sent, and webhook-signature is "v1," and the base64
     HMAC-SHA256 of "webhook-id.webhook-timestamp.body". Any Standard Webhooks library verifies it
@@ -221,6 +221,52 @@ paths:
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /api/v1/admin/payments/review:
+    get:
+      tags: [PaymentAdmin]
+      operationId: listPaymentsToReview
+      summary: Payments the scheme left without an answer, oldest first
+      description: UNKNOWN (the bank is still asking the scheme) and MANUAL_REVIEW (a person decides).
+      responses:
+        "200":
+          description: Up to 100 payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentAdminResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/payments/{paymentId}/resolution:
+    post:
+      tags: [PaymentAdmin]
+      operationId: resolvePayment
+      summary: "A person's decision on a MANUAL_REVIEW payment, after checking with the scheme"
+      description: >-
+        NOT_DEBITED: the payment is DECLINED. DEBITED: the payment is PAID while its page is still
+        open; once the page has closed the money goes back to the card (reversed on the day it was
+        taken, refunded later) with the scheme's reference for the debit. Every decision needs a
+        note, is audited, and sends the merchant one final webhook.
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentResolutionRequest" }
+      responses:
+        "200":
+          description: The payment, as decided
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentAdminResponse" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
   /api/v1/pay/{token}:
     get:
       tags: [PaymentPage]
@@ -364,8 +410,9 @@ components:
         CREATED: link sent · AWAITING_CODE: a code went to the cardholder · CARD_CONFIRMED: ready to
         debit · DEBITING: the scheme is being asked · PAID: the money moved · DECLINED: the scheme
         refused (declineCode says why) · UNKNOWN: the scheme didn't answer, so the money may have
-        moved; never treat it as declined; the bank keeps asking the scheme · MANUAL_REVIEW: still no
-        answer after the configured time, a person decides · FAILED: the page closed before any debit ·
+        moved; never treat it as declined; the bank keeps asking the scheme for its status, and the
+        order stays locked · MANUAL_REVIEW: still no answer after the configured status checks, a
+        person at the bank decides; not final, so no webhook · FAILED: the page closed before any debit ·
         EXPIRED: nobody paid before the page expired · RETURNING: the money is being given back ·
         REVERSED: given back before settlement · REFUNDED: given back after it
       enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED]
@@ -409,7 +456,7 @@ components:
         code: { type: string, pattern: "^[0-9]{4,8}$" }
     PaymentPage:
       type: object
-      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft]
+      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft, resultWindowSeconds]
       properties:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         amount: { type: integer, format: int64, description: In tiyin }
@@ -428,6 +475,7 @@ components:
         declineCode: { type: string, description: "Why the scheme declined, e.g. CARD_INSUFFICIENT_FUNDS" }
         paidAt: { type: string, format: date-time }
         returnUrl: { type: string, description: "Back to the shop; none for a payment link" }
+        resultWindowSeconds: { type: integer, minimum: 0, description: "How long the page keeps asking for the result of an UNKNOWN payment before it tells the buyer not to pay again" }
     PaymentResponse:
       type: object
       required: [id, salesPointId, orderId, amount, status, createdAt]
@@ -465,6 +513,13 @@ components:
         refundedCount: { type: integer }
         refundedAmount: { type: integer, format: int64 }
         payout: { type: integer, format: int64, description: "net − refundedAmount; negative when refunds outweigh the day" }
+    PaymentResolutionRequest:
+      type: object
+      required: [decision, note]
+      properties:
+        decision: { type: string, enum: [NOT_DEBITED, DEBITED], description: What the scheme told the person }
+        note: { type: string, minLength: 1, maxLength: 500, pattern: ".*\\S.*", description: "Who at the scheme confirmed it, and how" }
+        schemeReference: { type: string, maxLength: 64, description: "The scheme's id for the debit; needed for DEBITED" }
     PaymentAdminResponse:
       type: object
       required: [id, partnerId, salesPointId, source, orderId, amount, status, createdAt]

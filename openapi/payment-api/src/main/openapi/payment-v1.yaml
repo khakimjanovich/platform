@@ -221,52 +221,6 @@ paths:
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
-  /api/v1/admin/payments/review:
-    get:
-      tags: [PaymentAdmin]
-      operationId: listPaymentsToReview
-      summary: Payments the scheme left without an answer, oldest first
-      description: UNKNOWN (the bank is still asking the scheme) and MANUAL_REVIEW (a person decides).
-      responses:
-        "200":
-          description: Up to 100 payments
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/PaymentAdminResponse" }
-        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-
-  /api/v1/admin/payments/{paymentId}/resolution:
-    post:
-      tags: [PaymentAdmin]
-      operationId: resolvePayment
-      summary: "A person's decision on a MANUAL_REVIEW payment, after checking with the scheme"
-      description: >-
-        NOT_DEBITED: the payment is DECLINED. DEBITED: the payment is PAID while its page is still
-        open; once the page has closed the money goes back to the card (reversed on the day it was
-        taken, refunded later) with the scheme's reference for the debit. Every decision needs a
-        note, is audited, and sends the merchant one final webhook.
-      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/PaymentResolutionRequest" }
-      responses:
-        "200":
-          description: The payment, as decided
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/PaymentAdminResponse" }
-        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
-
   /api/v1/pay/{token}:
     get:
       tags: [PaymentPage]
@@ -456,7 +410,7 @@ components:
         code: { type: string, pattern: "^[0-9]{4,8}$" }
     PaymentPage:
       type: object
-      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft, resultWindowSeconds]
+      required: [status, amount, orderId, merchantName, hasLogo, schemes, expiresAt, cardAttemptsLeft, codeAttemptsLeft]
       properties:
         status: { $ref: "#/components/schemas/PaymentStatus" }
         amount: { type: integer, format: int64, description: In tiyin }
@@ -513,13 +467,6 @@ components:
         refundedCount: { type: integer }
         refundedAmount: { type: integer, format: int64 }
         payout: { type: integer, format: int64, description: "net − refundedAmount; negative when refunds outweigh the day" }
-    PaymentResolutionRequest:
-      type: object
-      required: [decision, note]
-      properties:
-        decision: { type: string, enum: [NOT_DEBITED, DEBITED], description: What the scheme told the person }
-        note: { type: string, minLength: 1, maxLength: 500, pattern: ".*\\S.*", description: "Who at the scheme confirmed it, and how" }
-        schemeReference: { type: string, maxLength: 64, description: "The scheme's id for the debit; needed for DEBITED" }
     PaymentAdminResponse:
       type: object
       required: [id, partnerId, salesPointId, source, orderId, amount, status, createdAt]

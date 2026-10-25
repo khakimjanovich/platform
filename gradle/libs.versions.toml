@@ -104,6 +104,7 @@ ecom-bin-api = { module = "uz.heeypay.ecom:bin-api", version.ref = "ecom-platfor
 ecom-payment-api = { module = "uz.heeypay.ecom:payment-api", version.ref = "ecom-platform" }
 ecom-uzcard-adapter-api = { module = "uz.heeypay.ecom:uzcard-adapter-api", version.ref = "ecom-platform" }
 ecom-humo-adapter-api = { module = "uz.heeypay.ecom:humo-adapter-api", version.ref = "ecom-platform" }
+ecom-reconciliation-api = { module = "uz.heeypay.ecom:reconciliation-api", version.ref = "ecom-platform" }
 ecom-file-store = { module = "uz.heeypay.ecom:file-store", version.ref = "ecom-platform" }
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }

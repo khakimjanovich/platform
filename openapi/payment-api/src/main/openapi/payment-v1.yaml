@@ -562,8 +562,9 @@ paths:
       summary: "One page of a business day's card scheme calls (debits, reversals, refunds) through one scheme, for reconciliation"
       description: >-
         Inside the app only; never routed from outside. The business day is the day the call
-        started, in Tashkent (00:00:00 to 23:59:59). Every call is listed, whatever its state, oldest
-        first; a page with fewer operations than size is the last one.
+        started, in Tashkent (00:00:00 to 23:59:59). Every call is listed, whatever its state, by
+        start time then operation id; a page with fewer operations than size is the last one. A
+        reversal or refund carries the same paymentId as the debit it gives back.
       parameters:
         - { name: businessDate, in: query, required: true, schema: { type: string, format: date } }
         - { name: scheme, in: query, required: true, schema: { type: string, enum: [UZCARD, HUMO] } }

@@ -219,7 +219,10 @@ paths:
       tags: [SalesPoints]
       operationId: updateWebhook
       summary: Where the bank tells the website how each payment ended; empty to stop
-      description: An https address on the website's own domain. Each call is signed with the API client's signing key.
+      description: >-
+        An https address on the website's own domain. Each call is signed with the API client's
+        signing key. An address that resolves to a private, loopback or link-local network is
+        refused (URL_NOT_ALLOWED), now and again before every delivery.
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       requestBody:
         required: true
@@ -232,6 +235,7 @@ paths:
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/partners/{id}/sales-points:
     get:

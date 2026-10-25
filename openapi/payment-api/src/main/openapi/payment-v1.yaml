@@ -20,13 +20,15 @@ info:
     Payment links (`/api/v1/partner/payment-links`) are made by a merchant's user in the portal: the
     same page, for buyers reached in a chat, with no website checkout and no return address.
 
-    Webhooks: when a payment ends (PAID, DECLINED, FAILED, EXPIRED) or its money goes back (REVERSED,
-    REFUNDED), the bank POSTs it as JSON to the website's webhook URL, signed with
+    Webhooks: when a payment ends (PAID, DECLINED, FAILED, EXPIRED), its money goes back (REVERSED,
+    REFUNDED) or a refund fails, the bank POSTs a WebhookEvent as JSON to the website's webhook URL, signed with
     the API client's key the Standard Webhooks way (standardwebhooks.com): webhook-id is the event's
     id, webhook-timestamp the Unix time it was sent, and webhook-signature is "v1," and the base64
     HMAC-SHA256 of "webhook-id.webhook-timestamp.body". Any Standard Webhooks library verifies it
     with the key. The same event may arrive more than once; drop repeats by webhook-id. Anything
-    but a 2xx is retried, waiting longer each time.
+    but a 2xx within the timeout is retried, waiting longer each time, for 24 hours; one payment's
+    events arrive in order. listPaymentWebhooks shows each attempt, and replayPaymentWebhook sends an
+    event again.
 security:
   - bearer: []
 
@@ -430,6 +432,90 @@ paths:
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  # ------- Webhooks: the delivery log and replay (FR-CHK-060…062) -------
+  /api/v1/payments/{paymentId}/webhooks:
+    get:
+      tags: [Payment]
+      operationId: listPaymentWebhooks
+      summary: Every webhook event of the payment, oldest first, with each delivery attempt
+      parameters:
+        - { $ref: "#/components/parameters/PaymentId" }
+        - { $ref: "#/components/parameters/SignatureInput" }
+        - { $ref: "#/components/parameters/Signature" }
+        - { $ref: "#/components/parameters/ContentDigest" }
+      responses:
+        "200":
+          description: The events, empty when the website takes no webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WebhookDeliveryResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/payments/{paymentId}/webhooks/{eventId}/replay:
+    post:
+      tags: [Payment]
+      operationId: replayPaymentWebhook
+      summary: Sends one event again, with the same webhook-id, as a new attempt
+      description: >-
+        The stored body goes again, signed anew, in its turn after any earlier event of the payment
+        still being retried. While the event is still being retried, nothing new is queued. An event
+        retried for 24 hours without a 2xx is undelivered; replay it once the website is back.
+      parameters:
+        - { $ref: "#/components/parameters/PaymentId" }
+        - { $ref: "#/components/parameters/EventId" }
+        - { $ref: "#/components/parameters/SignatureInput" }
+        - { $ref: "#/components/parameters/Signature" }
+        - { $ref: "#/components/parameters/ContentDigest" }
+      responses:
+        "202":
+          description: The event, with its next attempt due now
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookDeliveryResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/payments/{paymentId}/webhooks:
+    get:
+      tags: [PaymentCabinet]
+      operationId: listCabinetPaymentWebhooks
+      summary: The webhook log of one of the merchant's payments in its cabinet, as listPaymentWebhooks
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      responses:
+        "200":
+          description: The events, empty when the website takes no webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WebhookDeliveryResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/payments/{paymentId}/webhooks/{eventId}/replay:
+    post:
+      tags: [PaymentCabinet]
+      operationId: replayCabinetPaymentWebhook
+      summary: The merchant sends one event again from its cabinet, as replayPaymentWebhook
+      parameters:
+        - { $ref: "#/components/parameters/PaymentId" }
+        - { $ref: "#/components/parameters/EventId" }
+      responses:
+        "202":
+          description: The event, with its next attempt due now
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WebhookDeliveryResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
   /api/v1/admin/payments/{paymentId}/refund-requests:
     post:
       tags: [PaymentAdmin]
@@ -578,6 +664,12 @@ components:
       name: paymentId
       in: path
       required: true
+      schema: { type: string, format: uuid }
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      description: The event's id, sent as webhook-id
       schema: { type: string, format: uuid }
     IdempotencyKey:
       name: Idempotency-Key
@@ -824,3 +916,64 @@ components:
       properties:
         date: { type: string, format: date }
         name: { type: string, minLength: 1, maxLength: 100 }
+
+    # ------- Webhooks (FR-CHK-060…062) -------
+    WebhookEvent:
+      type: object
+      description: >-
+        The JSON body POSTed to the website's webhook URL (see the description at the top for the
+        signature). Types: payment.paid, payment.declined, payment.failed, payment.expired,
+        payment.reversed, payment.refunded and payment.refund_failed (the payment stays PAID).
+        Amounts are in tiyin and come from the payment: the fee is the bank's, fixed when the debit
+        started, and net = gross − fee. No card number beyond the masked one, and nothing about the
+        payer. New fields and types may appear; ignore what you don't know.
+      required: [eventId, type, paymentId, salesPointId, orderId, state, gross, paymentSource, occurredAt]
+      properties:
+        eventId: { type: string, format: uuid, description: "The same as webhook-id; drop repeats by it" }
+        type: { type: string, example: payment.paid }
+        paymentId: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        orderId: { type: string }
+        state: { $ref: "#/components/schemas/PaymentState" }
+        gross: { type: integer, format: int64, description: "What the buyer paid, in tiyin" }
+        fee: { type: integer, format: int64, nullable: true, description: "The bank's fee in tiyin; null when no debit started" }
+        net: { type: integer, format: int64, nullable: true, description: "gross − fee: what the merchant receives, in tiyin" }
+        paymentSource: { $ref: "#/components/schemas/WebhookPaymentSource" }
+        maskedPan: { type: string, nullable: true, description: "The card, e.g. 860014******7890; null before a card was given" }
+        cardScheme: { type: string, nullable: true, description: "UZCARD or HUMO; null before a card was given" }
+        rrn: { type: string, nullable: true, description: "The scheme's reference number, once paid" }
+        receiptUrl: { type: string, nullable: true, description: "The fiscal receipt; always null until the bank issues receipts" }
+        reason: { type: string, nullable: true, description: "Why it was declined (e.g. CARD_INSUFFICIENT_FUNDS), failed, given back after its page closed (TIMEOUT_REVERSAL) or why a refund failed" }
+        occurredAt: { type: string, format: date-time }
+    WebhookPaymentSource:
+      type: string
+      description: "NEW_CARD: the buyer typed the card on the page · SAVED_CARD and INTERBANK: reserved, not sent yet"
+      enum: [NEW_CARD, SAVED_CARD, INTERBANK]
+    WebhookDeliveryResponse:
+      type: object
+      description: >-
+        One event and its delivery. A failed attempt (no 2xx within the timeout) is tried again,
+        waiting longer each time, for 24 hours; a later event of the same payment waits until the
+        earlier one is delivered or given up. Then the event is undelivered: the bank's operations
+        are alerted, and the merchant can replay it.
+      required: [eventId, type, occurredAt, undelivered, attempts]
+      properties:
+        eventId: { type: string, format: uuid }
+        type: { type: string, example: payment.paid }
+        occurredAt: { type: string, format: date-time }
+        deliveredAt: { type: string, format: date-time, description: "The first 2xx; absent until then" }
+        nextAttemptAt: { type: string, format: date-time, description: "When it is tried next; absent when nothing is due" }
+        undelivered: { type: boolean, description: "Given up after 24 hours of failed attempts; a replay clears it" }
+        attempts:
+          type: array
+          description: Oldest first
+          items: { $ref: "#/components/schemas/WebhookAttempt" }
+    WebhookAttempt:
+      type: object
+      required: [attempt, url, attemptedAt]
+      properties:
+        attempt: { type: integer, minimum: 1 }
+        url: { type: string, description: The address it went to }
+        httpStatus: { type: integer, description: "The website's answer; absent when none came" }
+        error: { type: string, description: "Why no answer came, e.g. a timeout or a refused address" }
+        attemptedAt: { type: string, format: date-time }

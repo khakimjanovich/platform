@@ -751,6 +751,73 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /api/v1/admin/sales-points/{salesPointId}/refund-window-requests:
+    post:
+      tags: [RefundWindowRequests]
+      operationId: requestRefundWindowExtension
+      summary: "One admin asks to extend a website's refund window to up to 60 calendar days; a second admin approves"
+      description: >-
+        Every website refunds for 10 working days after a payment. An extension, agreed with the
+        merchant for a reason, replaces that with a number of calendar days (at most 60); it takes
+        effect only when another admin approves it within 24 hours.
+      parameters: [{ name: salesPointId, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefundWindowRequestCreate" }
+      responses:
+        "201": { $ref: "#/components/responses/RefundWindowRequest" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/refund-window-requests:
+    get:
+      tags: [RefundWindowRequests]
+      operationId: listRefundWindowRequests
+      summary: Extensions waiting for a second admin, oldest first
+      responses:
+        "200":
+          description: The pending requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RefundWindowRequestResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/refund-window-requests/{requestId}/approve:
+    post:
+      tags: [RefundWindowRequests]
+      operationId: approveRefundWindowExtension
+      summary: A second admin approves; the website's extension takes effect
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
+      responses:
+        "200": { $ref: "#/components/responses/RefundWindowRequest" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/refund-window-requests/{requestId}/reject:
+    post:
+      tags: [RefundWindowRequests]
+      operationId: rejectRefundWindowExtension
+      summary: A second admin rejects; nothing changes
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
+      responses:
+        "200": { $ref: "#/components/responses/RefundWindowRequest" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearer:
@@ -786,6 +853,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    RefundWindowRequest:
+      description: The extension request after the change
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/RefundWindowRequestResponse" }
     Documents:
       description: The documents and where KYB stands
       content:
@@ -948,21 +1020,18 @@ components:
           items: { type: string, maxLength: 500, pattern: "^https://.+" }
     SalesPointSettingsRequest:
       type: object
-      required: [schemes, refundWindowDays]
+      required: [schemes]
       properties:
         schemes:
           type: array
           minItems: 1
           uniqueItems: true
           items: { $ref: "#/components/schemas/CardScheme" }
-        refundWindowDays: { type: integer, minimum: 0, description: Days after a payment when it can still be refunded }
-        extendedRefundDays: { type: integer, minimum: 1, description: Extra days agreed with the bank; needs a reason }
-        extendedRefundReason: { type: string, minLength: 3, maxLength: 500 }
         maxPaymentAmount: { type: integer, format: int64, minimum: 100, description: "The most one payment may be, in tiyin; none means no limit" }
         dailyLimit: { type: integer, format: int64, minimum: 100, description: "The most the website may take in one business day, in tiyin; none means no limit" }
     SalesPointResponse:
       type: object
-      required: [id, partnerId, name, websiteUrl, returnUrls, status, schemes, refundWindowDays, createdAt]
+      required: [id, partnerId, name, websiteUrl, returnUrls, status, schemes, refundWindowWorkingDays, createdAt]
       properties:
         id: { type: string, format: uuid }
         partnerId: { type: string, format: uuid }
@@ -975,9 +1044,9 @@ components:
         schemes:
           type: array
           items: { $ref: "#/components/schemas/CardScheme" }
-        refundWindowDays: { type: integer }
-        extendedRefundDays: { type: integer }
-        extendedRefundReason: { type: string }
+        refundWindowWorkingDays: { type: integer, description: "Working days after a payment when it can be refunded: 10 for every website" }
+        refundExtensionCalendarDays: { type: integer, description: "An approved extension: the payment can be refunded for this many calendar days instead (at most 60)" }
+        refundExtensionReason: { type: string }
         statusReason: { type: string }
         lastSiteCheck: { $ref: "#/components/schemas/SiteCheckResponse" }
         logoUpdatedAt: { type: string, format: date-time, description: Set once the website has a logo }
@@ -1068,3 +1137,22 @@ components:
           items: { type: string }
         checkedBy: { type: string }
         checkedAt: { type: string, format: date-time }
+    RefundWindowRequestCreate:
+      type: object
+      required: [calendarDays, reason]
+      properties:
+        calendarDays: { type: integer, minimum: 1, maximum: 60, description: "Calendar days after a payment when it can be refunded" }
+        reason: { type: string, minLength: 3, maxLength: 500, description: What was agreed with the merchant }
+    RefundWindowRequestResponse:
+      type: object
+      required: [id, salesPointId, calendarDays, reason, status, requestedBy, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        salesPointId: { type: string, format: uuid }
+        calendarDays: { type: integer }
+        reason: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, EXPIRED] }
+        requestedBy: { type: string }
+        decidedBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }

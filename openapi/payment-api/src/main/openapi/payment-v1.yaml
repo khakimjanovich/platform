@@ -126,15 +126,23 @@ paths:
       operationId: refundPayment
       summary: Gives a paid payment back to the card, all of it
       description: >-
-        On the day it was paid (in the bank's settlement time zone) the debit is reversed before
-        settlement (REVERSED); later, within the website's refund window, it is refunded (REFUNDED).
-        No answer from the scheme leaves it RETURNING until the bank has checked; it is never sent
+        The whole amount only. On the day it was paid (in the bank's settlement time zone) the debit is
+        reversed before settlement (REVERSED); later, within the website's refund window (10 working
+        days, or an approved extension in calendar days), it is refunded (REFUNDED). At most
+        10 000 000 UZS here (PAYMENT_REFUND_CAP_EXCEEDED); above it, or after the window
+        (PAYMENT_REFUND_WINDOW_CLOSED), the bank's staff refund on the merchant's application. No
+        answer from the scheme leaves it RETURNING while the bank asks the scheme; it is never sent
         twice.
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }
         - { $ref: "#/components/parameters/SignatureInput" }
         - { $ref: "#/components/parameters/Signature" }
         - { $ref: "#/components/parameters/ContentDigest" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefundRequest" }
       responses:
         "200":
           description: The payment, REVERSED, REFUNDED or RETURNING
@@ -154,6 +162,11 @@ paths:
       summary: Gives a paid payment link back to the card, by the same rules as refundPayment
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefundRequest" }
       responses:
         "200":
           description: The link, REVERSED, REFUNDED or RETURNING
@@ -351,6 +364,192 @@ paths:
         "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /api/v1/partner/payments:
+    get:
+      tags: [PaymentCabinet]
+      operationId: listCabinetPayments
+      summary: The merchant's payments in its cabinet, newest first
+      parameters:
+        - { name: salesPointId, in: query, schema: { type: string, format: uuid } }
+        - { name: state, in: query, schema: { $ref: "#/components/schemas/PaymentState" } }
+        - { name: from, in: query, schema: { type: string, format: date }, description: "First day, in the settlement time zone" }
+        - { name: to, in: query, schema: { type: string, format: date }, description: "Last day, included" }
+      responses:
+        "200":
+          description: Up to 100 payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/payments/{paymentId}:
+    get:
+      tags: [PaymentCabinet]
+      operationId: getCabinetPayment
+      summary: One of the merchant's payments, with its operations and how long it can still be refunded
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      responses:
+        "200":
+          description: The payment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/payments/{paymentId}/refund:
+    post:
+      tags: [PaymentCabinet]
+      operationId: refundCabinetPayment
+      summary: The merchant gives a payment back from its cabinet, by the same rules as refundPayment
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefundRequest" }
+      responses:
+        "200":
+          description: The payment, REVERSED, REFUNDED or RETURNING
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentResponse" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/payments/{paymentId}/refund-requests:
+    post:
+      tags: [PaymentAdmin]
+      operationId: requestStaffRefund
+      summary: "Staff ask to refund a payment above the cap or after the window, on the merchant's application; a second admin approves"
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StaffRefundRequestCreate" }
+      responses:
+        "201":
+          description: The request, waiting for a second admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffRefundRequestResponse" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/refund-requests:
+    get:
+      tags: [PaymentAdmin]
+      operationId: listStaffRefundRequests
+      summary: Staff refunds waiting for a second admin, oldest first
+      responses:
+        "200":
+          description: The pending requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StaffRefundRequestResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/refund-requests/{requestId}/approve:
+    post:
+      tags: [PaymentAdmin]
+      operationId: approveStaffRefund
+      summary: "A second admin approves: the money goes back once, without the cap and window, and the decision is audited"
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
+      responses:
+        "200":
+          description: The request after the decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffRefundRequestResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/refund-requests/{requestId}/reject:
+    post:
+      tags: [PaymentAdmin]
+      operationId: rejectStaffRefund
+      summary: A second admin rejects; nothing moves
+      parameters: [{ $ref: "#/components/parameters/RequestId" }]
+      responses:
+        "200":
+          description: The request after the decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StaffRefundRequestResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "410": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/calendar/holidays:
+    get:
+      tags: [BankingCalendar]
+      operationId: listHolidays
+      summary: The bank's non-working days in a year; weekends are never working days
+      parameters:
+        - { name: year, in: query, required: true, schema: { type: integer, minimum: 2000, maximum: 2100 } }
+      responses:
+        "200":
+          description: The holidays, in date order
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Holiday" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+    post:
+      tags: [BankingCalendar]
+      operationId: addHoliday
+      summary: Adds a non-working day; refund windows and deadlines counted in working days skip it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Holiday" }
+      responses:
+        "201":
+          description: The holiday
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Holiday" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/calendar/holidays/{date}:
+    delete:
+      tags: [BankingCalendar]
+      operationId: deleteHoliday
+      summary: Makes a day a working day again (unless it is a weekend)
+      parameters: [{ name: date, in: path, required: true, schema: { type: string, format: date } }]
+      responses:
+        "204": { description: Removed }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearer:
@@ -359,6 +558,11 @@ components:
       bearerFormat: JWT
       description: A Keycloak access token from realm ecom
   parameters:
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
     PageToken:
       name: token
       in: path
@@ -511,6 +715,12 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time, description: When the money went back to the card }
         createdAt: { type: string, format: date-time }
+        operations:
+          type: array
+          description: "Every call to the scheme for this payment, oldest first: the debit, then any reversal or refund"
+          items: { $ref: "#/components/schemas/PaymentOperationResponse" }
+        refundableUntil: { type: string, format: date-time, description: "Until when the merchant can still refund it; only while it is PAID" }
+        refundDaysLeft: { type: integer, description: "Days left to refund it: working days, or calendar days under an approved extension; only while it is PAID" }
     DailyReport:
       type: object
       description: >-
@@ -560,3 +770,51 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+    RefundRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 200, pattern: ".*\\S.*", description: Why the money goes back }
+    OperationState:
+      type: string
+      description: "REQUESTED: written before the call to the scheme · APPROVED · DECLINED · UNKNOWN: the scheme didn't answer; the bank asks it for the status, never sends the call again"
+      enum: [REQUESTED, APPROVED, DECLINED, UNKNOWN]
+    PaymentOperationResponse:
+      type: object
+      required: [kind, state, amount, startedAt]
+      properties:
+        kind: { type: string, enum: [DEBIT, REVERSAL, REFUND] }
+        state: { $ref: "#/components/schemas/OperationState" }
+        amount: { type: integer, format: int64, description: In tiyin }
+        reason: { type: string, description: "For a reversal or refund: why" }
+        declineCode: { type: string }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+    StaffRefundRequestCreate:
+      type: object
+      required: [applicationRef, reason, note]
+      properties:
+        applicationRef: { type: string, minLength: 1, maxLength: 100, description: "The merchant's written application, as the bank registered it" }
+        reason: { type: string, minLength: 1, maxLength: 200, pattern: ".*\\S.*", description: Why the money goes back }
+        note: { type: string, minLength: 1, maxLength: 500, pattern: ".*\\S.*", description: "Why staff refund it: above the cap, or after the window" }
+    StaffRefundRequestResponse:
+      type: object
+      required: [id, paymentId, applicationRef, reason, note, status, requestedBy, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        paymentId: { type: string, format: uuid }
+        amount: { type: integer, format: int64, description: In tiyin }
+        applicationRef: { type: string }
+        reason: { type: string }
+        note: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED, EXPIRED] }
+        requestedBy: { type: string }
+        decidedBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+    Holiday:
+      type: object
+      required: [date, name]
+      properties:
+        date: { type: string, format: date }
+        name: { type: string, minLength: 1, maxLength: 100 }

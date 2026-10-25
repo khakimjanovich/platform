@@ -12,13 +12,13 @@ implementation libs.ecom.vault
 ```yaml
 spring:
   config:
-    import: vault://secret/ecom # required: a Vault that can't be read stops startup
+    import: ${VAULT_IMPORT} # vault://secret/ecom: a Vault that can't be read stops startup
   cloud:
     vault:
-      uri: http://localhost:8200
-      authentication: TOKEN # APPROLE, KUBERNETES
-      token: ${VAULT_TOKEN:} # no default: locally VAULT_TOKEN=local-only
-      fail-fast: true
+      uri: ${VAULT_URL}
+      authentication: ${VAULT_AUTHENTICATION} # TOKEN, APPROLE, KUBERNETES
+      token: ${VAULT_TOKEN} # locally local-only; none has a default
+      fail-fast: ${VAULT_FAIL_FAST}
 ```
 
 `VaultSecrets.get(path)` gives the latest version of a secret, empty if there is none, and throws

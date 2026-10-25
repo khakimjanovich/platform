@@ -69,7 +69,12 @@ class KeycloakAdminIT {
                 "ecom.keycloak.url=" + url(),
                 "ecom.keycloak.realm=ecom",
                 "ecom.keycloak.client-id=ecom-backend",
-                "ecom.keycloak.client-secret=local-only")
+                "ecom.keycloak.client-secret=local-only",
+                // No setting has a default; this test starts no collector, and traces nothing.
+                "TRACING_SAMPLING=0.0",
+                "OTLP_TRACES_ENDPOINT=http://otlp.not-started.invalid/v1/traces",
+                "OTLP_METRICS_ENDPOINT=http://otlp.not-started.invalid/v1/metrics",
+                "OTLP_LOGS_ENDPOINT=http://otlp.not-started.invalid/v1/logs")
             .run();
     admin = context.getBean(KeycloakAdmin.class);
   }

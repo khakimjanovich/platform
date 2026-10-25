@@ -11,7 +11,7 @@ paths:
     get:
       tags: [PartnerInternal]
       operationId: listSalesPointsOwnedBy
-      summary: Every sales point of the merchant this portal user belongs to, for other modules; empty for anyone else
+      summary: Every sales point of the merchant this cabinet user (by e-mail) belongs to, for other modules; empty for anyone else, a blocked user included
       description: Inside the app only; never routed from outside.
       parameters:
         - { name: ownerEmail, in: query, required: true, schema: { type: string } }
@@ -93,6 +93,24 @@ paths:
                 maxItems: 1
                 items: { type: string, format: uuid }
 
+  /internal/v1/users/{userId}/merchant:
+    get:
+      tags: [PartnerInternal]
+      operationId: findUserMerchant
+      summary: The merchant this cabinet user belongs to, with the user's role and state, for other modules; empty for anyone else
+      description: Inside the app only; never routed from outside.
+      parameters:
+        - { name: userId, in: path, required: true, description: "The user's Keycloak id (the token's subject)", schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: The user's merchant, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: "#/components/schemas/UserMerchantResponse" }
+
   /api/v1/partners/{id}:
     get:
       tags: [Partners]
@@ -163,6 +181,80 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/users:
+    get:
+      tags: [MerchantUsers]
+      operationId: listMerchantUsers
+      summary: The merchant's cabinet users, oldest first, blocked ones included
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MerchantUserResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+    post:
+      tags: [MerchantUsers]
+      operationId: createMerchantUser
+      summary: Invites a user with one role; Keycloak e-mails them a link to set a password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MerchantUserRequest" }
+      responses:
+        "201": { $ref: "#/components/responses/MerchantUser" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/users/{userId}/role:
+    put:
+      tags: [MerchantUsers]
+      operationId: changeMerchantUserRole
+      summary: Replaces the user's one role; the last admin keeps theirs
+      parameters: [{ $ref: "#/components/parameters/UserId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MerchantUserRoleRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/MerchantUser" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/users/{userId}/block:
+    post:
+      tags: [MerchantUsers]
+      operationId: blockMerchantUser
+      summary: Blocks the user and ends every session at once; past actions stay theirs
+      description: >-
+        Blocking the last active admin is refused (LAST_ADMIN) unless the request names another
+        active user, who becomes an admin in the same step.
+      parameters: [{ $ref: "#/components/parameters/UserId" }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BlockMerchantUserRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/MerchantUser" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/sales-points:
     get:
@@ -841,6 +933,12 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      description: The user's Keycloak id
+      schema: { type: string, format: uuid }
     DocumentId:
       name: documentId
       in: path
@@ -853,6 +951,11 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ReasonRequest" }
   responses:
+    MerchantUser:
+      description: The user after the change
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/MerchantUserResponse" }
     RefundWindowRequest:
       description: The extension request after the change
       content:
@@ -1156,3 +1259,46 @@ components:
         decidedBy: { type: string }
         createdAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time }
+    MerchantRole:
+      type: string
+      description: "ADMIN everything, users and settings included · ACCOUNTANT views, exports, settlement · OPERATOR views, exports, links, refunds · OBSERVER views only"
+      enum: [ADMIN, ACCOUNTANT, OPERATOR, OBSERVER]
+    MerchantUserState:
+      type: string
+      description: ACTIVE may log in · BLOCKED may not; sessions ended, past actions kept
+      enum: [ACTIVE, BLOCKED]
+    MerchantUserRequest:
+      type: object
+      required: [email, name, role]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        name: { type: string, minLength: 1, maxLength: 150 }
+        role: { $ref: "#/components/schemas/MerchantRole" }
+    MerchantUserRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role: { $ref: "#/components/schemas/MerchantRole" }
+    BlockMerchantUserRequest:
+      type: object
+      properties:
+        newAdminId: { type: string, format: uuid, description: "Another active user who becomes an admin; required when blocking the last admin" }
+    MerchantUserResponse:
+      type: object
+      required: [id, email, name, role, state, createdAt]
+      properties:
+        id: { type: string, format: uuid, description: The user's Keycloak id }
+        email: { type: string, format: email }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/MerchantRole" }
+        state: { $ref: "#/components/schemas/MerchantUserState" }
+        createdAt: { type: string, format: date-time }
+        blockedAt: { type: string, format: date-time }
+    UserMerchantResponse:
+      type: object
+      required: [merchantId, userId, role, state]
+      properties:
+        merchantId: { type: string, format: uuid, description: The partner the user belongs to }
+        userId: { type: string, format: uuid }
+        role: { $ref: "#/components/schemas/MerchantRole" }
+        state: { $ref: "#/components/schemas/MerchantUserState" }

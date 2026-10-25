@@ -8,7 +8,9 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -62,19 +64,82 @@ public class KeycloakAdmin {
                         password,
                         KeycloakConstants.TEMPORARY,
                         false)));
-    var created =
-        keycloak
-            .post()
-            .uri(KeycloakConstants.USERS)
-            .body(user)
-            .retrieve()
-            .onStatus(
-                status -> status.isSameCodeAs(HttpStatus.CONFLICT),
-                (request, response) -> {
-                  throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_CONFLICT, username);
-                })
-            .toBodilessEntity();
-    return idOf(created.getHeaders().getLocation());
+    return idOf(created(user, username).getHeaders().getLocation());
+  }
+
+  private ResponseEntity<Void> created(Map<String, Object> user, String username) {
+    return keycloak
+        .post()
+        .uri(KeycloakConstants.USERS)
+        .body(user)
+        .retrieve()
+        .onStatus(
+            status -> status.isSameCodeAs(HttpStatus.CONFLICT),
+            (request, response) -> {
+              throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_CONFLICT, username);
+            })
+        .toBodilessEntity();
+  }
+
+  /**
+   * Creates an enabled user without a password and has Keycloak e-mail them a link to set one;
+   * returns its id. If the e-mail can't be sent, the user is removed again and the call fails.
+   */
+  public String inviteUser(String email, String firstName) {
+    return call(
+        () -> {
+          var user =
+              Map.of(
+                  KeycloakConstants.USERNAME,
+                  email,
+                  KeycloakConstants.EMAIL,
+                  email,
+                  KeycloakConstants.FIRST_NAME,
+                  firstName,
+                  KeycloakConstants.ENABLED,
+                  true,
+                  KeycloakConstants.EMAIL_VERIFIED,
+                  true,
+                  KeycloakConstants.REQUIRED_ACTIONS,
+                  List.of(KeycloakConstants.UPDATE_PASSWORD));
+          var id = idOf(created(user, email).getHeaders().getLocation());
+          try {
+            keycloak
+                .put()
+                .uri(KeycloakConstants.USER_ACTIONS_EMAIL, id)
+                .body(List.of(KeycloakConstants.UPDATE_PASSWORD))
+                .retrieve()
+                .toBodilessEntity();
+          } catch (RestClientException e) {
+            keycloak.delete().uri(KeycloakConstants.USER, id).retrieve().toBodilessEntity();
+            throw e;
+          }
+          return id;
+        });
+  }
+
+  /** Disables the user and ends every session at once; the user and its history stay. */
+  public void disableUser(String userId) {
+    call(
+        () -> {
+          // Keycloak replaces the whole user on update, so change the field on the full
+          // representation.
+          var user =
+              Objects.requireNonNull(
+                  keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON));
+          user.put(KeycloakConstants.ENABLED, false);
+          keycloak
+              .put()
+              .uri(KeycloakConstants.USER, userId)
+              .body(user)
+              .retrieve()
+              .toBodilessEntity();
+          return keycloak
+              .post()
+              .uri(KeycloakConstants.USER_LOGOUT, userId)
+              .retrieve()
+              .toBodilessEntity();
+        });
   }
 
   public void markEmailVerified(String userId) {
@@ -99,14 +164,27 @@ public class KeycloakAdmin {
     call(() -> realmRole(userId, role));
   }
 
+  public void revokeRealmRole(String userId, String role) {
+    call(
+        () ->
+            keycloak
+                .method(HttpMethod.DELETE)
+                .uri(KeycloakConstants.USER_REALM_ROLES, userId)
+                .body(List.of(roleOf(role)))
+                .retrieve()
+                .toBodilessEntity());
+  }
+
+  private Map<String, Object> roleOf(String role) {
+    return Objects.requireNonNull(
+        keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON));
+  }
+
   private Object realmRole(String userId, String role) {
-    var representation =
-        Objects.requireNonNull(
-            keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON));
     return keycloak
         .post()
         .uri(KeycloakConstants.USER_REALM_ROLES, userId)
-        .body(List.of(representation))
+        .body(List.of(roleOf(role)))
         .retrieve()
         .toBodilessEntity();
   }

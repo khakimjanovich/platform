@@ -15,6 +15,8 @@ public class KeycloakConstants {
   public static final String USERS = "/users";
   public static final String USER = "/users/{id}";
   public static final String USER_REALM_ROLES = "/users/{id}/role-mappings/realm";
+  public static final String USER_ACTIONS_EMAIL = "/users/{id}/execute-actions-email";
+  public static final String USER_LOGOUT = "/users/{id}/logout";
   public static final String ROLE = "/roles/{name}";
   public static final String ROLES_ONE = "/roles?max=1";
   public static final String HEALTH_INDICATOR_BEAN = "keycloakHealthIndicator";
@@ -48,6 +50,9 @@ public class KeycloakConstants {
   public static final String VALUE = "value";
   public static final String TEMPORARY = "temporary";
   public static final String PASSWORD = "password";
+  public static final String FIRST_NAME = "firstName";
+  public static final String REQUIRED_ACTIONS = "requiredActions";
+  public static final String UPDATE_PASSWORD = "UPDATE_PASSWORD";
   public static final String CLIENT_ID = "clientId";
   public static final String PUBLIC_CLIENT = "publicClient";
   public static final String SERVICE_ACCOUNTS_ENABLED = "serviceAccountsEnabled";

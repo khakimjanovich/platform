@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -43,9 +45,20 @@ class KeycloakAdminIT {
   private static final ParameterizedTypeReference<Map<String, Object>> JSON =
       new ParameterizedTypeReference<>() {};
 
+  /** Keycloak sends its e-mails to "mailpit", as in ecom-infra's compose. */
+  static final Network NETWORK = Network.newNetwork();
+
+  @Container
+  static final GenericContainer<?> MAILPIT =
+      new GenericContainer<>(ResourceBundle.getBundle("images").getString("mailpit"))
+          .withNetwork(NETWORK)
+          .withNetworkAliases("mailpit")
+          .withExposedPorts(8025);
+
   @Container
   static final GenericContainer<?> KEYCLOAK =
       new GenericContainer<>(ResourceBundle.getBundle("images").getString("keycloak"))
+          .withNetwork(NETWORK)
           .withCommand("start-dev", "--import-realm")
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
@@ -125,21 +138,117 @@ class KeycloakAdminIT {
         .doesNotContain(issued.secret(), rotated);
   }
 
-  private static String passwordToken(String username, String password) {
+  @Test
+  void anInvitedUserGetsAnEmailToSetAPassword() {
+    var email = UUID.randomUUID() + "@example.uz";
+    var id = admin.inviteUser(email, "Aziza");
+
+    var user = adminGet("/users/" + id);
+    assertThat(user)
+        .containsEntry("firstName", "Aziza")
+        .containsEntry("enabled", true)
+        .containsEntry("requiredActions", List.of("UPDATE_PASSWORD"));
+    var mails =
+        RestClient.create("http://" + MAILPIT.getHost() + ":" + MAILPIT.getMappedPort(8025))
+            .get()
+            .uri("/api/v1/search?query=to:{email}", email)
+            .retrieve()
+            .body(JSON);
+    assertThat(mails).containsEntry("messages_count", 1);
+    assertThatThrownBy(() -> admin.inviteUser(email, "Aziza"))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT));
+  }
+
+  @Test
+  void aRoleIsSwappedAndADisabledUserLosesItsSessions() {
+    var email = UUID.randomUUID() + "@example.uz";
+    var id = admin.createUser(email, email, "correct-horse-42", true);
+    admin.grantRealmRole(id, "merchant-operator");
+    admin.revokeRealmRole(id, "merchant-operator");
+    admin.grantRealmRole(id, "merchant-observer");
+    var claims = claims(passwordToken(email, "correct-horse-42"));
+    assertThat(claims).contains("\"merchant-observer\"").doesNotContain("merchant-operator");
+
+    var refresh = (String) passwordGrant(email, "correct-horse-42").get("refresh_token");
+    admin.disableUser(id);
+    assertThat(adminGet("/users/" + id)).containsEntry("enabled", false);
+    assertThat(refreshStatus(refresh)).as("the session ended").isEqualTo(400);
+    assertThat(passwordStatus(email, "correct-horse-42")).isEqualTo(400);
+  }
+
+  private static String claims(String token) {
+    return new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]));
+  }
+
+  /** Keycloak's admin API, as the realm's bootstrap admin. */
+  private static Map<String, Object> adminGet(String path) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
-    form.add("client_id", "ecom-portal");
-    form.add("username", username);
-    form.add("password", password);
-    return (String)
+    form.add("client_id", "admin-cli");
+    form.add("username", "admin");
+    form.add("password", "test");
+    var token =
         RestClient.create()
             .post()
-            .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+            .uri(url() + "/realms/master/protocol/openid-connect/token")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(form)
             .retrieve()
             .body(JSON)
             .get("access_token");
+    return RestClient.create()
+        .get()
+        .uri(url() + "/admin/realms/ecom" + path)
+        .header("Authorization", "Bearer " + token)
+        .retrieve()
+        .body(JSON);
+  }
+
+  private static Map<String, Object> passwordGrant(String username, String password) {
+    var form = new LinkedMultiValueMap<String, String>();
+    form.add("grant_type", "password");
+    form.add("client_id", "ecom-portal");
+    form.add("username", username);
+    form.add("password", password);
+    return RestClient.create()
+        .post()
+        .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .body(form)
+        .retrieve()
+        .body(JSON);
+  }
+
+  private static int passwordStatus(String username, String password) {
+    var form = new LinkedMultiValueMap<String, String>();
+    form.add("grant_type", "password");
+    form.add("client_id", "ecom-portal");
+    form.add("username", username);
+    form.add("password", password);
+    return tokenStatus(form);
+  }
+
+  private static int refreshStatus(String refreshToken) {
+    var form = new LinkedMultiValueMap<String, String>();
+    form.add("grant_type", "refresh_token");
+    form.add("client_id", "ecom-portal");
+    form.add("refresh_token", refreshToken);
+    return tokenStatus(form);
+  }
+
+  private static int tokenStatus(LinkedMultiValueMap<String, String> form) {
+    return RestClient.create()
+        .post()
+        .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+        .body(form)
+        .exchange((req, res) -> res.getStatusCode().value());
+  }
+
+  private static String passwordToken(String username, String password) {
+    return (String) passwordGrant(username, password).get("access_token");
   }
 
   private static String clientToken(String clientId, String secret) {

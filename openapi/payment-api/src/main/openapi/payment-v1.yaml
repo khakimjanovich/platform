@@ -466,7 +466,7 @@ paths:
         retried for 24 hours without a 2xx is undelivered; replay it once the website is back. A
         replayed event may arrive after later ones of the same payment: apply an event only when its
         occurredAt is newer than the last one applied, or read getPayment for the current state.
-        WEBHOOK_NOT_CONFIGURED (409) when the website has no webhook URL now, or the payment came
+        PAYMENT_WEBHOOK_NOT_CONFIGURED (409) when the website has no webhook URL now, or the payment came
         from a payment link, which sends no webhooks.
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }

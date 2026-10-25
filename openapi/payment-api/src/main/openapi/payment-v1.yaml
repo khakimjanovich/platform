@@ -414,8 +414,22 @@ components:
         order stays locked · MANUAL_REVIEW: still no answer after the configured status checks, a
         person at the bank decides; not final, so no webhook · FAILED: the page closed before any debit ·
         EXPIRED: nobody paid before the page expired · RETURNING: the money is being given back ·
-        REVERSED: given back before settlement · REFUNDED: given back after it
+        REVERSED: given back before settlement · REFUNDED: given back after it. Frozen: new lifecycle
+        values (disputes, partial refunds) appear only in `state`, which merchants read.
       enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED]
+    PaymentState:
+      type: string
+      description: >-
+        What a merchant sees (FR-CHK-040): the internal steps of the page and the debit
+        (AWAITING_CODE, CARD_CONFIRMED, DEBITING) are CONFIRMING, and RETURNING stays PAID until the
+        money is back. CREATED: nobody has paid · CONFIRMING: the payer is confirming the card, or the
+        debit is running · PAID · DECLINED · FAILED: closed before any debit · UNKNOWN: the scheme
+        didn't answer; the bank is checking, never treat it as declined · MANUAL_REVIEW: a person at
+        the bank decides · EXPIRED · REVERSED · PARTIALLY_REFUNDED: part given back (reserved: not
+        reachable while refunds are full only) · REFUNDED · DISPUTED: the payment is disputed and the
+        bank is handling the claim · CHARGED_BACK: the claim was lost and the money went back to the
+        payer
+      enum: [CREATED, CONFIRMING, PAID, DECLINED, FAILED, UNKNOWN, MANUAL_REVIEW, EXPIRED, REVERSED, PARTIALLY_REFUNDED, REFUNDED, DISPUTED, CHARGED_BACK]
     PaymentSource:
       type: string
       description: "API: created by the merchant's server · LINK: a payment link from the merchant's portal"
@@ -430,14 +444,15 @@ components:
         validForHours: { type: integer, minimum: 1, description: "How long the link works; at most the bank's configured limit" }
     PaymentLinkResponse:
       type: object
-      required: [id, salesPointId, orderId, amount, description, status, expiresAt, createdAt]
+      required: [id, salesPointId, orderId, amount, description, status, expiresAt, createdAt, state]
       properties:
         id: { type: string, format: uuid, description: The payment behind the link }
         salesPointId: { type: string, format: uuid }
         orderId: { type: string }
         amount: { type: integer, format: int64 }
         description: { type: string }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
+        state: { $ref: "#/components/schemas/PaymentState" }
+        status: { $ref: "#/components/schemas/PaymentStatus", deprecated: true, description: "Use state: status keeps the internal steps and gains no new values; it is removed in the next major release" }
         url: { type: string, description: "Only in the response that created the link: send it to the buyer" }
         expiresAt: { type: string, format: date-time }
         paidAt: { type: string, format: date-time }
@@ -478,14 +493,15 @@ components:
         resultWindowSeconds: { type: integer, minimum: 0, description: "How long the page keeps asking for the result of an UNKNOWN payment before it tells the buyer not to pay again" }
     PaymentResponse:
       type: object
-      required: [id, salesPointId, orderId, amount, status, createdAt]
+      required: [id, salesPointId, orderId, amount, status, createdAt, state]
       properties:
         id: { type: string, format: uuid }
         salesPointId: { type: string, format: uuid }
         orderId: { type: string }
         amount: { type: integer, format: int64 }
         description: { type: string }
-        status: { $ref: "#/components/schemas/PaymentStatus" }
+        state: { $ref: "#/components/schemas/PaymentState" }
+        status: { $ref: "#/components/schemas/PaymentStatus", deprecated: true, description: "Use state: status keeps the internal steps and gains no new values; it is removed in the next major release" }
         paymentUrl: { type: string, description: "Only in the response that created the payment: send the buyer here" }
         pageExpiresAt: { type: string, format: date-time }
         rrn: { type: string, description: "The scheme's reference number, once paid" }

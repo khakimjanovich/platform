@@ -64,6 +64,9 @@ paths:
       operationId: registerEpos
       summary: Registers an e-POS terminal the processing center issued; it is live at once
       description: |
+        The acquirer percent set on this e-POS in the ABS is entered once, with a separate confirmation
+        that it matches the ABS (percentConfirmed); without it nothing is saved (EPOS_PERCENT_NOT_CONFIRMED).
+        The percent is locked: no operation changes it. The ABS calculates the fee with it (fee mode A).
         A UZCARD terminal is registered in SV-Gate first (terminal.add, then terminal.check) and is kept only
         if Uzcard accepts it: EPOS_UZCARD_REJECTED carries Uzcard's code in subErrors, EPOS_UZCARD_UNAVAILABLE
         means Uzcard didn't answer and nothing was saved. A retry is safe: a terminal SV-Gate already has
@@ -83,6 +86,25 @@ paths:
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/sales-points/{salesPointId}/epos:
+    get:
+      tags: [EposPartner]
+      operationId: listMyEpos
+      summary: "The merchant's view of one of its websites' e-POS terminals: scheme, status and acquirer percent"
+      description: Someone else's website answers 404. Revoked terminals are left out.
+      parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
+      responses:
+        "200":
+          description: e-POS terminals, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EposPartnerResponse" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/sales-points/{salesPointId}/epos/route:
     get:
@@ -279,11 +301,13 @@ components:
       enum: [ACTIVE, SUSPENDED, REVOKED]
     EposRequest:
       type: object
-      required: [scheme, merchantId, terminalId]
+      required: [scheme, merchantId, terminalId, acquirerPercent, percentConfirmed]
       properties:
         scheme: { $ref: "#/components/schemas/CardScheme" }
         merchantId: { type: string, minLength: 1, maxLength: 30, pattern: "^[A-Za-z0-9]+$", description: MID from the processing center }
         terminalId: { type: string, minLength: 1, maxLength: 30, pattern: "^[A-Za-z0-9]+$", description: TID from the processing center }
+        acquirerPercent: { type: number, minimum: 0, maximum: 100, multipleOf: 0.0001, description: "The acquirer percent set on this e-POS in the ABS, up to 4 decimals; locked once saved" }
+        percentConfirmed: { type: boolean, enum: [true], description: "The person confirmed the percent matches the ABS e-POS setting (a separate step); false saves nothing" }
     EposResponse:
       type: object
       required: [id, salesPointId, scheme, merchantId, terminalId, status, registeredBy, createdAt]
@@ -296,6 +320,17 @@ components:
         status: { $ref: "#/components/schemas/EposStatus" }
         registeredBy: { type: string }
         createdAt: { type: string, format: date-time }
+        acquirerPercent: { type: number, description: "The acquirer percent set in the ABS; absent on terminals registered before it was recorded" }
+        percentConfirmedBy: { type: string, description: Who confirmed the percent matches the ABS }
+        percentConfirmedAt: { type: string, format: date-time }
+    EposPartnerResponse:
+      type: object
+      description: What a merchant sees of an e-POS terminal; the MID and TID stay with the bank
+      required: [scheme, status]
+      properties:
+        scheme: { $ref: "#/components/schemas/CardScheme" }
+        status: { $ref: "#/components/schemas/EposStatus" }
+        acquirerPercent: { type: number, description: "The acquirer percent the ABS charges on this website's payments of this scheme" }
     UzcardTerminalResponse:
       type: object
       description: Each part is absent when SV-Gate doesn't know the MID/TID that way

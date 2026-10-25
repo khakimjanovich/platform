@@ -46,7 +46,14 @@ tasks.matching { it.name ==~ /compile(Test|IntegrationTest|TestFixtures)Java/ }.
     options.errorprone.enabled = false
 }
 
-tasks.withType(Test).configureEach { useJUnitPlatform() }
+// Test JVMs only: Testcontainers reaches Docker through JNA (net.java.dev.jna, via docker-java's
+// transport), which loads native code. Java 24+ warns about that and a later release will refuse
+// it unless allowed. On the classpath the grant can't name one library, so ALL-UNNAMED; production
+// JVMs carry no JNA and get no grant.
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
 
 spotless {
     java {

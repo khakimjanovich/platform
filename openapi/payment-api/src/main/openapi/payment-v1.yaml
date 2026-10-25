@@ -463,7 +463,11 @@ paths:
       description: >-
         The stored body goes again, signed anew, in its turn after any earlier event of the payment
         still being retried. While the event is still being retried, nothing new is queued. An event
-        retried for 24 hours without a 2xx is undelivered; replay it once the website is back.
+        retried for 24 hours without a 2xx is undelivered; replay it once the website is back. A
+        replayed event may arrive after later ones of the same payment: apply an event only when its
+        occurredAt is newer than the last one applied, or read getPayment for the current state.
+        WEBHOOK_NOT_CONFIGURED (409) when the website has no webhook URL now, or the payment came
+        from a payment link, which sends no webhooks.
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }
         - { $ref: "#/components/parameters/EventId" }
@@ -479,6 +483,7 @@ paths:
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/payments/{paymentId}/webhooks:
     get:
@@ -515,6 +520,7 @@ paths:
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/payments/{paymentId}/refund-requests:
     post:
@@ -925,9 +931,28 @@ components:
         signature). Types: payment.paid, payment.declined, payment.failed, payment.expired,
         payment.reversed, payment.refunded and payment.refund_failed (the payment stays PAID).
         Amounts are in tiyin and come from the payment: the fee is the bank's, fixed when the debit
-        started, and net = gross − fee. No card number beyond the masked one, and nothing about the
-        payer. New fields and types may appear; ignore what you don't know.
-      required: [eventId, type, paymentId, salesPointId, orderId, state, gross, paymentSource, occurredAt]
+        started, and net = gross − fee. Refunds are of the whole payment, so a refund gives back
+        gross and the bank's fee with it. No card number beyond the masked one, and nothing about
+        the payer. Every field is present, null when it has no value. New fields and types may
+        appear; ignore what you don't know.
+      required: [eventId, type, paymentId, salesPointId, orderId, state, gross, fee, net, paymentSource, maskedPan, cardScheme, rrn, receiptUrl, reason, occurredAt]
+      example:
+        eventId: 0192f0a4-5b6c-7d8e-9f00-112233445566
+        type: payment.paid
+        paymentId: 0192f0a4-1111-7d8e-9f00-112233445566
+        salesPointId: 0192f0a4-2222-7d8e-9f00-112233445566
+        orderId: A-1042
+        state: PAID
+        gross: 45000000
+        fee: 900000
+        net: 44100000
+        paymentSource: NEW_CARD
+        maskedPan: 860014******7890
+        cardScheme: UZCARD
+        rrn: "123456789012"
+        receiptUrl: null
+        reason: null
+        occurredAt: "2026-10-25T09:00:00Z"
       properties:
         eventId: { type: string, format: uuid, description: "The same as webhook-id; drop repeats by it" }
         type: { type: string, example: payment.paid }
@@ -936,11 +961,11 @@ components:
         orderId: { type: string }
         state: { $ref: "#/components/schemas/PaymentState" }
         gross: { type: integer, format: int64, description: "What the buyer paid, in tiyin" }
-        fee: { type: integer, format: int64, nullable: true, description: "The bank's fee in tiyin; null when no debit started" }
-        net: { type: integer, format: int64, nullable: true, description: "gross − fee: what the merchant receives, in tiyin" }
+        fee: { type: integer, format: int64, nullable: true, description: "The bank's fee in tiyin; null when the payment was never paid (declined, failed, expired, or given back after its page closed)" }
+        net: { type: integer, format: int64, nullable: true, description: "gross − fee: what the merchant receives for a paid payment, in tiyin; null when fee is" }
         paymentSource: { $ref: "#/components/schemas/WebhookPaymentSource" }
         maskedPan: { type: string, nullable: true, description: "The card, e.g. 860014******7890; null before a card was given" }
-        cardScheme: { type: string, nullable: true, description: "UZCARD or HUMO; null before a card was given" }
+        cardScheme: { type: string, nullable: true, description: "UZCARD or HUMO (more may appear); null before a card was given" }
         rrn: { type: string, nullable: true, description: "The scheme's reference number, once paid" }
         receiptUrl: { type: string, nullable: true, description: "The fiscal receipt; always null until the bank issues receipts" }
         reason: { type: string, nullable: true, description: "Why it was declined (e.g. CARD_INSUFFICIENT_FUNDS), failed, given back after its page closed (TIMEOUT_REVERSAL) or why a refund failed" }
@@ -970,10 +995,10 @@ components:
           items: { $ref: "#/components/schemas/WebhookAttempt" }
     WebhookAttempt:
       type: object
-      required: [attempt, url, attemptedAt]
+      required: [attempt, attemptedAt]
       properties:
         attempt: { type: integer, minimum: 1 }
-        url: { type: string, description: The address it went to }
+        url: { type: string, description: "The address it went to; absent when the website had none then" }
         httpStatus: { type: integer, description: "The website's answer; absent when none came" }
         error: { type: string, description: "Why no answer came, e.g. a timeout or a refused address" }
         attemptedAt: { type: string, format: date-time }

@@ -222,7 +222,7 @@ paths:
       description: >-
         An https address on the website's own domain. Each call is signed with the API client's
         signing key. An address that resolves to a private, loopback or link-local network is
-        refused (URL_NOT_ALLOWED), now and again before every delivery.
+        refused (SALES_POINT_URL_NOT_ALLOWED), now and again before every delivery.
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       requestBody:
         required: true

@@ -77,6 +77,7 @@ paths:
       parameters:
         - { $ref: "#/components/parameters/RunId" }
         - { name: state, in: query, schema: { $ref: "#/components/schemas/MatchState" } }
+        - { name: reason, in: query, schema: { $ref: "#/components/schemas/ReasonCode" } }
         - { $ref: "#/components/parameters/Page" }
       responses:
         "200":
@@ -100,7 +101,7 @@ paths:
         - { name: day, in: path, required: true, schema: { type: string, format: date } }
       responses:
         "200":
-          description: "UTF-8 CSV: the run and its counts per match state, the totals check, then one row per exception of the day and every exception still open from earlier days (reason, state, owner, amount, age, overdue)"
+          description: "UTF-8 CSV: the latest run and its counts per match state, the totals check, the fee check per terminal (Humo), exceptions by reason and state, then one row per exception of the day and every exception still open from earlier days (reason, state, owner, amount, age, SLA due, overdue)"
           content:
             text/csv:
               schema: { type: string, format: binary }
@@ -193,6 +194,7 @@ paths:
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/reconciliation/exceptions/{exceptionId}/resolve-matched:
     post:
@@ -219,7 +221,7 @@ paths:
     post:
       tags: [ReconciliationAdmin]
       operationId: requestReconciliationWriteOff
-      summary: The owner asks to write the exception off; a second admin approves it
+      summary: "The owner asks to write the exception off (WRITE_OFF_REQUESTED); a second admin approves or rejects it"
       parameters: [{ $ref: "#/components/parameters/ExceptionId" }]
       requestBody:
         required: true
@@ -243,6 +245,26 @@ paths:
       parameters: [{ $ref: "#/components/parameters/ExceptionId" }]
       responses:
         "200": { $ref: "#/components/responses/ExceptionDetail" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/admin/reconciliation/exceptions/{exceptionId}/write-off/reject:
+    post:
+      tags: [ReconciliationAdmin]
+      operationId: rejectReconciliationWriteOff
+      summary: "A second admin rejects a requested write-off: the exception goes back IN_PROGRESS to its owner"
+      description: The admin who asked for the write-off cannot reject it either (403, SAME_ACTOR).
+      parameters: [{ $ref: "#/components/parameters/ExceptionId" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NoteRequest" }
+      responses:
+        "200": { $ref: "#/components/responses/ExceptionDetail" }
+        "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
@@ -329,7 +351,8 @@ components:
         - NO_FEE_DATA
     ExceptionState:
       type: string
-      enum: [OPEN, IN_PROGRESS, RESOLVED_MATCHED, WRITTEN_OFF, DISPUTED]
+      description: "WRITE_OFF_REQUESTED: the owner asked to write it off; waiting for a second admin"
+      enum: [OPEN, IN_PROGRESS, WRITE_OFF_REQUESTED, RESOLVED_MATCHED, WRITTEN_OFF, DISPUTED]
     RunRequest:
       type: object
       required: [scheme, day]
@@ -390,34 +413,40 @@ components:
         reason: { $ref: "#/components/schemas/ReasonCode" }
         state: { $ref: "#/components/schemas/ExceptionState" }
         owner: { type: string, description: "The queue (OPERATIONS, FINANCE) until someone takes it, then that admin" }
-        amount: { type: integer, format: int64, description: "In tiyin: the item's amount, the fee charged, or the totals difference" }
+        amount: { type: integer, format: int64, description: "In tiyin, what is at stake: the item's amount (ours, else the scheme's), the fee Humo charged, or the totals difference" }
+        runId: { type: string, format: uuid, description: The run that opened it }
+        itemId: { type: string, format: uuid, description: "The item; unset for TOTALS_DIFFER" }
         operationId: { type: string, format: uuid }
         paymentId: { type: string, format: uuid }
         merchantId: { type: string }
         terminalId: { type: string }
         rrn: { type: string }
+        schemeRef: { type: string }
+        maskedPan: { type: string }
+        bankAmount: { type: integer, format: int64, description: "In tiyin: our amount, or our matched total for TOTALS_DIFFER" }
+        schemeAmount: { type: integer, format: int64, description: "In tiyin: the scheme's amount (Humo tran_Amount), or its total for TOTALS_DIFFER" }
+        feeCharged: { type: integer, format: int64, description: "FEE_TAKEN_TWICE: the fee Humo charged, in tiyin" }
         openedAt: { type: string, format: date-time }
         slaDueAt: { type: string, format: date-time, description: "Above 10 000 000 UZS 4 hours after opening, otherwise the end of the next banking day" }
         overdue: { type: boolean }
         resolvedAt: { type: string, format: date-time }
         writeOffRequestedBy: { type: string }
     ReconciliationExceptionDetail:
-      allOf:
-        - { $ref: "#/components/schemas/ReconciliationExceptionResponse" }
-        - type: object
-          required: [audit]
-          properties:
-            evidenceType: { $ref: "#/components/schemas/EvidenceType" }
-            evidenceReference: { type: string }
-            writeOffReason: { type: string }
-            audit:
-              type: array
-              items: { $ref: "#/components/schemas/ExceptionAuditEntry" }
+      type: object
+      required: [exception, audit]
+      properties:
+        exception: { $ref: "#/components/schemas/ReconciliationExceptionResponse" }
+        evidenceType: { $ref: "#/components/schemas/EvidenceType" }
+        evidenceReference: { type: string }
+        writeOffReason: { type: string }
+        audit:
+          type: array
+          items: { $ref: "#/components/schemas/ExceptionAuditEntry" }
     ExceptionAuditEntry:
       type: object
       required: [action, actor, occurredAt]
       properties:
-        action: { type: string, enum: [OPENED, TAKEN, REASSIGNED, NOTED, RESOLVED_MATCHED, AUTO_MATCHED, WRITE_OFF_REQUESTED, WRITTEN_OFF] }
+        action: { type: string, enum: [OPENED, TAKEN, REASSIGNED, NOTED, RESOLVED_MATCHED, AUTO_MATCHED, WRITE_OFF_REQUESTED, WRITE_OFF_REJECTED, WRITTEN_OFF] }
         actor: { type: string, description: "SYSTEM, or the admin" }
         fromState: { $ref: "#/components/schemas/ExceptionState" }
         toState: { $ref: "#/components/schemas/ExceptionState" }

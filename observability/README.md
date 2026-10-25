@@ -15,7 +15,8 @@ implementation libs.ecom.observability
 Adding the jar is enough: its `observability-defaults.yaml` loads itself below the service's own
 configuration (OTLP endpoints from `OTLP_TRACES_ENDPOINT`, `OTLP_LOGS_ENDPOINT`,
 `OTLP_METRICS_ENDPOINT`; sampling from `TRACING_SAMPLING`; ECS names for the trace; p95 histograms
-for requests and pool waits).
+for requests and pool waits). Those four variables are required, with no default: a service
+without them doesn't start (config, "Required settings").
 
 ## Properties
 

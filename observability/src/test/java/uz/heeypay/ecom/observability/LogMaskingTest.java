@@ -24,7 +24,15 @@ class LogMaskingTest {
 
   private static void logInAnApp(String... arguments) {
     try (var context =
-        new SpringApplicationBuilder(App.class).web(WebApplicationType.NONE).run(arguments)) {
+        new SpringApplicationBuilder(App.class)
+            .web(WebApplicationType.NONE)
+            // No setting has a default; no collector runs here, and nothing is traced.
+            .properties(
+                "TRACING_SAMPLING=0.0",
+                "OTLP_TRACES_ENDPOINT=http://otlp.not-started.invalid/v1/traces",
+                "OTLP_METRICS_ENDPOINT=http://otlp.not-started.invalid/v1/metrics",
+                "OTLP_LOGS_ENDPOINT=http://otlp.not-started.invalid/v1/logs")
+            .run(arguments)) {
       LoggerFactory.getLogger(LogMaskingTest.class)
           .info("paid with 8600301234567890, client_secret=s3cr3t, EMBOS_NAME=AZIZ");
       LoggerFactory.getLogger(LogMaskingTest.class)

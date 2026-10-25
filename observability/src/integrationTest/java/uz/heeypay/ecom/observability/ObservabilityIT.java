@@ -59,6 +59,11 @@ class ObservabilityIT {
   @DynamicPropertySource
   static void scheme(DynamicPropertyRegistry registry) {
     registry.add("scheme.url", SCHEME::baseUrl);
+    // No setting has a default: telemetry goes to the LGTM container this test starts.
+    registry.add("TRACING_SAMPLING", () -> "1.0");
+    registry.add("OTLP_TRACES_ENDPOINT", () -> LGTM.getOtlpHttpUrl() + "/v1/traces");
+    registry.add("OTLP_METRICS_ENDPOINT", () -> LGTM.getOtlpHttpUrl() + "/v1/metrics");
+    registry.add("OTLP_LOGS_ENDPOINT", () -> LGTM.getOtlpHttpUrl() + "/v1/logs");
   }
 
   @Configuration(proxyBeanMethods = false)

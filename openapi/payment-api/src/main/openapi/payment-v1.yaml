@@ -555,6 +555,39 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /internal/v1/payments/operations:
+    get:
+      tags: [PaymentInternal]
+      operationId: listPaymentOperations
+      summary: "One page of a business day's card scheme calls (debits, reversals, refunds) through one scheme, for reconciliation"
+      description: >-
+        Inside the app only; never routed from outside. The business day is the day the call
+        started, in Tashkent (00:00:00 to 23:59:59). Every call is listed, whatever its state, oldest
+        first; a page with fewer operations than size is the last one.
+      parameters:
+        - { name: businessDate, in: query, required: true, schema: { type: string, format: date } }
+        - { name: scheme, in: query, required: true, schema: { type: string, enum: [UZCARD, HUMO] } }
+        - { name: page, in: query, required: true, schema: { type: integer, format: int32, minimum: 0 } }
+        - { name: size, in: query, required: true, schema: { type: integer, format: int32, minimum: 1, maximum: 1000 } }
+      responses:
+        "200":
+          description: The page
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentOperationItem" }
+
+  /internal/v1/payments/{paymentId}/resolution:
+    post:
+      tags: [PaymentInternal]
+      operationId: startPaymentResolution
+      summary: "Starts asking the scheme about a payment left UNKNOWN; a second start changes nothing"
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      responses:
+        "204": { description: "Started, or already running" }
+
 components:
   securitySchemes:
     bearer:
@@ -604,6 +637,20 @@ components:
       description: "RFC 9530: the body's SHA-256, sha-256=:<base64>:; required when there is a body"
       schema: { type: string }
   schemas:
+    PaymentOperationItem:
+      type: object
+      required: [operationId, paymentId, kind, state, amount, merchantId, terminalId, startedAt]
+      properties:
+        operationId: { type: string, format: uuid }
+        paymentId: { type: string, format: uuid, description: "Our payment id: Uzcard's ext, Humo's paymentRef" }
+        kind: { type: string, enum: [DEBIT, REVERSAL, REFUND] }
+        state: { type: string, enum: [REQUESTED, APPROVED, DECLINED, UNKNOWN], description: "REQUESTED or UNKNOWN: the scheme's answer is still awaited" }
+        amount: { type: integer, format: int64, description: In tiyin }
+        rrn: { type: string }
+        schemeRef: { type: string, description: "The scheme's id for the call (Uzcard refNum, Humo's reference)" }
+        merchantId: { type: string }
+        terminalId: { type: string }
+        startedAt: { type: string, format: date-time }
     CreatePaymentRequest:
       type: object
       required: [salesPointId, orderId, amount, returnUrl]

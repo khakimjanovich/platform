@@ -46,7 +46,14 @@ tasks.matching { it.name ==~ /compile(Test|IntegrationTest|TestFixtures)Java/ }.
     options.errorprone.enabled = false
 }
 
-tasks.withType(Test).configureEach { useJUnitPlatform() }
+// Every service requires these (observability); tests send to a local collector, if one runs.
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    environment 'TRACING_SAMPLING', '1.0'
+    environment 'OTLP_TRACES_ENDPOINT', 'http://localhost:4318/v1/traces'
+    environment 'OTLP_METRICS_ENDPOINT', 'http://localhost:4318/v1/metrics'
+    environment 'OTLP_LOGS_ENDPOINT', 'http://localhost:4318/v1/logs'
+}
 
 spotless {
     java {

@@ -14,4 +14,7 @@ out/
 .DS_Store
 
 # Local secrets (test stands): Spring Boot reads config/application.yaml next to where a jar starts.
-/config/
+# (only its files: config/ is also the config library)
+/config/*.yaml
+/config/*.yml
+/config/*.properties

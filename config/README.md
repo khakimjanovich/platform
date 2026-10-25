@@ -18,6 +18,13 @@ properties/otp-exception.yaml
 profiles, `spring.config.import`, environment variables and arguments all override it. A file
 already loaded (a parent and child context) is added once. No properties, errors or beans of its own.
 
+## Required settings
+
+No setting has a default. A `${VAR}` in any configuration file (the app's or a library's) that
+nothing resolves stops startup once the context is prepared (`RequiredSettings`), naming every one
+missing; Spring's binder would otherwise bind the literal text. Values a test registers
+(`@DynamicPropertySource`) count. An empty value is a value.
+
 ## Tests
 
 Unit tests only (`./gradlew -p platform :config:test`): a test `.imports` file, overridden by a

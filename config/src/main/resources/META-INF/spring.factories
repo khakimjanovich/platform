@@ -1,1 +1,2 @@
 org.springframework.boot.EnvironmentPostProcessor=uz.heeypay.ecom.config.LibraryDefaults
+org.springframework.context.ApplicationListener=uz.heeypay.ecom.config.RequiredSettings

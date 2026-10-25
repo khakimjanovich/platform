@@ -228,12 +228,16 @@ components:
       enum: [PROPOSED, ACTIVE, REJECTED]
     CommissionRuleRequest:
       type: object
-      description: Leave a scope field out to mean "any". A sales point needs its partner.
+      description: >-
+        The tariff scope (R12): either no scope at all (the bank default) or a scheme. A partner needs a
+        scheme; a sales point needs its partner and a scheme. allSchemes, instead of scheme, proposes
+        one rule per scheme with the same terms, applied together by one approval.
       required: [percent, fixedFee, validFrom]
       properties:
         partnerId: { type: string, format: uuid }
         salesPointId: { type: string, format: uuid }
         scheme: { $ref: "#/components/schemas/CardScheme" }
+        allSchemes: { type: boolean, description: "Instead of scheme: one rule for each scheme, in one change request" }
         percent: { type: number, minimum: 0, maximum: 100, description: "Percent of the amount, up to 4 decimals" }
         fixedFee: { type: integer, format: int64, minimum: 0, description: In tiyin }
         minFee: { type: integer, format: int64, minimum: 0, description: In tiyin }
@@ -304,6 +308,10 @@ components:
         kind: { $ref: "#/components/schemas/ChangeKind" }
         status: { $ref: "#/components/schemas/ChangeStatus" }
         rule: { $ref: "#/components/schemas/CommissionRuleResponse" }
+        rules:
+          type: array
+          description: "Every rule the request applies: the one in rule, or one per scheme for allSchemes"
+          items: { $ref: "#/components/schemas/CommissionRuleResponse" }
         endsAt: { type: string, format: date-time }
         requestedBy: { type: string }
         decidedBy: { type: string }

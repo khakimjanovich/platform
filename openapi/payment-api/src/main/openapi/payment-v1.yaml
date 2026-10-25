@@ -730,10 +730,10 @@ components:
       type: object
       description: >-
         One website's business day, in the settlement time zone. Paid counts payments paid that day
-        and not reversed; refunded counts refunds made that day, whenever the payment was. The
-        payout is the net of what was paid less what was refunded; the bank keeps its fee on a
-        refund.
-      required: [businessDay, salesPointId, paidCount, paidAmount, fee, net, refundedCount, refundedAmount, payout]
+        and not reversed; refunded counts refunds made that day, whenever the payment was. A refund
+        gives the fee back by the rule frozen on the payment, so the payout is the net of what was
+        paid less the net of what was refunded.
+      required: [businessDay, salesPointId, paidCount, paidAmount, fee, net, refundedCount, refundedAmount, refundedFee, payout]
       properties:
         businessDay: { type: string, format: date }
         salesPointId: { type: string, format: uuid }
@@ -743,7 +743,8 @@ components:
         net: { type: integer, format: int64 }
         refundedCount: { type: integer }
         refundedAmount: { type: integer, format: int64 }
-        payout: { type: integer, format: int64, description: "net − refundedAmount; negative when refunds outweigh the day" }
+        refundedFee: { type: integer, format: int64, description: "The fee given back on the day's refunds, in tiyin" }
+        payout: { type: integer, format: int64, description: "net − (refundedAmount − refundedFee); negative when refunds outweigh the day" }
     PaymentResolutionRequest:
       type: object
       required: [decision, note]

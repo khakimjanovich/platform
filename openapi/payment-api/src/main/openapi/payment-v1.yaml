@@ -645,7 +645,7 @@ components:
         operationId: { type: string, format: uuid }
         paymentId: { type: string, format: uuid, description: "Our payment id: Uzcard's ext, Humo's paymentRef" }
         kind: { type: string, enum: [DEBIT, REVERSAL, REFUND] }
-        state: { type: string, enum: [REQUESTED, APPROVED, DECLINED, UNKNOWN], description: "REQUESTED or UNKNOWN: the scheme's answer is still awaited" }
+        state: { $ref: "#/components/schemas/OperationState" }
         amount: { type: integer, format: int64, description: In tiyin }
         rrn: { type: string }
         schemeRef: { type: string, description: "The scheme's id for the call (Uzcard refNum, Humo's reference)" }

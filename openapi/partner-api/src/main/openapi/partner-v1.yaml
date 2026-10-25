@@ -99,8 +99,7 @@ paths:
       operationId: findUserMerchant
       summary: The merchant this cabinet user belongs to, with the user's role and state, for other modules; empty for anyone else
       description: Inside the app only; never routed from outside.
-      parameters:
-        - { name: userId, in: path, required: true, description: "The user's Keycloak id (the token's subject)", schema: { type: string, format: uuid } }
+      parameters: [{ $ref: "#/components/parameters/UserId" }]
       responses:
         "200":
           description: The user's merchant, or an empty list
@@ -239,8 +238,10 @@ paths:
       operationId: blockMerchantUser
       summary: Blocks the user and ends every session at once; past actions stay theirs
       description: >-
-        Blocking the last active admin is refused (LAST_ADMIN) unless the request names another
-        active user, who becomes an admin in the same step.
+        Blocking the last active admin is refused (LAST_ADMIN, 422) unless the request names another
+        active user of the same merchant, who becomes an admin in the same step; `newAdminId` is
+        ignored when another admin remains. A `newAdminId` that is the user being blocked, blocked
+        itself or not this merchant's is refused (422). Blocking a blocked user is 409.
       parameters: [{ $ref: "#/components/parameters/UserId" }]
       requestBody:
         required: false
@@ -937,7 +938,7 @@ components:
       name: userId
       in: path
       required: true
-      description: The user's Keycloak id
+      description: The user's Keycloak id (the token's subject)
       schema: { type: string, format: uuid }
     DocumentId:
       name: documentId

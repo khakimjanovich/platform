@@ -2,6 +2,7 @@ package uz.heeypay.ecom.keycloak;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -10,11 +11,13 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.URI;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -41,6 +44,26 @@ class KeycloakAdminTest {
               assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT);
               assertThat(e.getParams()).containsExactly("aziz");
             });
+  }
+
+  @Test
+  void anInviteWhoseEmailFailsRemovesTheUserAgain() {
+    server
+        .expect(requestTo("http://keycloak/users"))
+        .andRespond(
+            withStatus(HttpStatus.CREATED).location(URI.create("http://keycloak/users/user-1")));
+    server
+        .expect(requestTo("http://keycloak/users/user-1/execute-actions-email"))
+        .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
+    server
+        .expect(requestTo("http://keycloak/users/user-1"))
+        .andExpect(method(HttpMethod.DELETE))
+        .andRespond(withStatus(HttpStatus.NO_CONTENT));
+    assertThatThrownBy(() -> admin.inviteUser("aziz@example.uz", "Aziza"))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE));
+    server.verify();
   }
 
   @Test

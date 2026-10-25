@@ -111,7 +111,12 @@ public class KeycloakAdmin {
                 .retrieve()
                 .toBodilessEntity();
           } catch (RestClientException e) {
-            keycloak.delete().uri(KeycloakConstants.USER, id).retrieve().toBodilessEntity();
+            // The e-mail's failure is what the caller learns, even if the clean-up fails too.
+            try {
+              keycloak.delete().uri(KeycloakConstants.USER, id).retrieve().toBodilessEntity();
+            } catch (RestClientException cleanup) {
+              e.addSuppressed(cleanup);
+            }
             throw e;
           }
           return id;

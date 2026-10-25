@@ -239,7 +239,10 @@ paths:
       tags: [PaymentAdmin]
       operationId: listPaymentsToReview
       summary: Payments the scheme left without an answer, oldest first
-      description: UNKNOWN (the bank is still asking the scheme) and MANUAL_REVIEW (a person decides).
+      description: >-
+        UNKNOWN (the bank is still asking the scheme about the debit), MANUAL_REVIEW (a person
+        decides the debit) and RETURNING (a reversal or refund the scheme hasn't confirmed: the bank
+        asks while it can, then a person decides).
       responses:
         "200":
           description: Up to 100 payments
@@ -255,12 +258,14 @@ paths:
     post:
       tags: [PaymentAdmin]
       operationId: resolvePayment
-      summary: "A person's decision on a MANUAL_REVIEW payment, after checking with the scheme"
+      summary: "A person's decision on a MANUAL_REVIEW or RETURNING payment, after checking with the scheme"
       description: >-
-        NOT_DEBITED: the payment is DECLINED. DEBITED: the payment is PAID while its page is still
-        open; once the page has closed the money goes back to the card (reversed on the day it was
-        taken, refunded later) with the scheme's reference for the debit. Every decision needs a
-        note, is audited, and sends the merchant one final webhook.
+        For MANUAL_REVIEW (a debit): NOT_DEBITED: the payment is DECLINED. DEBITED: the payment is
+        PAID while its page is still open; once the page has closed the money goes back to the card
+        (reversed on the day it was taken, refunded later) with the scheme's reference for the
+        debit. For RETURNING (a reversal or refund the scheme didn't answer): RETURNED: the payment
+        is REVERSED or REFUNDED; NOT_RETURNED: it stays PAID and the merchant is told the refund
+        failed. Every decision needs a note, is audited, and sends the merchant one webhook.
       parameters: [{ $ref: "#/components/parameters/PaymentId" }]
       requestBody:
         required: true
@@ -743,7 +748,7 @@ components:
       type: object
       required: [decision, note]
       properties:
-        decision: { type: string, enum: [NOT_DEBITED, DEBITED], description: What the scheme told the person }
+        decision: { type: string, enum: [NOT_DEBITED, DEBITED, NOT_RETURNED, RETURNED], description: "What the scheme told the person: about the debit (MANUAL_REVIEW) or the return (RETURNING)" }
         note: { type: string, minLength: 1, maxLength: 500, pattern: ".*\\S.*", description: "Who at the scheme confirmed it, and how" }
         schemeReference: { type: string, maxLength: 64, description: "The scheme's id for the debit; needed for DEBITED" }
     PaymentAdminResponse:

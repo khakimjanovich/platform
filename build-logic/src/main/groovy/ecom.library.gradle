@@ -27,6 +27,7 @@ dependencies {
 // on one without, so a constructor that hides the Javadoc from the processor is caught.
 def verifyConfigurationMetadata = tasks.register('verifyConfigurationMetadata') {
     def metadata = layout.buildDirectory.file('classes/java/main/META-INF/spring-configuration-metadata.json')
+    def projectName = project.name // read now: the configuration cache has no project when it runs
     inputs.files(tasks.named('compileJava'))
     doLast {
         def file = metadata.get().asFile
@@ -35,7 +36,7 @@ def verifyConfigurationMetadata = tasks.register('verifyConfigurationMetadata') 
             .findAll { !it.description }
             .collect { it.name }
         if (undescribed) {
-            throw new GradleException("Properties without a description in ${project.name}: ${undescribed.join(', ')}")
+            throw new GradleException("Properties without a description in ${projectName}: ${undescribed.join(', ')}")
         }
     }
 }

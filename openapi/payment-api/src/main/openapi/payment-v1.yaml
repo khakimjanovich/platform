@@ -998,6 +998,14 @@ components:
         amount: { type: integer, format: int64, minimum: 100, maximum: 100000000000, description: In tiyin (1 so'm = 100 tiyin) }
         description: { type: string, maxLength: 255 }
         returnUrl: { type: string, maxLength: 2048, pattern: "^https://.+", description: "Where the buyer goes afterwards; one of the website's return addresses" }
+        testMode:
+          type: boolean
+          default: false
+          description: >-
+            True for a payment in the merchant test environment (test cards, no real money); false
+            or absent for a real one. It must match the environment the request is sent to, so a
+            test integration can never take real money by mistake: PAYMENT_TEST_MODE_MISMATCH (422)
+            otherwise.
     PaymentStatus:
       type: string
       description: >-
@@ -1111,6 +1119,7 @@ components:
           items: { $ref: "#/components/schemas/PaymentOperationResponse" }
         refundableUntil: { type: string, format: date-time, description: "Until when the merchant can still refund it; only while it is PAID or DISPUTED" }
         refundDaysLeft: { type: integer, description: "Days left to refund it: working days, or calendar days under an approved extension; only while it is PAID or DISPUTED" }
+        testMode: { type: boolean, description: "True for a payment made in the merchant test environment" }
     DailyReport:
       type: object
       description: >-
@@ -1162,6 +1171,7 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+        testMode: { type: boolean, description: "True for a payment made in the merchant test environment" }
     RefundRequest:
       type: object
       required: [reason]

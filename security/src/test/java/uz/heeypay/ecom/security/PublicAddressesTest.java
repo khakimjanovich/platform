@@ -75,6 +75,8 @@ class PublicAddressesTest {
     assertThat(PublicAddresses.allowed("http://processing-sandbox:5432/x", sandbox)).isFalse();
     assertThat(PublicAddresses.allowed("ftp://processing-sandbox:8080/x", sandbox)).isFalse();
     assertThat(PublicAddresses.allowed("http://localhost:80/x", List.of("localhost:80"))).isTrue();
+    assertThat(PublicAddresses.isTestHost("PROCESSING-SANDBOX", sandbox)).isTrue();
+    assertThat(PublicAddresses.isTestHost("aziza.uz", sandbox)).isFalse();
   }
 
   @Test

@@ -61,3 +61,55 @@ spotless {
         googleJavaFormat(libs.findVersion('google-java-format').get().requiredVersion)
     }
 }
+
+// No workarounds (build-logic/README.md): a problem in a repository we own is fixed there, one
+// outside is isolated with a comment naming it. `check` fails on what marks a workaround instead:
+// in src/main and the build file, a comment saying TODO, FIXME, HACK, XXX, "workaround", "for now"
+// or "temporary fix" (and the like: a temporary token is a domain word), ignoreFailures or `-x test`;
+// in src/main, a @SuppressWarnings without a // reason on the line above; in any source set, a
+// @Disabled test. A `ponytail:` comment is a deliberate simplification listed in the debt ledger.
+def verifyNoWorkarounds = tasks.register('verifyNoWorkarounds') {
+    def mainFiles = fileTree('src/main') { include '**/*.java', '**/*.groovy', '**/*.yaml', '**/*.yml', '**/*.properties', '**/*.sql', '**/*.lua', '**/*.xml' }
+    def testFiles = fileTree('src') { include '**/*.java'; exclude 'main/**' }
+    def buildFiles = files(buildFile).filter { it.exists() }
+    def root = projectDir
+    def passed = layout.buildDirectory.file('verifyNoWorkarounds/passed')
+    inputs.files(mainFiles, testFiles, buildFiles)
+    outputs.file(passed)
+    doLast {
+        def tag = ~/\b(TODO|FIXME|HACK|XXX)\b|(?i)\b(work-?arounds?|work around|for now|temporar(y|ily) (fix|hack|patch|solution|until|disabled|skipped|removed|turned off))\b/
+        // Where a comment starts, by file type; strings are blanked first so "https://…" or "#1" is not one.
+        def starts = [java: ~/\/\/|\/\*/, groovy: ~/\/\/|\/\*/, gradle: ~/\/\/|\/\*/, sql: ~/--|\/\*/, lua: ~/--/,
+                      yaml: ~/(^|\s)#/, yml: ~/(^|\s)#/, properties: ~/^\s*[#!]/, xml: ~/<!--/]
+        def found = []
+        def report = { File file, int line, String why -> found << "${root.toPath().relativize(file.toPath())}:${line}: ${why}" }
+        (mainFiles.files + buildFiles.files).each { file ->
+            def start = starts[file.name.tokenize('.').last()]
+            def java = file.name.endsWith('.java')
+            def lines = file.readLines()
+            def inBlock = false
+            lines.eachWithIndex { text, i ->
+                def code = text.replaceAll(/"(\\.|[^"\\])*"|'(\\.|[^'\\])*'/, '""')
+                String note = null
+                if (inBlock) {
+                    note = text
+                } else {
+                    def m = code =~ start
+                    if (m.find()) note = code.substring(m.start())
+                }
+                inBlock = note != null && (inBlock || note.startsWith('/*')) && !note.contains('*/')
+                if (note && !note.contains('ponytail:') && note =~ tag) report(file, i + 1, 'a workaround comment')
+                if (text =~ /ignoreFailures|(-x|--exclude-task)\s+\S*test\b/) report(file, i + 1, 'a check turned off')
+                if (java && text =~ /^\s*@SuppressWarnings/ && !(i > 0 && lines[i - 1].trim().startsWith('//'))) {
+                    report(file, i + 1, '@SuppressWarnings without a // reason on the line above')
+                }
+            }
+        }
+        testFiles.files.each { file ->
+            file.readLines().eachWithIndex { text, i -> if (text =~ /^\s*@([\w.]+\.)?Disabled\b/) report(file, i + 1, 'a disabled test') }
+        }
+        if (found) throw new GradleException("Workarounds in ${root.name}; fix the cause instead:\n  ${found.join('\n  ')}")
+        passed.get().asFile.text = ''
+    }
+}
+tasks.named('check') { dependsOn verifyNoWorkarounds }

@@ -1,4 +1,4 @@
-# A tag platform-v<version> publishes every library and the version catalog to GitHub Packages
+# A tag platform-v<version> publishes every library, the build plugins and the version catalog to GitHub Packages
 # and makes a release.
 # The tag must equal the catalog's platform version.
 name: release
@@ -29,7 +29,7 @@ jobs:
           distribution: temurin
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew check publish
+      - run: ./gradlew check publish && ./gradlew -p build-logic publish
         env:
           ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
           ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}

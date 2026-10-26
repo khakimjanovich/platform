@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
@@ -38,6 +39,8 @@ import uz.heeypay.ecom.error.ProblemSecurityHandler;
     })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(SecurityProperties.class)
+// A route admits roles; an operation may narrow them further with @PreAuthorize.
+@EnableMethodSecurity
 public class SecurityAutoConfiguration {
 
   @Bean
@@ -78,7 +81,11 @@ public class SecurityAutoConfiguration {
                   .forEach(route -> routes.requestMatchers(route(route)).permitAll());
               properties
                   .roles()
-                  .forEach((route, role) -> routes.requestMatchers(route(route)).hasRole(role));
+                  .forEach(
+                      (route, role) ->
+                          routes
+                              .requestMatchers(route(route))
+                              .hasAnyRole(role.split(SecurityConstants.ROLE_SEPARATOR)));
               routes.anyRequest().denyAll();
             })
         .exceptionHandling(

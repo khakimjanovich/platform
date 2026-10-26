@@ -11,7 +11,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * with an HTTP method: {@code "POST /api/v1/registrations/**"}.
  *
  * @param publicRoutes routes anyone may call, without a token
- * @param roles each route and the realm role it needs, in order; a route not listed is refused
+ * @param roles each route and the realm role it needs (several separated by commas: any of them),
+ *     in order; a route not listed is refused
  */
 @ConfigurationProperties(SecurityConstants.PROPERTIES_PREFIX)
 public record SecurityProperties(

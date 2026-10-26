@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -34,7 +35,8 @@ import org.springframework.web.context.WebApplicationContext;
       "ecom.security.public-routes[0]=POST /signup",
       "ecom.security.public-routes[1]=/docs/**",
       "ecom.security.roles[/admin/**]=ADMIN",
-      "ecom.security.roles[/me/**]=PARTNER"
+      "ecom.security.roles[/me/**]=PARTNER",
+      "ecom.security.roles[/shared/**]=ADMIN,PARTNER"
     })
 class SecurityAutoConfigurationTest {
 
@@ -64,8 +66,14 @@ class SecurityAutoConfigurationTest {
         return "ok";
       }
 
-      @GetMapping({"/signup", "/admin/x", "/me/x", "/other", "/docs/x"})
+      @GetMapping({"/signup", "/admin/x", "/me/x", "/shared/x", "/other", "/docs/x"})
       String any() {
+        return "ok";
+      }
+
+      @PreAuthorize("hasRole('ADMIN')")
+      @GetMapping("/shared/admin-only")
+      String adminOnly() {
         return "ok";
       }
     }
@@ -102,6 +110,24 @@ class SecurityAutoConfigurationTest {
     mvc.perform(get("/admin/x").header("Authorization", "Bearer admin")).andExpect(status().isOk());
     mvc.perform(get("/me/x").header("Authorization", "Bearer partner")).andExpect(status().isOk());
     mvc.perform(get("/admin/x").header("Authorization", "Bearer partner"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
+  }
+
+  @Test
+  void aRouteMayAdmitSeveralRoles() throws Exception {
+    mvc.perform(get("/shared/x").header("Authorization", "Bearer admin"))
+        .andExpect(status().isOk());
+    mvc.perform(get("/shared/x").header("Authorization", "Bearer partner"))
+        .andExpect(status().isOk());
+    mvc.perform(get("/shared/x")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void anOperationMayNarrowItsRouteToOneRole() throws Exception {
+    mvc.perform(get("/shared/admin-only").header("Authorization", "Bearer admin"))
+        .andExpect(status().isOk());
+    mvc.perform(get("/shared/admin-only").header("Authorization", "Bearer partner"))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("FORBIDDEN"));
   }

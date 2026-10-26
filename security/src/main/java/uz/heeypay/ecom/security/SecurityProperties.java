@@ -19,7 +19,13 @@ public record SecurityProperties(
     @DefaultValue List<String> publicRoutes,
     @DefaultValue LinkedHashMap<String, List<String>> roles) {
 
-  /** A route with no role, or a blank one, would quietly let nobody in: refused at startup. */
+  /**
+   * A route with no role, or a blank one, would quietly let nobody in: refused at startup.
+   *
+   * @param publicRoutes routes anyone may call, without a token
+   * @param roles each route and the realm roles that may call it (one, or several separated by
+   *     commas: any of them), in order; a route not listed is refused
+   */
   public SecurityProperties {
     roles.forEach(
         (route, names) -> {

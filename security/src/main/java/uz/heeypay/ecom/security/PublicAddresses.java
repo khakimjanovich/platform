@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Whether a merchant's URL may be called. It must be https on the default port, and its host must
@@ -83,7 +84,7 @@ public class PublicAddresses {
   }
 
   /** An absolute http or https URL with a host, or null. */
-  private static URI parse(String url) {
+  private static @Nullable URI parse(String url) {
     try {
       var uri = new URI(url);
       var scheme = scheme(uri);

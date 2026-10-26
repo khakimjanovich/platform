@@ -38,7 +38,9 @@ paths:
       tags: [Payment]
       operationId: createPayment
       summary: Creates a payment and a one-time link to the bank's payment page
-      description: Retrying with the same Idempotency-Key and body returns the first response; no second payment is made.
+      description: >-
+        Retrying with the same Idempotency-Key and body returns the first response; no second
+        payment is made. testMode must match the environment: PAYMENT_TEST_MODE_MISMATCH (422).
       parameters:
         - { $ref: "#/components/parameters/IdempotencyKey" }
         - { $ref: "#/components/parameters/SignatureInput" }
@@ -1113,6 +1115,14 @@ components:
         amount: { type: integer, format: int64, minimum: 100, maximum: 100000000000, description: In tiyin (1 so'm = 100 tiyin) }
         description: { type: string, maxLength: 255 }
         returnUrl: { type: string, maxLength: 2048, pattern: "^https://.+", description: "Where the buyer goes afterwards; one of the website's return addresses" }
+        testMode:
+          type: boolean
+          default: false
+          description: >-
+            True for a payment in the merchant test environment (test cards, no real money); false
+            or absent for a real one. It must match the environment the request is sent to, so a
+            test integration can never take real money by mistake: PAYMENT_TEST_MODE_MISMATCH (422)
+            otherwise.
     PaymentStatus:
       type: string
       description: >-
@@ -1153,7 +1163,7 @@ components:
         validForHours: { type: integer, minimum: 1, description: "How long the link works; at most the bank's configured limit" }
     PaymentLinkResponse:
       type: object
-      required: [id, salesPointId, orderId, amount, description, status, expiresAt, createdAt, state]
+      required: [id, salesPointId, orderId, amount, description, status, expiresAt, createdAt, state, testMode]
       properties:
         id: { type: string, format: uuid, description: The payment behind the link }
         salesPointId: { type: string, format: uuid }
@@ -1167,6 +1177,7 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+        testMode: { type: boolean, description: "True for a link made in the merchant test environment" }
     PaymentCardRequest:
       type: object
       required: [number, expiry]
@@ -1202,7 +1213,7 @@ components:
         resultWindowSeconds: { type: integer, minimum: 0, description: "How long the page keeps asking for the result of an UNKNOWN payment before it tells the buyer not to pay again" }
     PaymentResponse:
       type: object
-      required: [id, salesPointId, orderId, amount, status, createdAt, state]
+      required: [id, salesPointId, orderId, amount, status, createdAt, state, testMode]
       properties:
         id: { type: string, format: uuid }
         salesPointId: { type: string, format: uuid }
@@ -1226,6 +1237,7 @@ components:
           items: { $ref: "#/components/schemas/PaymentOperationResponse" }
         refundableUntil: { type: string, format: date-time, description: "Until when the merchant can still refund it; only while it is PAID or DISPUTED" }
         refundDaysLeft: { type: integer, description: "Days left to refund it: working days, or calendar days under an approved extension; only while it is PAID or DISPUTED" }
+        testMode: { type: boolean, description: "True for a payment made in the merchant test environment" }
     DailyReport:
       type: object
       description: >-
@@ -1254,7 +1266,7 @@ components:
         schemeReference: { type: string, maxLength: 64, description: "The scheme's id for the debit; needed for DEBITED" }
     PaymentAdminResponse:
       type: object
-      required: [id, partnerId, salesPointId, source, orderId, amount, status, createdAt, state]
+      required: [id, partnerId, salesPointId, source, orderId, amount, status, createdAt, state, testMode]
       properties:
         id: { type: string, format: uuid }
         partnerId: { type: string, format: uuid }
@@ -1277,6 +1289,7 @@ components:
         paidAt: { type: string, format: date-time }
         returnedAt: { type: string, format: date-time }
         createdAt: { type: string, format: date-time }
+        testMode: { type: boolean, description: "True for a payment made in the merchant test environment" }
     RefundRequest:
       type: object
       required: [reason]
@@ -1339,7 +1352,7 @@ components:
         gross and the bank's fee with it. No card number beyond the masked one, and nothing about
         the payer. Every field is present, null when it has no value. New fields and types may
         appear; ignore what you don't know.
-      required: [eventId, type, paymentId, salesPointId, orderId, state, gross, fee, net, paymentSource, maskedPan, cardScheme, rrn, receiptUrl, reason, dispute, occurredAt]
+      required: [eventId, type, paymentId, salesPointId, orderId, state, gross, fee, net, paymentSource, maskedPan, cardScheme, rrn, receiptUrl, reason, dispute, testMode, occurredAt]
       example:
         eventId: 0192f0a4-5b6c-7d8e-9f00-112233445566
         type: payment.paid
@@ -1357,6 +1370,7 @@ components:
         receiptUrl: null
         reason: null
         dispute: null
+        testMode: false
         occurredAt: "2026-10-25T09:00:00Z"
       properties:
         eventId: { type: string, format: uuid, description: "The same as webhook-id; drop repeats by it" }
@@ -1378,6 +1392,7 @@ components:
           description: "The dispute, on the dispute events; null on the others"
           nullable: true
           allOf: [{ $ref: "#/components/schemas/WebhookDispute" }]
+        testMode: { type: boolean, description: "True when sent from the merchant test environment: no real money moved; never act on it as a real order" }
         occurredAt: { type: string, format: date-time }
     WebhookPaymentSource:
       type: string

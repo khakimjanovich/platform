@@ -91,12 +91,19 @@ public class SecurityAutoConfiguration {
         .exceptionHandling(
             errors -> errors.authenticationEntryPoint(problems).accessDeniedHandler(problems))
         .oauth2ResourceServer(
-            server ->
-                server
-                    .bearerTokenResolver(tokens)
-                    .authenticationEntryPoint(problems)
-                    .accessDeniedHandler(problems)
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(converter)))
+            server -> {
+              server
+                  .bearerTokenResolver(tokens)
+                  .authenticationEntryPoint(problems)
+                  .accessDeniedHandler(problems);
+              // Several trusted issuers, or Boot's one issuer-uri.
+              if (properties.issuers().isEmpty()) {
+                server.jwt(jwt -> jwt.jwtAuthenticationConverter(converter));
+              } else {
+                server.authenticationManagerResolver(
+                    TrustedIssuers.resolver(properties.issuers(), converter));
+              }
+            })
         .build();
   }
 

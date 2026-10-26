@@ -19,6 +19,12 @@ public class SecurityConstants {
 
   public static final String ROLE_MISSING = "Route %s needs at least one realm role, none blank";
 
+  /** A trusted issuer without its URI, audience or clients would accept or refuse silently. */
+  public static final String ISSUER_INCOMPLETE =
+      "Trusted issuer %s needs its uri, audience and at least one client";
+
+  public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
+
   /** A rule may start with an HTTP method: "POST /api/v1/registrations/**". */
   public static final String METHOD_SEPARATOR = " ";
 

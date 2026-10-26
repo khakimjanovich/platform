@@ -132,10 +132,30 @@ class SecurityAutoConfigurationTest {
   @Test
   void aRouteWithABlankRoleStopsStartup() {
     assertThatThrownBy(
-            () -> new SecurityProperties(List.of(), roles("/x/**", List.of("ADMIN", " "))))
+            () ->
+                new SecurityProperties(List.of(), roles("/x/**", List.of("ADMIN", " ")), List.of()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("/x/**");
-    assertThatThrownBy(() -> new SecurityProperties(List.of(), roles("/x/**", List.of())))
+    assertThatThrownBy(
+            () -> new SecurityProperties(List.of(), roles("/x/**", List.of()), List.of()))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void aTrustedIssuerWithoutItsAudienceOrClientsStopsStartup() {
+    var noClients = new SecurityProperties.Issuer("https://id.example/realms/a", "api", List.of());
+    assertThatThrownBy(
+            () ->
+                new SecurityProperties(
+                    List.of(), new java.util.LinkedHashMap<>(), List.of(noClients)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("https://id.example/realms/a");
+    var noAudience =
+        new SecurityProperties.Issuer("https://id.example/realms/a", " ", List.of("c"));
+    assertThatThrownBy(
+            () ->
+                new SecurityProperties(
+                    List.of(), new java.util.LinkedHashMap<>(), List.of(noAudience)))
         .isInstanceOf(IllegalArgumentException.class);
   }
 

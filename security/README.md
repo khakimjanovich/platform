@@ -14,7 +14,9 @@ Set Boot's `spring.security.oauth2.resourceserver.jwt.issuer-uri` (the realm) an
 A service that takes tokens from several issuers (another unit's Keycloak, each with its own clients)
 lists them in `platform.security.issuers` instead: each issuer's tokens must name its `audience` and
 come from one of its `clients` (`azp`); a token from any other issuer or client is refused (401), and
-each issuer's keys are fetched with its first token.
+each issuer's keys are fetched with its first token. An issuer that can't be reached then answers
+500, as Boot's one issuer does, and is tried again on the next request. `issuers` and Boot's
+`issuer-uri` together stop startup, as do an incomplete issuer and one listed twice.
 
 ## Properties
 

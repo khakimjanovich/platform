@@ -1,8 +1,11 @@
 package uz.khakimjanovich.platform.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
 import java.util.ResourceBundle;
 import org.junit.jupiter.api.Test;
@@ -61,7 +64,7 @@ class TrustedIssuersIT {
   static void issuers(DynamicPropertyRegistry registry) {
     registry.add("platform.security.issuers[0].uri", () -> keycloak() + "/realms/demo");
     registry.add("platform.security.issuers[0].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[0].clients", () -> "demo-app,stranger");
+    registry.add("platform.security.issuers[0].clients", () -> "demo-app,stranger,outsider");
     registry.add("platform.security.issuers[1].uri", () -> keycloak() + "/realms/other");
     registry.add("platform.security.issuers[1].audience", () -> "demo-api");
     registry.add("platform.security.issuers[1].clients", () -> "demo-app");
@@ -105,6 +108,18 @@ class TrustedIssuersIT {
   }
 
   @Test
+  void aTokenForAnotherAudienceIsA401() {
+    // outsider is listed, but its tokens don't name demo-api
+    call(token("demo", "outsider", "outsider-secret")).expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void aTokenThatOnlyClaimsATrustedIssuerIsA401() {
+    var rogue = token("rogue", "demo-app", "app-secret");
+    call(withIssuer(rogue, keycloak() + "/realms/demo")).expectStatus().isUnauthorized();
+  }
+
+  @Test
   void aListedClientWithoutTheRouteRoleIsA403() {
     call(token("demo", "stranger", "stranger-secret"))
         .expectStatus()
@@ -122,6 +137,21 @@ class TrustedIssuersIT {
         .uri("/adapter/call")
         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
         .exchange();
+  }
+
+  /** The same token naming another issuer: its signature, from the rogue realm, no longer fits. */
+  private static String withIssuer(String token, String issuer) {
+    var parts = token.split("\\.");
+    var claims = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+    var forged = claims.replaceFirst("\"iss\":\"[^\"]*\"", "\"iss\":\"" + issuer + "\"");
+    assertThat(forged).isNotEqualTo(claims);
+    return parts[0]
+        + "."
+        + Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(forged.getBytes(StandardCharsets.UTF_8))
+        + "."
+        + parts[2];
   }
 
   /** The demo realm under another name: the same clients and secrets, its own keys. */

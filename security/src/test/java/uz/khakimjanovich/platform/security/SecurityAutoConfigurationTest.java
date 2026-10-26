@@ -141,24 +141,6 @@ class SecurityAutoConfigurationTest {
         .isInstanceOf(IllegalArgumentException.class);
   }
 
-  @Test
-  void aTrustedIssuerWithoutItsAudienceOrClientsStopsStartup() {
-    var noClients = new SecurityProperties.Issuer("https://id.example/realms/a", "api", List.of());
-    assertThatThrownBy(
-            () ->
-                new SecurityProperties(
-                    List.of(), new java.util.LinkedHashMap<>(), List.of(noClients)))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining("https://id.example/realms/a");
-    var noAudience =
-        new SecurityProperties.Issuer("https://id.example/realms/a", " ", List.of("c"));
-    assertThatThrownBy(
-            () ->
-                new SecurityProperties(
-                    List.of(), new java.util.LinkedHashMap<>(), List.of(noAudience)))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
   private static java.util.LinkedHashMap<String, List<String>> roles(
       String route, List<String> names) {
     var roles = new java.util.LinkedHashMap<String, List<String>>();

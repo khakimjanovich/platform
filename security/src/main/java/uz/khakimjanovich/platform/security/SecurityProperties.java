@@ -34,6 +34,9 @@ public record SecurityProperties(
    */
   public SecurityProperties {
     issuers.forEach(Issuer::check);
+    if (issuers.stream().map(Issuer::uri).distinct().count() < issuers.size()) {
+      throw new IllegalArgumentException(SecurityConstants.ISSUER_TWICE);
+    }
     roles.forEach(
         (route, names) -> {
           if (names.isEmpty() || names.stream().anyMatch(String::isBlank)) {
@@ -52,8 +55,14 @@ public record SecurityProperties(
    */
   public record Issuer(String uri, String audience, List<String> clients) {
 
+    // Constructor binding passes null for a value not set at all.
     void check() {
-      if (uri.isBlank() || audience.isBlank() || clients.isEmpty()) {
+      if (uri == null
+          || uri.isBlank()
+          || audience == null
+          || audience.isBlank()
+          || clients == null
+          || clients.isEmpty()) {
         throw new IllegalArgumentException(SecurityConstants.ISSUER_INCOMPLETE.formatted(uri));
       }
     }

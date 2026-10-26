@@ -25,6 +25,15 @@ public class SecurityConstants {
 
   public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
 
+  public static final String ISSUER_TWICE = "A trusted issuer is listed twice";
+
+  /** Trusted issuers replace Boot's one issuer: both set, one would be ignored. */
+  public static final String ISSUERS_AND_ISSUER_URI =
+      "Set platform.security.issuers or spring.security.oauth2.resourceserver.jwt.issuer-uri, not both";
+
+  public static final String BOOT_ISSUER_URI =
+      "spring.security.oauth2.resourceserver.jwt.issuer-uri";
+
   /** A rule may start with an HTTP method: "POST /api/v1/registrations/**". */
   public static final String METHOD_SEPARATOR = " ";
 

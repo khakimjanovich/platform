@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -65,11 +66,16 @@ public class SecurityAutoConfiguration {
       SecurityProperties properties,
       ProblemSecurityHandler problems,
       KeycloakJwtConverter converter,
-      BearerTokenResolver tokens) {
+      BearerTokenResolver tokens,
+      Environment environment) {
     // Spring Security applies the Customizer<HttpSecurity> beans first, and the first matching
     // rule wins: a module's own route rule would silently beat the configured ones.
     if (hasRouteRules(http)) {
       throw new IllegalStateException(SecurityConstants.ROUTES_IN_CONFIGURATION);
+    }
+    if (!properties.issuers().isEmpty()
+        && environment.containsProperty(SecurityConstants.BOOT_ISSUER_URI)) {
+      throw new IllegalStateException(SecurityConstants.ISSUERS_AND_ISSUER_URI);
     }
     return http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(

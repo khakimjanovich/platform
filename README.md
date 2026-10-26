@@ -42,7 +42,8 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
   major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
   method, property or error code.
 - A release is the tag `platform-vX.Y.Z` on `main` (it must equal `platform`). The release
-  workflow publishes the catalog as `uz.khakimjanovich.platform:versioning:X.Y.Z` to GitHub Packages
-  (`https://maven.pkg.github.com/khakimjanovich/platform`); the contracts build pins it. The
-  libraries themselves are still built from source by the services that use them.
+  workflow publishes every library (`uz.khakimjanovich.platform:<lib>:X.Y.Z`, with sources and test
+  fixtures) and the catalog (`uz.khakimjanovich.platform:versioning:X.Y.Z`) to GitHub Packages
+  (`https://maven.pkg.github.com/khakimjanovich/platform`). The contracts build pins the catalog;
+  the services pin the libraries the same way, or build them from source with `--include-build`.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).

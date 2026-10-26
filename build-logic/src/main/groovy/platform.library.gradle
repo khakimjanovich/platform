@@ -48,6 +48,15 @@ tasks.named('check') { dependsOn verifyConfigurationMetadata }
 
 publishing {
     publications {
-        library(MavenPublication) { from components.java }
+        library(MavenPublication) { from components.java } // with test fixtures, where a library has them
+    }
+    // Only the release workflow publishes. Credentials are the Gradle properties
+    // githubPackagesUsername and githubPackagesPassword; without them `publish` fails.
+    repositories {
+        maven {
+            name = 'githubPackages'
+            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            credentials(PasswordCredentials)
+        }
     }
 }

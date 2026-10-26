@@ -89,6 +89,7 @@ public class KeycloakAdmin {
   public String inviteUser(String email, String firstName, String... realmRoles) {
     return call(
         () -> {
+          // E-mail verified already: the only way in is the link e-mailed to this address.
           var user =
               Map.of(
                   KeycloakConstants.USERNAME,
@@ -130,28 +131,36 @@ public class KeycloakAdmin {
     call(() -> keycloak.delete().uri(KeycloakConstants.USER, userId).retrieve().toBodilessEntity());
   }
 
-  /** Disables the user and ends every session at once; the user and its history stay. */
+  /**
+   * Disables the user and ends every session at once; the user and its history stay. If ending the
+   * sessions fails, the user is already disabled (its refresh tokens are refused): calling again is
+   * safe.
+   */
   public void disableUser(String userId) {
     call(
         () -> {
-          // Keycloak replaces the whole user on update, so change the field on the full
-          // representation.
-          var user =
-              Objects.requireNonNull(
-                  keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON));
-          user.put(KeycloakConstants.ENABLED, false);
-          keycloak
-              .put()
-              .uri(KeycloakConstants.USER, userId)
-              .body(user)
-              .retrieve()
-              .toBodilessEntity();
+          enabled(userId, false);
           return keycloak
               .post()
               .uri(KeycloakConstants.USER_LOGOUT, userId)
               .retrieve()
               .toBodilessEntity();
         });
+  }
+
+  /** Lets a disabled user log in again. */
+  public void enableUser(String userId) {
+    call(() -> enabled(userId, true));
+  }
+
+  /** Keycloak's user update changes only the fields it is sent. */
+  private ResponseEntity<Void> enabled(String userId, boolean enabled) {
+    return keycloak
+        .put()
+        .uri(KeycloakConstants.USER, userId)
+        .body(Map.of(KeycloakConstants.ENABLED, enabled))
+        .retrieve()
+        .toBodilessEntity();
   }
 
   public void markEmailVerified(String userId) {

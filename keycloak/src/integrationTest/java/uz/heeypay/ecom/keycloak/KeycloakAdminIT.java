@@ -168,7 +168,7 @@ class KeycloakAdminIT {
   }
 
   @Test
-  void aRoleIsSwappedAndADisabledUserLosesItsSessions() {
+  void aRoleIsSwappedAndADisabledUserLosesItsSessionsUntilEnabled() {
     var email = UUID.randomUUID() + "@example.uz";
     var id = admin.createUser(email, email, "correct-horse-42", true);
     admin.grantRealmRole(id, "merchant-operator");
@@ -182,6 +182,13 @@ class KeycloakAdminIT {
     assertThat(adminGet("/users/" + id)).containsEntry("enabled", false);
     assertThat(refreshStatus(refresh)).as("the session ended").isEqualTo(400);
     assertThat(passwordStatus(email, "correct-horse-42")).isEqualTo(400);
+
+    admin.enableUser(id);
+    assertThat(adminGet("/users/" + id))
+        .as("only enabled changed")
+        .containsEntry("enabled", true)
+        .containsEntry("email", email);
+    assertThat(passwordStatus(email, "correct-horse-42")).isEqualTo(200);
   }
 
   private static String claims(String token) {

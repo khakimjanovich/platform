@@ -11,10 +11,10 @@ paths:
     get:
       tags: [PartnerInternal]
       operationId: listSalesPointsOwnedBy
-      summary: Every sales point of the merchant this cabinet user (by e-mail) belongs to, for other modules; empty for anyone else, a blocked user included
+      summary: Every sales point of the merchant this cabinet user belongs to, for other modules; empty for anyone else, a blocked user included
       description: Inside the app only; never routed from outside.
       parameters:
-        - { name: ownerEmail, in: query, required: true, schema: { type: string } }
+        - { name: userId, in: query, required: true, description: "The user's Keycloak id (the token's subject)", schema: { type: string, format: uuid } }
       responses:
         "200":
           description: Sales points, newest first, in any status
@@ -217,6 +217,9 @@ paths:
       tags: [MerchantUsers]
       operationId: changeMerchantUserRole
       summary: Replaces the user's one role; the last admin keeps theirs
+      description: >-
+        Making the last active admin anything else is refused (LAST_ADMIN, 422). A blocked user's
+        role can't change (409): unblock them first.
       parameters: [{ $ref: "#/components/parameters/UserId" }]
       requestBody:
         required: true
@@ -256,6 +259,19 @@ paths:
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
+  /api/v1/partner/users/{userId}/unblock:
+    post:
+      tags: [MerchantUsers]
+      operationId: unblockMerchantUser
+      summary: Lets a blocked user log in again, with the role they had; an active user is 409
+      parameters: [{ $ref: "#/components/parameters/UserId" }]
+      responses:
+        "200": { $ref: "#/components/responses/MerchantUser" }
+        "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/partner/sales-points:
     get:
@@ -1266,7 +1282,7 @@ components:
       enum: [ADMIN, ACCOUNTANT, OPERATOR, OBSERVER]
     MerchantUserState:
       type: string
-      description: ACTIVE may log in · BLOCKED may not; sessions ended, past actions kept
+      description: ACTIVE may log in · BLOCKED may not, until unblocked; sessions ended, past actions kept
       enum: [ACTIVE, BLOCKED]
     MerchantUserRequest:
       type: object

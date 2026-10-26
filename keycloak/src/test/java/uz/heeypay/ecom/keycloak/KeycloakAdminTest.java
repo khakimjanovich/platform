@@ -2,6 +2,7 @@ package uz.heeypay.ecom.keycloak;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uz.heeypay.ecom.error.GeneralException;
@@ -63,6 +65,41 @@ class KeycloakAdminTest {
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE));
+    server.verify();
+  }
+
+  @Test
+  void anInviteWithAnUnknownRoleRemovesTheUserAgain() {
+    server
+        .expect(requestTo("http://keycloak/users"))
+        .andRespond(
+            withStatus(HttpStatus.CREATED).location(URI.create("http://keycloak/users/user-1")));
+    server
+        .expect(requestTo("http://keycloak/roles/no-such-role"))
+        .andRespond(withStatus(HttpStatus.NOT_FOUND));
+    server
+        .expect(requestTo("http://keycloak/users/user-1"))
+        .andExpect(method(HttpMethod.DELETE))
+        .andRespond(withStatus(HttpStatus.NO_CONTENT));
+    assertThatThrownBy(() -> admin.inviteUser("aziz@example.uz", "Aziza", "no-such-role"))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_REJECTED));
+    server.verify();
+  }
+
+  /** Only the field that changes is sent: Keycloak leaves the rest of the user alone. */
+  @Test
+  void disablingSendsOnlyEnabledThenEndsTheSessions() {
+    server
+        .expect(requestTo("http://keycloak/users/user-1"))
+        .andExpect(method(HttpMethod.PUT))
+        .andExpect(content().json("{\"enabled\":false}", JsonCompareMode.STRICT))
+        .andRespond(withStatus(HttpStatus.NO_CONTENT));
+    server
+        .expect(requestTo("http://keycloak/users/user-1/logout"))
+        .andRespond(withStatus(HttpStatus.NO_CONTENT));
+    admin.disableUser("user-1");
     server.verify();
   }
 

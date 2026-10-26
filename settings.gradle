@@ -1,5 +1,5 @@
 // The platform: every library in one build. The app and the adapters include it
-// (includeBuild), and Gradle puts these projects in place of uz.heeypay.ecom:* dependencies.
+// (includeBuild), and Gradle puts these projects in place of uz.khakimjanovich.platform:* dependencies.
 pluginManagement { includeBuild 'build-logic' }
 
 rootProject.name = 'platform'

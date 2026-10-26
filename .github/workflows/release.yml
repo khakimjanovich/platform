@@ -1,5 +1,5 @@
 # A tag platform-v<version> publishes the version catalog to GitHub Packages and makes a release.
-# The tag must equal the catalog's ecom-platform version.
+# The tag must equal the catalog's platform version.
 name: release
 
 on:
@@ -18,9 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: The tag is the catalog version
         run: |
-          version=$(sed -n 's/^ecom-platform = "\([^"]*\)".*/\1/p' gradle/libs.versions.toml)
+          version=$(sed -n 's/^platform = "\([^"]*\)".*/\1/p' gradle/libs.versions.toml)
           if [ "$GITHUB_REF_NAME" != "platform-v$version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME, but gradle/libs.versions.toml says ecom-platform = $version."
+            echo "::error::Tag $GITHUB_REF_NAME, but gradle/libs.versions.toml says platform = $version."
             exit 1
           fi
       - uses: actions/setup-java@v4

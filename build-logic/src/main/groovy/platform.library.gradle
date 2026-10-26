@@ -7,8 +7,8 @@ plugins {
 
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
 
-group = 'uz.heeypay.ecom'
-version = libs.findVersion('ecom-platform').get().requiredVersion
+group = 'uz.khakimjanovich.platform'
+version = libs.findVersion('platform').get().requiredVersion
 
 java { withSourcesJar() }
 

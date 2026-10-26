@@ -1,5 +1,6 @@
 package uz.khakimjanovich.platform.error;
 
+import java.io.Serial;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,9 +16,12 @@ import org.jspecify.annotations.Nullable;
 @Getter
 public class GeneralException extends RuntimeException {
 
-  private final StatusThrowable status;
+  @Serial private static final long serialVersionUID = 1L;
+
+  // An exception answers the request it was thrown in; it is never serialized.
+  private final transient StatusThrowable status;
   private final transient Object[] params;
-  private final List<SubError> subErrors = new ArrayList<>();
+  private final transient List<SubError> subErrors = new ArrayList<>();
   private @Nullable Duration retryAfter;
 
   public GeneralException(StatusThrowable status, Object... params) {

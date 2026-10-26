@@ -30,7 +30,15 @@ public class SigningKeys {
   private final Clock clock;
   private final Map<String, Cached> cache = new ConcurrentHashMap<>();
 
-  private record Cached(byte[] key, Instant until) {}
+  private static final class Cached {
+    private final byte[] key;
+    private final Instant until;
+
+    private Cached(byte[] key, Instant until) {
+      this.key = key;
+      this.until = until;
+    }
+  }
 
   public SigningKeys(VaultSecrets vault, String path, Duration ttl, Clock clock) {
     this.vault = vault;
@@ -47,7 +55,7 @@ public class SigningKeys {
     if (!CLIENT_ID.matcher(clientId).matches()) return Optional.empty();
     var now = clock.instant();
     var cached = cache.get(clientId);
-    if (cached != null && now.isBefore(cached.until())) return Optional.of(cached.key().clone());
+    if (cached != null && now.isBefore(cached.until)) return Optional.of(cached.key.clone());
     cache.remove(clientId);
     var key =
         vault

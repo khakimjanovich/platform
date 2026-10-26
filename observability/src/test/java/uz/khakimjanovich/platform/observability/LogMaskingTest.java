@@ -23,7 +23,7 @@ class LogMaskingTest {
   static class App {}
 
   private static void logInAnApp(String... arguments) {
-    try (var context =
+    try (var _ =
         new SpringApplicationBuilder(App.class)
             .web(WebApplicationType.NONE)
             // No setting has a default; no collector runs here, and nothing is traced.

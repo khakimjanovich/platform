@@ -73,14 +73,20 @@ public class ModulePersistence {
     factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
     factory.setJpaPropertyMap(
         Map.of(
-            AvailableSettings.HBM2DDL_AUTO, Action.VALIDATE.getExternalHbm2ddlName(),
-            AvailableSettings.DEFAULT_SCHEMA, schema,
+            AvailableSettings.HBM2DDL_AUTO,
+            Action.VALIDATE.getExternalHbm2ddlName(),
+            AvailableSettings.DEFAULT_SCHEMA,
+            schema,
             AvailableSettings.PHYSICAL_NAMING_STRATEGY,
-                PhysicalNamingStrategySnakeCaseImpl.class.getName(),
-            AvailableSettings.JDBC_TIME_ZONE, PersistenceConstants.UTC,
-            AvailableSettings.STATEMENT_BATCH_SIZE, PersistenceConstants.BATCH_SIZE,
-            AvailableSettings.ORDER_INSERTS, Boolean.TRUE.toString(),
-            AvailableSettings.ORDER_UPDATES, Boolean.TRUE.toString()));
+            PhysicalNamingStrategySnakeCaseImpl.class.getName(),
+            AvailableSettings.JDBC_TIME_ZONE,
+            PersistenceConstants.UTC,
+            AvailableSettings.STATEMENT_BATCH_SIZE,
+            PersistenceConstants.BATCH_SIZE,
+            AvailableSettings.ORDER_INSERTS,
+            "true",
+            AvailableSettings.ORDER_UPDATES,
+            "true"));
     return factory;
   }
 

@@ -24,10 +24,10 @@ class VaultConfigIT {
   static final VaultContainer<?> VAULT =
       new VaultContainer<>(ResourceBundle.getBundle("images").getString("vault"))
           .withVaultToken("test")
-          .withSecretInVault(
-              "secret/test",
-              "platform.crypto.keys.k1=bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE=",
-              "platform.otp.secret=from-vault");
+          .withInitCommand(
+              "kv put secret/test"
+                  + " platform.crypto.keys.k1=bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE="
+                  + " platform.otp.secret=from-vault");
 
   @Configuration(proxyBeanMethods = false)
   static class App {}

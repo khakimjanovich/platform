@@ -45,8 +45,26 @@ public class FileStore {
       String sha256,
       Instant uploadedAt) {}
 
-  /** A stored file and its bytes. */
-  public record FileContent(StoredFile file, byte[] bytes) {}
+  /**
+   * A stored file and its bytes. A class, not a record: a record would compare arrays by identity.
+   */
+  public static final class FileContent {
+    private final StoredFile file;
+    private final byte[] bytes;
+
+    public FileContent(StoredFile file, byte[] bytes) {
+      this.file = file;
+      this.bytes = bytes;
+    }
+
+    public StoredFile file() {
+      return file;
+    }
+
+    public byte[] bytes() {
+      return bytes;
+    }
+  }
 
   /** At startup: every configured bucket must exist; creating them is infrastructure's job. */
   public void checkBuckets() {

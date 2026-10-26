@@ -68,7 +68,7 @@ public class SecurityAutoConfiguration {
       BearerTokenResolver tokens) {
     // Spring Security applies the Customizer<HttpSecurity> beans first, and the first matching
     // rule wins: a module's own route rule would silently beat the configured ones.
-    if (http.getConfigurer(AuthorizeHttpRequestsConfigurer.class) != null) {
+    if (hasRouteRules(http)) {
       throw new IllegalStateException(SecurityConstants.ROUTES_IN_CONFIGURATION);
     }
     return http.csrf(AbstractHttpConfigurer::disable)
@@ -107,5 +107,12 @@ public class SecurityAutoConfiguration {
     return parts.length == 2
         ? paths.matcher(HttpMethod.valueOf(parts[0]), parts[1].trim())
         : paths.matcher(parts[0]);
+  }
+
+  // Spring Security looks a configurer up by its raw class; AuthorizeHttpRequestsConfigurer is
+  // generic, and no class literal can name its type argument.
+  @SuppressWarnings("unchecked")
+  private static boolean hasRouteRules(HttpSecurity http) {
+    return http.getConfigurer(AuthorizeHttpRequestsConfigurer.class) != null;
   }
 }

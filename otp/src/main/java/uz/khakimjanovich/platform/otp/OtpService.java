@@ -35,13 +35,8 @@ public class OtpService {
 
   private static final SecureRandom RANDOM = new SecureRandom();
 
-  @SuppressWarnings("rawtypes")
-  private static final RedisScript<List> ISSUE =
-      RedisScript.of(new ClassPathResource(OtpConstants.ISSUE_SCRIPT), List.class);
-
-  @SuppressWarnings("rawtypes")
-  private static final RedisScript<List> VERIFY =
-      RedisScript.of(new ClassPathResource(OtpConstants.VERIFY_SCRIPT), List.class);
+  private static final RedisScript<List<Long>> ISSUE = script(OtpConstants.ISSUE_SCRIPT);
+  private static final RedisScript<List<Long>> VERIFY = script(OtpConstants.VERIFY_SCRIPT);
 
   private final StringRedisTemplate redis;
   private final OtpProperties properties;
@@ -125,23 +120,34 @@ public class OtpService {
   }
 
   /** A refusal that lifts by itself: Retry-After is the Redis key's remaining lifetime. */
-  private static GeneralException refused(OtpExceptionStatus status, List<?> result) {
-    var wait = Math.max(1, ((Number) result.get(1)).longValue());
+  private static GeneralException refused(OtpExceptionStatus status, List<Long> result) {
+    var wait = Math.max(1, result.get(1));
     return new GeneralException(status).retryAfter(Duration.ofMillis(wait));
   }
 
-  private static int status(List<?> result) {
-    return result == null || result.isEmpty() ? 0 : ((Number) result.getFirst()).intValue();
+  private static int status(List<Long> result) {
+    return result == null || result.isEmpty() ? 0 : result.getFirst().intValue();
   }
 
   /** Fail closed: without Redis, no code is issued or accepted; the log says why. */
-  private static List<?> run(Supplier<List<?>> script) {
+  private static List<Long> run(Supplier<List<Long>> script) {
     try {
       return script.get();
     } catch (DataAccessException e) {
       log.warn(OtpConstants.LOG_UNAVAILABLE, e.getMessage(), e);
       throw new GeneralException(OtpExceptionStatus.OTP_UNAVAILABLE);
     }
+  }
+
+  /**
+   * Each script answers a Lua table of integers ({status, milliseconds}), which Spring Data Redis
+   * reads as a list of Longs. Its {@code RedisScript.of} takes only a {@code Class}, and no class
+   * literal can say {@code List<Long>}, so this is the one place the type is stated.
+   */
+  // The cast changes only the static type: Spring uses the class to choose a multi-bulk reply.
+  @SuppressWarnings("unchecked")
+  private static RedisScript<List<Long>> script(String path) {
+    return RedisScript.of(new ClassPathResource(path), (Class<List<Long>>) (Class<?>) List.class);
   }
 
   /** The Redis key for each part; the subject (often an email) is stored only as a keyed hash. */

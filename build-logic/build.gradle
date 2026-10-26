@@ -23,4 +23,16 @@ publishing {
 dependencies {
     implementation libs.spotless.gradle
     implementation libs.errorprone.gradle
+
+    // The plugins tested on real builds (Gradle TestKit).
+    testImplementation platform(libs.spring.boot.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.launcher
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // The fixture builds read the same catalog.
+    systemProperty 'catalog', file('../gradle/libs.versions.toml').absolutePath
+    inputs.file('../gradle/libs.versions.toml')
 }

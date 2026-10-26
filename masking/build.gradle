@@ -1,7 +1,7 @@
 // What must never reach a log, hidden the same way everywhere: HTTP bodies (JSON, XML, forms), URIs
 // and plain text. Plain Java and Jackson, no Spring, so any library can use it.
 plugins {
-    id 'ecom.library'
+    id 'platform.library'
 }
 
 dependencies {

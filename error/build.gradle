@@ -1,8 +1,8 @@
 // One error format for every module: RFC 9457 problem details plus a stable error code.
 plugins {
-    id 'ecom.library'
+    id 'platform.library'
     id 'java-test-fixtures' // ErrorDefinitions: the completeness check every service runs
-    id 'ecom.integration-test'
+    id 'platform.integration-test'
 }
 
 dependencies {

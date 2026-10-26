@@ -2,7 +2,7 @@
 // library lists its files in META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports and
 // ships no Java for it. Only Spring Boot's core, so every library can depend on it.
 plugins {
-    id 'ecom.library'
+    id 'platform.library'
 }
 
 dependencies {

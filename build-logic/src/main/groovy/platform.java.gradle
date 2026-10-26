@@ -1,7 +1,7 @@
 // Every Java build: Java from the catalog, the Spring Boot BOM, Lombok, JUnit 5,
 // parameter names for Spring binding, one code format checked by `check`, and null-safety:
 // Error Prone with NullAway checks every @NullMarked package (JSpecify), as a warning here and an
-// error in platform libraries (ecom.library). Generated code and tests are not checked.
+// error in platform libraries (platform.library). Generated code and tests are not checked.
 import net.ltgt.gradle.errorprone.CheckSeverity
 
 plugins {

@@ -52,7 +52,30 @@ class NullMarkedTest {
   }
 
   @Test
-  void everyPackageMarkedPasses() {
+  void aCommentedOutAnnotationMarksNothing() throws IOException {
+    write(
+        "src/main/java/demo/card/package-info.java",
+        """
+        // @NullMarked
+        /*
+        @NullMarked
+        */
+        package demo.card;
+        """);
+    write("src/main/java/demo/card/Card.java", "package demo.card;\n\nclass Card {}\n");
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("src/main/java/demo/card"), output);
+  }
+
+  @Test
+  void everyPackageMarkedPasses() throws IOException {
+    write(
+        "src/main/java/demo/card/package-info.java",
+        "@Deprecated @org.jspecify.annotations.NullMarked package demo.card;\n");
+    write("src/main/java/demo/card/Card.java", "package demo.card;\n\nclass Card {}\n");
+
     runner().build();
   }
 

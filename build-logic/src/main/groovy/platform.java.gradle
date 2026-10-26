@@ -131,7 +131,9 @@ def verifyNullMarked = tasks.register('verifyNullMarked') {
     doLast {
         def unmarked = sources.files.collect { it.parentFile }.unique().findAll { dir ->
             def info = new File(dir, 'package-info.java')
-            !(info.exists() && info.text =~ /(?m)^\s*@(org\.jspecify\.annotations\.)?NullMarked\b/)
+            // Comments don't count: a commented-out annotation marks nothing.
+            def code = info.exists() ? info.text.replaceAll(/(?s)\/\*.*?\*\//, '').replaceAll(/\/\/.*/, '') : ''
+            !(code =~ /@(org\.jspecify\.annotations\.)?NullMarked\b/)
         }.collect { root.toPath().relativize(it.toPath()).toString() }.sort()
         if (unmarked) throw new GradleException("Packages without @NullMarked in ${root.name}; add it to their package-info.java:\n  ${unmarked.join('\n  ')}")
         passed.get().asFile.text = ''

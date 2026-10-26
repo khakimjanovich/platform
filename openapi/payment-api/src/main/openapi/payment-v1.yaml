@@ -564,7 +564,8 @@ paths:
         Inside the app only; never routed from outside. The business day is the day the call
         started, in Tashkent (00:00:00 to 23:59:59). Every call is listed, whatever its state, by
         start time then operation id; a page with fewer operations than size is the last one. A
-        reversal or refund carries the same paymentId as the debit it gives back.
+        reversal or refund carries the same paymentId as the debit it gives back. Read a day once it
+        has ended: calls still being written may shift the pages of the current day.
       parameters:
         - { name: businessDate, in: query, required: true, schema: { type: string, format: date } }
         - { name: scheme, in: query, required: true, schema: { type: string, enum: [UZCARD, HUMO] } }
@@ -584,10 +585,13 @@ paths:
       tags: [PaymentInternal]
       operationId: startPaymentResolution
       summary: "Starts asking the scheme about a payment left UNKNOWN; a second start changes nothing"
-      description: Inside the app only; never routed from outside.
+      description: >-
+        Inside the app only; never routed from outside. A payment no longer UNKNOWN is left as it
+        is (204 too).
       parameters: [{ $ref: "#/components/parameters/PaymentId" }]
       responses:
-        "204": { description: "Started, or already running" }
+        "204": { description: "Started, already running, or not UNKNOWN" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
   securitySchemes:

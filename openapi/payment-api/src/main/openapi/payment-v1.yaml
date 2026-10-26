@@ -1363,6 +1363,7 @@ components:
         evidenceDeadline: { type: string, format: date, description: Once evidence is requested }
         evidenceNote: { type: string, description: "What evidence staff asked for" }
         state: { $ref: "#/components/schemas/DisputeState" }
+        outcome: { type: string, enum: [WON, LOST, RESOLVED_BY_REFUND], description: "How it ended; kept once CLOSED" }
         dueSoon: { type: boolean, description: "An open deadline (evidence, or the scheme's) is within 2 banking days" }
         sentOn: { type: string, format: date }
         resultAt: { type: string, format: date-time }

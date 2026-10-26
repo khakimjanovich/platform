@@ -1,10 +1,10 @@
 # masking
 
 Used by observability (every log line, every client call) and error (its log line); a service
-extends its names with `ecom.observability.masking.*`, never by copying the lists.
+extends its names with `platform.observability.masking.*`, never by copying the lists.
 
 ```groovy
-implementation libs.ecom.masking
+implementation libs.platform.masking
 ```
 
 Hides what must never reach a log: card numbers (first 6 and last 4 digits kept), tokens (last 4

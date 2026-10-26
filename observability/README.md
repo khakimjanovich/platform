@@ -9,7 +9,7 @@ attributes are not exported to OTLP (the masked trace travels in the message). L
 the context starts (the banner, the auto-configuration report, Vault's bootstrap) are not masked.
 
 ```groovy
-implementation libs.ecom.observability
+implementation libs.platform.observability
 ```
 
 Adding the jar is enough: its `observability-defaults.yaml` loads itself below the service's own
@@ -22,9 +22,9 @@ without them doesn't start (config, "Required settings").
 
 | Property | What |
 |---|---|
-| `ecom.observability.masking.additional-secret-fields` | field names hidden whole, beyond the defaults |
-| `ecom.observability.masking.additional-token-fields` | field names cut to their last 4 characters |
-| `ecom.observability.masking.additional-card-fields` | field names kept to their first 6 and last 4 digits |
+| `platform.observability.masking.additional-secret-fields` | field names hidden whole, beyond the defaults |
+| `platform.observability.masking.additional-token-fields` | field names cut to their last 4 characters |
+| `platform.observability.masking.additional-card-fields` | field names kept to their first 6 and last 4 digits |
 
 ## Client calls
 
@@ -38,8 +38,8 @@ attribute `HttpClientLogging.NO_BODIES` and is logged without either body (Keycl
 
 ## Health as a metric
 
-With the actuator, every health indicator is the gauge `ecom.health.up{component}` (1 UP, 0
-otherwise), so an alert can see a component go DOWN (ecom-infra's "Health DOWN").
+With the actuator, every health indicator is the gauge `platform.health.up{component}` (1 UP, 0
+otherwise), so an alert can see a component go DOWN (the local stack's "Health DOWN").
 
 ## Beans you can replace
 

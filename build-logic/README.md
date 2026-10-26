@@ -1,6 +1,6 @@
 # build-logic
 
-The conventions every ecom build applies, as Gradle convention plugins, so a module's or library's
+The conventions every build on the platform applies, as Gradle convention plugins, so a module's or library's
 build file says only what is particular to it.
 
 | Plugin | For | What it gives |

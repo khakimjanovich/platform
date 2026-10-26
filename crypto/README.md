@@ -6,13 +6,13 @@ decrypting them.
 
 ## Keys
 
-All three come from Vault, like every secret (`spring.config.import: vault://secret/ecom`):
+All three come from Vault, like every secret (`spring.config.import: vault://secret/<service>`):
 
 | Property | What |
 |---|---|
-| `ecom.crypto.keys.<id>` | an AES-256 key, base64 of exactly 32 bytes; the id matches `[A-Za-z0-9_-]{1,32}` |
-| `ecom.crypto.active-key-id` | the key new values are sealed with; setting it turns the library on |
-| `ecom.crypto.blind-index-key` | the HMAC-SHA256 key of the blind index, base64 of 32 bytes |
+| `platform.crypto.keys.<id>` | an AES-256 key, base64 of exactly 32 bytes; the id matches `[A-Za-z0-9_-]{1,32}` |
+| `platform.crypto.active-key-id` | the key new values are sealed with; setting it turns the library on |
+| `platform.crypto.blind-index-key` | the HMAC-SHA256 key of the blind index, base64 of 32 bytes |
 
 A missing key, a key of the wrong size or an active id that names no key stops startup.
 
@@ -42,9 +42,9 @@ it), and the blind-index key differs from every encryption key.
 
 ## Rotation
 
-1. Add the new key to Vault next to the old one (`ecom.crypto.keys.k2`), keeping `active-key-id` on
+1. Add the new key to Vault next to the old one (`platform.crypto.keys.k2`), keeping `active-key-id` on
    the old key, and restart: every instance can now read both.
-2. Make the new key active (`ecom.crypto.active-key-id=k2`) and restart: new values are sealed with
+2. Make the new key active (`platform.crypto.active-key-id=k2`) and restart: new values are sealed with
    it, old values still read.
 3. Rewrap the old values: for each one, `crypto.isStale(value)` says whether it was sealed with
    another key and `crypto.rewrap(value, context)` (`rewrap(value)` for `v1`) re-seals it with the

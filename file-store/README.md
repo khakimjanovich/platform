@@ -7,7 +7,7 @@ and a file read back must still match its checksum. The buckets are infrastructu
 checks at startup that each one exists.
 
 ```groovy
-implementation libs.ecom.file.store
+implementation libs.platform.file.store
 ```
 
 ```java
@@ -20,15 +20,15 @@ files.delete("partner-documents", stored.id());
 
 | Property | Default | What |
 |---|---|---|
-| `ecom.file-store.storage.endpoint` | — | the store's URL; setting it turns the library on |
-| `ecom.file-store.storage.region` | — | the region requests are signed for |
-| `ecom.file-store.storage.credentials` | `keys` | `keys`: the access and secret key, both required; `default-chain`: AWS's default credentials chain (an instance or container role), only when chosen |
-| `ecom.file-store.storage.access-key` | — | the app's access key |
-| `ecom.file-store.storage.secret-key` | — | its secret key, from Vault |
-| `ecom.file-store.storage.path-style` | false | the bucket in the path, as SeaweedFS and MinIO want |
-| `ecom.file-store.storage.api-call-timeout` | 30s | one call, retries included |
-| `ecom.file-store.storage.api-call-attempt-timeout` | 10s | one attempt of a call |
-| `ecom.file-store.buckets` | — | the buckets the app may use: `<name>.allowed-types` and `<name>.max-size` |
+| `platform.file-store.storage.endpoint` | — | the store's URL; setting it turns the library on |
+| `platform.file-store.storage.region` | — | the region requests are signed for |
+| `platform.file-store.storage.credentials` | `keys` | `keys`: the access and secret key, both required; `default-chain`: AWS's default credentials chain (an instance or container role), only when chosen |
+| `platform.file-store.storage.access-key` | — | the app's access key |
+| `platform.file-store.storage.secret-key` | — | its secret key, from Vault |
+| `platform.file-store.storage.path-style` | false | the bucket in the path, as SeaweedFS and MinIO want |
+| `platform.file-store.storage.api-call-timeout` | 30s | one call, retries included |
+| `platform.file-store.storage.api-call-attempt-timeout` | 10s | one attempt of a call |
+| `platform.file-store.buckets` | — | the buckets the app may use: `<name>.allowed-types` and `<name>.max-size` |
 
 ## Errors
 

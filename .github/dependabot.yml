@@ -1,0 +1,23 @@
+# Weekly, one grouped pull request per ecosystem: the version catalog (gradle/libs.versions.toml,
+# which every build, build-logic too, reads) and the workflows' actions.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gradle:
+        patterns: ["*"]
+    ignore:
+      # Must stay the release built on the OpenTelemetry SDK that Spring Boot manages (see the
+      # catalog comment); a newer one compiles but its log export to the collector breaks.
+      # Bump it by hand together with a Spring Boot upgrade.
+      - dependency-name: "io.opentelemetry.instrumentation:*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

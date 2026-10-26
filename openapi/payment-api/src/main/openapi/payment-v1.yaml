@@ -1109,8 +1109,8 @@ components:
           type: array
           description: "Every call to the scheme for this payment, oldest first: the debit, then any reversal or refund"
           items: { $ref: "#/components/schemas/PaymentOperationResponse" }
-        refundableUntil: { type: string, format: date-time, description: "Until when the merchant can still refund it; only while it is PAID" }
-        refundDaysLeft: { type: integer, description: "Days left to refund it: working days, or calendar days under an approved extension; only while it is PAID" }
+        refundableUntil: { type: string, format: date-time, description: "Until when the merchant can still refund it; only while it is PAID or DISPUTED" }
+        refundDaysLeft: { type: integer, description: "Days left to refund it: working days, or calendar days under an approved extension; only while it is PAID or DISPUTED" }
     DailyReport:
       type: object
       description: >-
@@ -1337,7 +1337,7 @@ components:
       required: [result, note]
       properties:
         result: { type: string, enum: [WON, LOST] }
-        costs: { type: integer, format: int64, minimum: 0, description: "The scheme's costs in tiyin, for LOST; 0 when absent" }
+        costs: { type: integer, format: int64, minimum: 0, description: "The scheme's costs in tiyin; required for LOST (0 when there are none), PAYMENT_DISPUTE_INVALID otherwise" }
         note: { type: string, minLength: 1, maxLength: 500, pattern: ".*\\S.*" }
     DisputeNoteRequest:
       type: object
@@ -1364,7 +1364,7 @@ components:
         evidenceNote: { type: string, description: "What evidence staff asked for" }
         state: { $ref: "#/components/schemas/DisputeState" }
         outcome: { type: string, enum: [WON, LOST, RESOLVED_BY_REFUND], description: "How it ended; kept once CLOSED" }
-        dueSoon: { type: boolean, description: "An open deadline (evidence, or the scheme's) is within 2 banking days" }
+        dueSoon: { type: boolean, description: "The deadline still to meet (the evidence deadline while evidence is asked for, the scheme's before the answer is sent) is within 2 banking days, or past" }
         sentOn: { type: string, format: date }
         resultAt: { type: string, format: date-time }
         evidence:

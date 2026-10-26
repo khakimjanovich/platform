@@ -20,8 +20,13 @@ paths:
       operationId: startReconciliationRun
       summary: Reconciles one scheme's business day now; a run already going for it is returned instead
       description: >-
-        A re-run of a day reconciled before never classes an item twice: items still matched stay
-        matched, exceptions whose items now match are resolved, and no exception is opened twice.
+        Only a day that has ended in Tashkent: today or a later day is 409
+        RECONCILIATION_DAY_NOT_ENDED. A re-run of a day reconciled before never classes an item
+        twice: items still matched stay matched, exceptions whose items now match are resolved, and
+        no exception is opened twice. An exception already RESOLVED_MATCHED or WRITTEN_OFF is never
+        reopened, whatever the re-run finds. A re-run of a day already closed (10:00 the next
+        morning) is closed as soon as it finishes, with the same rule: a payment still UNKNOWN is
+        UNKNOWN_AT_CLOSE.
       requestBody:
         required: true
         content:
@@ -36,6 +41,7 @@ paths:
         "400": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "401": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
     get:
       tags: [ReconciliationAdmin]
       operationId: listReconciliationRuns
@@ -162,7 +168,10 @@ paths:
     post:
       tags: [ReconciliationAdmin]
       operationId: reassignReconciliationException
-      summary: Gives an open exception to another owner; the audit keeps both
+      summary: Gives an exception being worked to another owner; the audit keeps both
+      description: >-
+        Any admin, while the exception is OPEN, IN_PROGRESS or DISPUTED; not while a write-off waits
+        for approval (its new owner could then approve it).
       parameters: [{ $ref: "#/components/parameters/ExceptionId" }]
       requestBody:
         required: true
@@ -332,8 +341,11 @@ components:
       description: >-
         Item reasons: MISMATCHED ← AMOUNT_DIFFERS, DATE_DIFFERS, TERMINAL_DIFFERS, STATE_DIFFERS,
         DUPLICATE_SCHEME_ITEM, DUPLICATE_BANK_ITEM; MISSING_AT_SCHEME ← NO_SCHEME_ITEM,
-        UNKNOWN_AT_CLOSE; MISSING_AT_BANK ← NO_BANK_ITEM. Day reason: TOTALS_DIFFER (the matched
-        total is not the scheme's total). Fee reasons (Humo, the item stays MATCHED): FEE_TAKEN_TWICE
+        UNKNOWN_AT_CLOSE; MISSING_AT_BANK ← NO_BANK_ITEM. Day reason: TOTALS_DIFFER, a difference
+        no item explains: Uzcard's control total is not the sum of the items its report listed (a
+        page lost or seen twice), or a Humo terminal's totals are not ours once the item breaks are
+        counted (debits we never sent). A difference an item break already explains opens no
+        TOTALS_DIFFER, so nothing is counted twice. Fee reasons (Humo, the item stays MATCHED): FEE_TAKEN_TWICE
         (Humo charged a fee above 0, though our system already takes the fee) and NO_FEE_DATA (Humo
         sent no fee).
       enum:
@@ -351,7 +363,7 @@ components:
         - NO_FEE_DATA
     ExceptionState:
       type: string
-      description: "WRITE_OFF_REQUESTED: the owner asked to write it off; waiting for a second admin"
+      description: "WRITE_OFF_REQUESTED: the owner asked to write it off; waiting for a second admin. DISPUTED is reserved: nothing sets it yet (disputes come later)."
       enum: [OPEN, IN_PROGRESS, WRITE_OFF_REQUESTED, RESOLVED_MATCHED, WRITTEN_OFF, DISPUTED]
     RunRequest:
       type: object
@@ -376,11 +388,11 @@ components:
         mismatched: { type: integer, format: int32 }
         missingAtScheme: { type: integer, format: int32 }
         missingAtBank: { type: integer, format: int32 }
-        bankCount: { type: integer, format: int64, description: Our matched operations }
-        bankSum: { type: integer, format: int64, description: "Our matched total, in tiyin" }
-        schemeCount: { type: integer, format: int64, description: "The scheme's count (Uzcard report.sum; Humo debits per terminal)" }
-        schemeSum: { type: integer, format: int64, description: "The scheme's total, in tiyin (Uzcard report.sum; Humo debits less reversals)" }
-        totalsAgree: { type: boolean }
+        bankCount: { type: integer, format: int64, description: "Our approved debits of the day" }
+        bankSum: { type: integer, format: int64, description: "Our approved debits less reversals and refunds, in tiyin (Humo: less reversals only, as Humo totals them)" }
+        schemeCount: { type: integer, format: int64, description: "The scheme's count (Uzcard report.sum; Humo debits over its terminals)" }
+        schemeSum: { type: integer, format: int64, description: "The scheme's total, in tiyin (Uzcard report.sum; Humo debits less reversals over its terminals)" }
+        totalsAgree: { type: boolean, description: "No TOTALS_DIFFER: every difference between ours and the scheme's figures is explained by an item break" }
         closedAt: { type: string, format: date-time, description: "When the day was closed (10:00 the next day); unset while open" }
         error: { type: string, description: Why a FAILED run stopped }
     MatchItem:
@@ -401,6 +413,7 @@ components:
         bankAmount: { type: integer, format: int64, description: In tiyin }
         schemeAmount: { type: integer, format: int64, description: In tiyin }
         feeCharged: { type: integer, format: int64, description: "Humo: the fee Humo charged, in tiyin; expected 0" }
+        exceptionId: { type: string, format: uuid, description: "The item's open or latest exception, if it has one" }
         bankTime: { type: string, format: date-time }
         schemeTime: { type: string, format: date-time }
     ReconciliationExceptionResponse:

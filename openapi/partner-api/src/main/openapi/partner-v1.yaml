@@ -11,10 +11,13 @@ paths:
     get:
       tags: [PartnerInternal]
       operationId: listSalesPointsOwnedBy
-      summary: Every sales point of the merchant this cabinet user belongs to, for other modules; empty for anyone else, a blocked user included
-      description: Inside the app only; never routed from outside.
+      deprecated: true
+      summary: Every sales point of the merchant this cabinet user (by e-mail) belongs to, for other modules; empty for anyone else, a blocked user included
+      description: >-
+        Inside the app only; never routed from outside. Replaced by listUserSalesPoints, keyed by the
+        user's id as findUserMerchant is; removed once no caller is left.
       parameters:
-        - { name: userId, in: query, required: true, description: "The user's Keycloak id (the token's subject)", schema: { type: string, format: uuid } }
+        - { name: ownerEmail, in: query, required: true, schema: { type: string } }
       responses:
         "200":
           description: Sales points, newest first, in any status
@@ -92,6 +95,22 @@ paths:
                 type: array
                 maxItems: 1
                 items: { type: string, format: uuid }
+
+  /internal/v1/users/{userId}/sales-points:
+    get:
+      tags: [PartnerInternal]
+      operationId: listUserSalesPoints
+      summary: Every sales point of the merchant this cabinet user belongs to, for other modules; empty for anyone else, a blocked user included
+      description: Inside the app only; never routed from outside.
+      parameters: [{ $ref: "#/components/parameters/UserId" }]
+      responses:
+        "200":
+          description: Sales points, newest first, in any status
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SalesPointResponse" }
 
   /internal/v1/users/{userId}/merchant:
     get:

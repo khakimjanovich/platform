@@ -10,7 +10,29 @@
       },
       {
         "name": "partner",
-        "description": "A merchant with a verified email"
+        "description": "Kept for one release: an alias of merchant-admin for logins made before the four merchant roles",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "merchant-admin"
+          ]
+        }
+      },
+      {
+        "name": "merchant-admin",
+        "description": "A merchant's cabinet user: everything, users and integration settings included"
+      },
+      {
+        "name": "merchant-accountant",
+        "description": "A merchant's cabinet user: views, exports, settlement account, dispute evidence"
+      },
+      {
+        "name": "merchant-operator",
+        "description": "A merchant's cabinet user: views, exports, links, cancellations and refunds"
+      },
+      {
+        "name": "merchant-observer",
+        "description": "A merchant's cabinet user: views only"
       },
       {
         "name": "merchant",
@@ -250,5 +272,11 @@
     "uz"
   ],
   "defaultLocale": "en",
-  "resetPasswordAllowed": true
+  "resetPasswordAllowed": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@heeypay.uz",
+    "fromDisplayName": "HeeyPay"
+  }
 }

@@ -62,24 +62,44 @@ public class PublicAddresses {
    * malformed URL is not allowed.
    */
   public static boolean allowed(String url, Collection<String> testHosts) {
-    URI uri;
+    var uri = parse(url);
+    if (uri == null) return false;
+    if (allowedTestHost(url, testHosts)) return true;
+    return HTTPS.equals(scheme(uri)) && port(uri) == HTTPS_PORT && resolvesPublic(uri.getHost());
+  }
+
+  /** The URL is http or https to one of {@code testHosts}, exact {@code host:port} entries. */
+  public static boolean allowedTestHost(String url, Collection<String> testHosts) {
+    var uri = parse(url);
+    if (uri == null) return false;
+    var entry = uri.getHost().toLowerCase(Locale.ROOT) + ":" + port(uri);
+    return testHosts.stream().anyMatch(test -> test.toLowerCase(Locale.ROOT).equals(entry));
+  }
+
+  /** Whether some {@code testHosts} entry names this host, on any of its ports. */
+  public static boolean isTestHost(String host, Collection<String> testHosts) {
+    var prefix = host.toLowerCase(Locale.ROOT) + ":";
+    return testHosts.stream().anyMatch(test -> test.toLowerCase(Locale.ROOT).startsWith(prefix));
+  }
+
+  /** An absolute http or https URL with a host, or null. */
+  private static URI parse(String url) {
     try {
-      uri = new URI(url);
+      var uri = new URI(url);
+      var scheme = scheme(uri);
+      return uri.getHost() != null && (HTTPS.equals(scheme) || HTTP.equals(scheme)) ? uri : null;
     } catch (URISyntaxException e) {
-      return false;
+      return null;
     }
-    var host = uri.getHost();
-    var scheme = uri.getScheme();
-    if (host == null || scheme == null) return false;
-    scheme = scheme.toLowerCase(Locale.ROOT);
-    if (!HTTPS.equals(scheme) && !HTTP.equals(scheme)) return false;
-    var port =
-        uri.getPort() == -1 ? (HTTPS.equals(scheme) ? HTTPS_PORT : HTTP_PORT) : uri.getPort();
-    var entry = host.toLowerCase(Locale.ROOT) + ":" + port;
-    if (testHosts.stream().anyMatch(test -> test.toLowerCase(Locale.ROOT).equals(entry))) {
-      return true;
-    }
-    return HTTPS.equals(scheme) && port == HTTPS_PORT && resolvesPublic(host);
+  }
+
+  private static String scheme(URI uri) {
+    return uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
+  }
+
+  private static int port(URI uri) {
+    if (uri.getPort() != -1) return uri.getPort();
+    return HTTPS.equals(scheme(uri)) ? HTTPS_PORT : HTTP_PORT;
   }
 
   /**

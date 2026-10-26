@@ -1008,10 +1008,9 @@ components:
         order stays locked · MANUAL_REVIEW: still no answer after the configured status checks, a
         person at the bank decides; not final, so no webhook · FAILED: the page closed before any debit ·
         EXPIRED: nobody paid before the page expired · RETURNING: the money is being given back ·
-        REVERSED: given back before settlement · REFUNDED: given back after it · DISPUTED: the bank
-        is handling a complaint or claim · CHARGED_BACK: the claim was lost. Merchants read `state`;
-        partial refunds will appear only there.
-      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED, DISPUTED, CHARGED_BACK]
+        REVERSED: given back before settlement · REFUNDED: given back after it. Frozen: new lifecycle
+        values (disputes, partial refunds) appear only in `state`, which merchants read.
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED]
     PaymentState:
       type: string
       description: >-
@@ -1151,6 +1150,7 @@ components:
         amount: { type: integer, format: int64 }
         description: { type: string }
         status: { $ref: "#/components/schemas/PaymentStatus" }
+        state: { $ref: "#/components/schemas/PaymentState", description: "What the merchant sees; DISPUTED and CHARGED_BACK show only here, as status is frozen" }
         cardMask: { type: string }
         cardScheme: { type: string }
         merchantId: { type: string, description: The e-POS terminal's MID the debit went through }

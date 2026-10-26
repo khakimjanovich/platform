@@ -82,10 +82,11 @@ public class KeycloakAdmin {
   }
 
   /**
-   * Creates an enabled user without a password and has Keycloak e-mail them a link to set one;
-   * returns its id. If the e-mail can't be sent, the user is removed again and the call fails.
+   * Creates an enabled user without a password, with the given realm roles, and has Keycloak e-mail
+   * them a link to set one; returns its id. If a role or the e-mail fails, the user is removed
+   * again and the call fails.
    */
-  public String inviteUser(String email, String firstName) {
+  public String inviteUser(String email, String firstName, String... realmRoles) {
     return call(
         () -> {
           var user =
@@ -104,6 +105,7 @@ public class KeycloakAdmin {
                   List.of(KeycloakConstants.UPDATE_PASSWORD));
           var id = idOf(created(user, email).getHeaders().getLocation());
           try {
+            for (var role : realmRoles) realmRole(id, role);
             keycloak
                 .put()
                 .uri(KeycloakConstants.USER_ACTIONS_EMAIL, id)
@@ -121,6 +123,11 @@ public class KeycloakAdmin {
           }
           return id;
         });
+  }
+
+  /** Removes the user, e.g. an invite whose own record could not be saved. */
+  public void deleteUser(String userId) {
+    call(() -> keycloak.delete().uri(KeycloakConstants.USER, userId).retrieve().toBodilessEntity());
   }
 
   /** Disables the user and ends every session at once; the user and its history stay. */

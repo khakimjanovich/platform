@@ -141,7 +141,7 @@ class KeycloakAdminIT {
   @Test
   void anInvitedUserGetsAnEmailToSetAPassword() {
     var email = UUID.randomUUID() + "@example.uz";
-    var id = admin.inviteUser(email, "Aziza");
+    var id = admin.inviteUser(email, "Aziza", "merchant-operator");
 
     var user = adminGet("/users/" + id);
     assertThat(user)
@@ -155,10 +155,16 @@ class KeycloakAdminIT {
             .retrieve()
             .body(JSON);
     assertThat(mails).containsEntry("messages_count", 1);
+    assertThat(adminGetList("/users/" + id + "/role-mappings/realm"))
+        .extracting(role -> role.get("name"))
+        .contains("merchant-operator");
     assertThatThrownBy(() -> admin.inviteUser(email, "Aziza"))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT));
+
+    admin.deleteUser(id);
+    assertThat(admin.inviteUser(email, "Aziza")).as("the e-mail is free again").isNotEqualTo(id);
   }
 
   @Test
@@ -184,6 +190,14 @@ class KeycloakAdminIT {
 
   /** Keycloak's admin API, as the realm's bootstrap admin. */
   private static Map<String, Object> adminGet(String path) {
+    return adminApi(path).body(JSON);
+  }
+
+  private static List<Map<String, Object>> adminGetList(String path) {
+    return adminApi(path).body(new ParameterizedTypeReference<>() {});
+  }
+
+  private static RestClient.ResponseSpec adminApi(String path) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
     form.add("client_id", "admin-cli");
@@ -202,8 +216,7 @@ class KeycloakAdminIT {
         .get()
         .uri(url() + "/admin/realms/ecom" + path)
         .header("Authorization", "Bearer " + token)
-        .retrieve()
-        .body(JSON);
+        .retrieve();
   }
 
   private static Map<String, Object> passwordGrant(String username, String password) {

@@ -41,6 +41,8 @@ image tags as ecom-infra (each library's `src/integrationTest/resources/images.p
 - While 0.x: breaking changes and additions bump the minor, fixes the patch. From 1.0: breaking →
   major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
   method, property or error code.
-- A release is the tag `platform-vX.Y.Z` on `main`. Publishing to a package repository waits for the
-  platform to become its own repository.
+- A release is the tag `platform-vX.Y.Z` on `main` (it must equal `ecom-platform`). The release
+  workflow publishes the catalog as `uz.khakimjanovich.platform:versioning:X.Y.Z` to GitHub Packages
+  (`https://maven.pkg.github.com/khakimjanovich/platform`); the contracts build pins it. The
+  libraries themselves are still built from source by ecom and the adapters.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).

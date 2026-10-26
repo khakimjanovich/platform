@@ -1,11 +1,12 @@
-// The one version catalog (platform/gradle/libs.versions.toml), which every build reads directly,
-// published as uz.heeypay.ecom:versioning for when the platform becomes its own repository.
+// The one version catalog (platform/gradle/libs.versions.toml), published as
+// uz.khakimjanovich.platform:versioning so other repositories (contracts first) pin a platform
+// version instead of reading this file. The platform's builds read the file directly.
 plugins {
     id 'version-catalog'
     id 'maven-publish'
 }
 
-group = 'uz.heeypay.ecom'
+group = 'uz.khakimjanovich.platform'
 version = libs.versions.ecom.platform.get()
 
 catalog { versionCatalog { from(files('../gradle/libs.versions.toml')) } }
@@ -13,5 +14,14 @@ catalog { versionCatalog { from(files('../gradle/libs.versions.toml')) } }
 publishing {
     publications {
         catalog(MavenPublication) { from components.versionCatalog }
+    }
+    // Only the release workflow publishes. Credentials are the Gradle properties
+    // githubPackagesUsername and githubPackagesPassword; without them `publish` fails.
+    repositories {
+        maven {
+            name = 'githubPackages'
+            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            credentials(PasswordCredentials)
+        }
     }
 }

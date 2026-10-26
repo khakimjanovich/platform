@@ -16,7 +16,7 @@ jobs:
     name: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: The tag is the catalog version
         run: |
           version=$(sed -n 's/^platform = "\([^"]*\)".*/\1/p' gradle/libs.versions.toml)
@@ -24,11 +24,11 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME, but gradle/libs.versions.toml says platform = $version."
             exit 1
           fi
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew check publish && ./gradlew -p build-logic publish
         env:
           ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}

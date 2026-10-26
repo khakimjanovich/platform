@@ -8,7 +8,9 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -62,19 +64,108 @@ public class KeycloakAdmin {
                         password,
                         KeycloakConstants.TEMPORARY,
                         false)));
-    var created =
-        keycloak
-            .post()
-            .uri(KeycloakConstants.USERS)
-            .body(user)
-            .retrieve()
-            .onStatus(
-                status -> status.isSameCodeAs(HttpStatus.CONFLICT),
-                (request, response) -> {
-                  throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_CONFLICT, username);
-                })
-            .toBodilessEntity();
-    return idOf(created.getHeaders().getLocation());
+    return idOf(created(user, username).getHeaders().getLocation());
+  }
+
+  private ResponseEntity<Void> created(Map<String, Object> user, String username) {
+    return keycloak
+        .post()
+        .uri(KeycloakConstants.USERS)
+        .body(user)
+        .retrieve()
+        .onStatus(
+            status -> status.isSameCodeAs(HttpStatus.CONFLICT),
+            (request, response) -> {
+              throw new GeneralException(KeycloakExceptionStatus.KEYCLOAK_CONFLICT, username);
+            })
+        .toBodilessEntity();
+  }
+
+  /**
+   * Creates an enabled user without a password, with the given realm roles, and has Keycloak e-mail
+   * them a link to set one; returns its id. If a role or the e-mail fails, the user is removed
+   * again and the call fails.
+   */
+  public String inviteUser(String email, String firstName, String... realmRoles) {
+    return call(
+        () -> {
+          // E-mail verified already: the only way in is the link e-mailed to this address.
+          var user =
+              Map.of(
+                  KeycloakConstants.USERNAME,
+                  email,
+                  KeycloakConstants.EMAIL,
+                  email,
+                  KeycloakConstants.FIRST_NAME,
+                  firstName,
+                  KeycloakConstants.ENABLED,
+                  true,
+                  KeycloakConstants.EMAIL_VERIFIED,
+                  true,
+                  KeycloakConstants.REQUIRED_ACTIONS,
+                  List.of(KeycloakConstants.UPDATE_PASSWORD));
+          var id = idOf(created(user, email).getHeaders().getLocation());
+          try {
+            for (var role : realmRoles) realmRole(id, role);
+            keycloak
+                .put()
+                .uri(KeycloakConstants.USER_ACTIONS_EMAIL, id)
+                .body(List.of(KeycloakConstants.UPDATE_PASSWORD))
+                .retrieve()
+                .toBodilessEntity();
+          } catch (RestClientException e) {
+            // The e-mail's failure is what the caller learns, even if the clean-up fails too.
+            try {
+              keycloak.delete().uri(KeycloakConstants.USER, id).retrieve().toBodilessEntity();
+            } catch (RestClientException cleanup) {
+              e.addSuppressed(cleanup);
+            }
+            throw e;
+          }
+          return id;
+        });
+  }
+
+  /** Removes the user, e.g. an invite whose own record could not be saved. */
+  public void deleteUser(String userId) {
+    call(() -> keycloak.delete().uri(KeycloakConstants.USER, userId).retrieve().toBodilessEntity());
+  }
+
+  /**
+   * Disables the user and ends every session at once; the user and its history stay. If ending the
+   * sessions fails, the user is already disabled (its refresh tokens are refused): calling again is
+   * safe.
+   */
+  public void disableUser(String userId) {
+    call(
+        () -> {
+          enabled(userId, false);
+          return loggedOut(userId);
+        });
+  }
+
+  /** Ends every session the user has: its refresh tokens are refused from now on. */
+  public void logoutUser(String userId) {
+    call(() -> loggedOut(userId));
+  }
+
+  private ResponseEntity<Void> loggedOut(String userId) {
+    return keycloak.post().uri(KeycloakConstants.USER_LOGOUT, userId).retrieve().toBodilessEntity();
+  }
+
+  /** Lets a disabled user log in again. */
+  public void enableUser(String userId) {
+    call(() -> enabled(userId, true));
+  }
+
+  /** Keycloak's user update changes only the fields it is sent. */
+  private ResponseEntity<Void> enabled(String userId, boolean enabled) {
+    return keycloak
+        .put()
+        .uri(KeycloakConstants.USER, userId)
+        .body(Map.of(KeycloakConstants.ENABLED, enabled))
+        .retrieve()
+        .toBodilessEntity();
   }
 
   public void markEmailVerified(String userId) {
@@ -99,14 +190,27 @@ public class KeycloakAdmin {
     call(() -> realmRole(userId, role));
   }
 
+  public void revokeRealmRole(String userId, String role) {
+    call(
+        () ->
+            keycloak
+                .method(HttpMethod.DELETE)
+                .uri(KeycloakConstants.USER_REALM_ROLES, userId)
+                .body(List.of(roleOf(role)))
+                .retrieve()
+                .toBodilessEntity());
+  }
+
+  private Map<String, Object> roleOf(String role) {
+    return Objects.requireNonNull(
+        keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON));
+  }
+
   private Object realmRole(String userId, String role) {
-    var representation =
-        Objects.requireNonNull(
-            keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON));
     return keycloak
         .post()
         .uri(KeycloakConstants.USER_REALM_ROLES, userId)
-        .body(List.of(representation))
+        .body(List.of(roleOf(role)))
         .retrieve()
         .toBodilessEntity();
   }

@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.data.redis.RedisConnectionFailureException;
@@ -41,7 +42,8 @@ class OtpServiceTest {
   private final OtpService otp = new OtpService(redis, properties("test-secret", 6), meters);
 
   private void scriptAnswers(long status, long millis) {
-    when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+    when(redis.execute(
+            ArgumentMatchers.<RedisScript<List<Long>>>any(), anyList(), any(Object[].class)))
         .thenReturn(List.of(status, millis));
   }
 
@@ -89,7 +91,8 @@ class OtpServiceTest {
 
   @Test
   void withoutRedisNothingIsIssuedOrAccepted(CapturedOutput output) {
-    when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
+    when(redis.execute(
+            ArgumentMatchers.<RedisScript<List<Long>>>any(), anyList(), any(Object[].class)))
         .thenThrow(new RedisConnectionFailureException("refused"));
     assertThatThrownBy(() -> otp.issue("f", "s"))
         .isInstanceOfSatisfying(

@@ -2,11 +2,13 @@ package uz.khakimjanovich.platform.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.registry.DefaultHealthContributorRegistry;
+import org.springframework.boot.health.registry.HealthContributorRegistry;
 
 class HealthMetricsTest {
 
@@ -23,7 +25,10 @@ class HealthMetricsTest {
               throw new IllegalStateException("boom");
             });
     var meters = new SimpleMeterRegistry();
-    new HealthMetrics(provider(registry), provider(meters)).afterSingletonsInstantiated();
+    new HealthMetrics(
+            provider(registry, HealthContributorRegistry.class),
+            provider(meters, MeterRegistry.class))
+        .afterSingletonsInstantiated();
 
     assertThat(meters.get("platform.health.up").tag("component", "store").gauge().value())
         .isEqualTo(1);
@@ -33,10 +38,11 @@ class HealthMetricsTest {
     assertThat(meters.get("platform.health.up").tag("component", "store").gauge().value()).isZero();
   }
 
-  private static <T> org.springframework.beans.factory.ObjectProvider<T> provider(T bean) {
+  private static <T> org.springframework.beans.factory.ObjectProvider<T> provider(
+      T bean, Class<T> type) {
     return new org.springframework.beans.factory.support.StaticListableBeanFactory(
             java.util.Map.of("bean", bean))
-        .getBeanProvider((Class<T>) bean.getClass());
+        .getBeanProvider(type);
   }
 
   @Test

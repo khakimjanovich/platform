@@ -1,4 +1,4 @@
-// `check` here checks every library and contract, and the build conventions themselves.
+// `check` here checks every library, and the build conventions themselves.
 plugins {
     id 'base'
 }

@@ -1,4 +1,4 @@
-# Format check, unit and integration tests for every library and contract in the platform.
+# Format check, unit and integration tests for every library in the platform.
 name: build
 
 on:

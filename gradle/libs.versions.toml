@@ -8,7 +8,7 @@ java = "25"
 spring-boot = "4.1.1"
 spring-modulith = "2.1.1"
 spring-cloud = "2025.1.3" # the train for Spring Boot 4: Spring Cloud Vault
-openapi-generator = "7.14.0"
+openapi-generator = "7.14.0" # used by khakimjanovich/contracts, which builds with this catalog
 springdoc = "3.1.1"
 lombok = "1.18.48"
 shedlock = "7.10.1"
@@ -88,7 +88,6 @@ jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
-ecom-partner-api = { module = "uz.heeypay.ecom:partner-api", version.ref = "ecom-platform" }
 ecom-error = { module = "uz.heeypay.ecom:error", version.ref = "ecom-platform" }
 ecom-otp = { module = "uz.heeypay.ecom:otp", version.ref = "ecom-platform" }
 ecom-security = { module = "uz.heeypay.ecom:security", version.ref = "ecom-platform" }
@@ -99,14 +98,6 @@ ecom-vault = { module = "uz.heeypay.ecom:vault", version.ref = "ecom-platform" }
 ecom-observability = { module = "uz.heeypay.ecom:observability", version.ref = "ecom-platform" }
 ecom-masking = { module = "uz.heeypay.ecom:masking", version.ref = "ecom-platform" }
 ecom-config = { module = "uz.heeypay.ecom:config", version.ref = "ecom-platform" }
-ecom-commission-api = { module = "uz.heeypay.ecom:commission-api", version.ref = "ecom-platform" }
-ecom-epos-api = { module = "uz.heeypay.ecom:epos-api", version.ref = "ecom-platform" }
-ecom-card-api = { module = "uz.heeypay.ecom:card-api", version.ref = "ecom-platform" }
-ecom-bin-api = { module = "uz.heeypay.ecom:bin-api", version.ref = "ecom-platform" }
-ecom-payment-api = { module = "uz.heeypay.ecom:payment-api", version.ref = "ecom-platform" }
-ecom-uzcard-adapter-api = { module = "uz.heeypay.ecom:uzcard-adapter-api", version.ref = "ecom-platform" }
-ecom-humo-adapter-api = { module = "uz.heeypay.ecom:humo-adapter-api", version.ref = "ecom-platform" }
-ecom-reconciliation-api = { module = "uz.heeypay.ecom:reconciliation-api", version.ref = "ecom-platform" }
 ecom-file-store = { module = "uz.heeypay.ecom:file-store", version.ref = "ecom-platform" }
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }

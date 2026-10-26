@@ -5,8 +5,8 @@ build file says only what is particular to it.
 
 | Plugin | For | What it gives |
 |---|---|---|
-| `platform.java` | every Java project | Java from the catalog, the Spring Boot BOM, Lombok, JUnit, `-parameters`, google-java-format checked by `check`, JSpecify and NullAway (a warning) on `@NullMarked` code, no workaround markers (`verifyNoWorkarounds`) |
-| `platform.library` | platform libraries | `platform.java`, the platform's group and version, sources, configuration metadata, NullAway as an error |
+| `platform.java` | every Java project | Java from the catalog, the Spring Boot BOM, Lombok, JUnit, `-parameters`, google-java-format checked by `check`, every javac warning an error (`-Xlint:all -Werror`), Error Prone's default checks, JSpecify and NullAway (an error) on `@NullMarked` code, no workaround markers (`verifyNoWorkarounds`) |
+| `platform.library` | platform libraries | `platform.java`, the platform's group and version, sources, configuration metadata |
 | `platform.module` | the app and its modules | `platform.java`, the Spring Modulith BOM, integration tests |
 | `platform.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
 

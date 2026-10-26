@@ -1,7 +1,7 @@
 // Every Java build: Java from the catalog, the Spring Boot BOM, Lombok, JUnit 5,
-// parameter names for Spring binding, one code format checked by `check`, and null-safety:
-// Error Prone with NullAway checks every @NullMarked package (JSpecify), as a warning here and an
-// error in platform libraries (platform.library). Generated code and tests are not checked.
+// parameter names for Spring binding, one code format checked by `check`, every compiler warning an
+// error, and Error Prone's default checks with NullAway on every @NullMarked package (JSpecify).
+// Error Prone skips generated code and tests.
 import net.ltgt.gradle.errorprone.CheckSeverity
 
 plugins {
@@ -16,8 +16,10 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(libs.findVersion('java').get().requiredVersion)
 }
 
-// Keep parameter names so Spring can bind query and request parameters by name.
-tasks.withType(JavaCompile).configureEach { options.compilerArgs.add('-parameters') }
+// Keep parameter names so Spring can bind query and request parameters by name. Every javac warning
+// fails the build; "processing" is left out because it reports annotations no processor claims,
+// which is how annotation processing works, not a problem in the code.
+tasks.withType(JavaCompile).configureEach { options.compilerArgs.addAll('-parameters', '-Xlint:all,-processing', '-Werror') }
 
 dependencies {
     implementation platform(libs.findLibrary('spring-boot-bom').get())
@@ -31,11 +33,15 @@ dependencies {
     errorprone libs.findLibrary('nullaway').get()
 }
 
+// Spring Boot's health classes carry Jackson annotations without depending on them, and javac warns
+// about every annotation it can't read ("unknown enum constant"): give each source set the annotations.
+sourceSets.configureEach {
+    dependencies.add(compileOnlyConfigurationName, libs.findLibrary('jackson-annotations').get())
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.errorprone {
-        // Null-safety is what this build checks; Error Prone's other checks stay off.
-        disableAllChecks = true
-        check('NullAway', CheckSeverity.WARN)
+        check('NullAway', CheckSeverity.ERROR)
         option('NullAway:OnlyNullMarked', 'true')
         option('NullAway:JSpecifyMode', 'true')
         excludedPaths = '.*/build/generated/.*'

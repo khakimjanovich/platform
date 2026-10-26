@@ -12,12 +12,10 @@ version = libs.findVersion('platform').get().requiredVersion
 
 java { withSourcesJar() }
 
-// A platform library may not return or pass null where its types don't say @Nullable.
 // Never incremental: the configuration processor writes the metadata only from the sources it
 // compiles, so recompiling one class dropped every other property's description, and the build
 // cache then served that metadata to clean builds too.
 tasks.named('compileJava', JavaCompile) {
-    options.errorprone.check('NullAway', net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
     options.incremental = false
 }
 

@@ -2,6 +2,8 @@ package uz.heeypay.ecom.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -18,13 +20,28 @@ class PublicAddressesTest {
         "169.254.169.254",
         "100.64.0.1",
         "0.0.0.0",
+        "192.0.0.8",
+        "192.0.2.1",
+        "198.18.0.1",
+        "198.51.100.1",
+        "203.0.113.1",
+        "224.0.0.1",
+        "240.0.0.1",
+        "255.255.255.255",
         "::1",
+        "::",
         "fe80::1",
         "fd00::1",
         "::ffff:10.0.0.5",
+        "::10.0.0.5",
+        "64:ff9b::a00:5",
+        "2002:a00:5::",
+        "2001:0:a00:5::",
+        "2001:db8::1",
+        "ff02::1",
         "no-such-host.invalid"
       })
-  void privateLoopbackAndLinkLocalAreRefused(String host) {
+  void privateReservedAndEmbeddedAddressesAreRefused(String host) {
     assertThat(PublicAddresses.resolvesPublic(host)).isFalse();
   }
 
@@ -32,5 +49,14 @@ class PublicAddressesTest {
   @ValueSource(strings = {"8.8.8.8", "195.158.1.1", "2001:4860:4860::8888"})
   void publicAddressesPass(String host) {
     assertThat(PublicAddresses.resolvesPublic(host)).isTrue();
+  }
+
+  @Test
+  void aUrlNeedsTheDefaultPortUnlessItIsATestHost() {
+    assertThat(PublicAddresses.allowed("https://8.8.8.8/hooks", List.of())).isTrue();
+    assertThat(PublicAddresses.allowed("https://8.8.8.8:6379/hooks", List.of())).isFalse();
+    assertThat(PublicAddresses.allowed("https://10.0.0.5/hooks", List.of())).isFalse();
+    assertThat(PublicAddresses.allowed("http://LOCALHOST:8080/hooks", List.of("localhost")))
+        .isTrue();
   }
 }

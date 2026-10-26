@@ -25,7 +25,7 @@ import uz.khakimjanovich.platform.masking.MaskingRules;
  * Sends every log line over OTLP with its trace, beside the console (Spring Boot's own: readable
  * text, or ECS JSON where logging.structured.format.console=ecs is set), and logs every outgoing
  * call of every client built from Boot's RestClient.Builder. Every log line, on every sink, is
- * masked with the default names plus the service's own ({@code ecom.observability.masking.*}).
+ * masked with the default names plus the service's own ({@code platform.observability.masking.*}).
  * Every web response carries its trace id as {@code X-Request-Id}.
  */
 @AutoConfiguration

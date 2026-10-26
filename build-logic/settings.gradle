@@ -1,6 +1,6 @@
 rootProject.name = 'build-logic'
 
-// Convention plugins shared by every ecom build: platform libraries, the app's modules and the adapters.
+// Convention plugins shared by every build on the platform: platform libraries, the app's modules and the adapters.
 dependencyResolutionManagement {
     // The plugins these conventions apply: Spotless and OpenAPI Generator from Maven Central, Error
     // Prone's only from the Gradle Plugin Portal. Settings win over repositories a machine's init

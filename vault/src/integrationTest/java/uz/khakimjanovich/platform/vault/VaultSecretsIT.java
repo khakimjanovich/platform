@@ -72,9 +72,9 @@ class VaultSecretsIT {
             "echo 'path \"secret/data/*\" { capabilities = [\"read\"] }'"
                 + " | vault policy write read-secrets -");
     assertThat(policy.getExitCode()).as(policy.getStderr()).isZero();
-    vault("write", "auth/approle/role/ecom", "token_policies=read-secrets");
-    var roleId = read("auth/approle/role/ecom/role-id", "role_id");
-    var secretId = write("auth/approle/role/ecom/secret-id", "secret_id");
+    vault("write", "auth/approle/role/demo", "token_policies=read-secrets");
+    var roleId = read("auth/approle/role/demo/role-id", "role_id");
+    var secretId = write("auth/approle/role/demo/secret-id", "secret_id");
     app(
             "spring.cloud.vault.authentication=APPROLE",
             "spring.cloud.vault.app-role.role-id=" + roleId,
@@ -137,7 +137,7 @@ class VaultSecretsIT {
   void aKeyRotatedInVaultIsSeenAfterTheCacheTtl() throws Exception {
     put("merchants/shop-3", encode("first"));
     withToken("test")
-        .withPropertyValues("ecom.vault.signing-keys.cache-ttl=1s")
+        .withPropertyValues("platform.vault.signing-keys.cache-ttl=1s")
         .run(
             context -> {
               var keys = context.getBean(SigningKeys.class);

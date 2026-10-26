@@ -15,7 +15,7 @@ class OtpPropertiesTest {
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(OtpAutoConfiguration.class))
           .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
-          .withPropertyValues("ecom.otp.secret=test-secret");
+          .withPropertyValues("platform.otp.secret=test-secret");
 
   @Test
   void theDefaultsStart() {
@@ -25,20 +25,20 @@ class OtpPropertiesTest {
   @Test
   void aZeroLengthCodeStopsStartup() {
     runner
-        .withPropertyValues("ecom.otp.length=0")
+        .withPropertyValues("platform.otp.length=0")
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("ecom.otp")
+                    .hasMessageContaining("platform.otp")
                     .hasMessageContaining("length"));
   }
 
   @Test
   void aCodeThatNeverLivesStopsStartup() {
     runner
-        .withPropertyValues("ecom.otp.ttl=0s")
+        .withPropertyValues("platform.otp.ttl=0s")
         .run(context -> assertThat(context).getFailure().rootCause().hasMessageContaining("ttl"));
   }
 }

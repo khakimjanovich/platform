@@ -56,7 +56,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(GeneralException.class)
   ResponseEntity<ProblemDetail> general(GeneralException ex) {
-    var definition = errors.error().get(ex.getStatus().getType());
+    var definition = errors.codes().get(ex.getStatus().getType());
     var problem = problem(ex.getStatus(), ex.getParams());
     if (!ex.getSubErrors().isEmpty()) {
       problem.setProperty(ErrorConstants.SUB_ERRORS_PROPERTY, ex.getSubErrors());
@@ -100,12 +100,12 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   }
 
   private ProblemDetail problem(StatusThrowable status, Object... params) {
-    var definition = errors.error().get(status.getType());
+    var definition = errors.codes().get(status.getType());
     if (definition == null) {
       log.error(ErrorConstants.LOG_NO_DEFINITION.replace("{}", status.getType()));
       status = ErrorExceptionStatus.INTERNAL_ERROR;
       params = new Object[0];
-      definition = errors.error().getOrDefault(status.getType(), ErrorConstants.LAST_RESORT);
+      definition = errors.codes().getOrDefault(status.getType(), ErrorConstants.LAST_RESORT);
     }
     var detail = definition.message(LocaleContextHolder.getLocale(), params);
     var problem =

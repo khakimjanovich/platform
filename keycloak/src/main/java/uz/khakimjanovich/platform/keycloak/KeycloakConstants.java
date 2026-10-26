@@ -6,7 +6,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class KeycloakConstants {
 
-  public static final String PROPERTIES_PREFIX = "ecom.keycloak";
+  public static final String PROPERTIES_PREFIX = "platform.keycloak";
   public static final String REGISTRATION_ID = "keycloak-admin";
   public static final String ADMIN_PATH = "/admin/realms/%s";
   public static final String TOKEN_PATH = "/realms/%s/protocol/openid-connect/token";
@@ -26,7 +26,7 @@ public class KeycloakConstants {
   public static final String INVALID_TOKEN = "error=\"invalid_token\"";
 
   /** The observability library's HttpClientLogging.NO_BODIES: the secret never reaches a log. */
-  public static final String NO_LOGGED_BODIES = "ecom.http-client-logging.no-bodies";
+  public static final String NO_LOGGED_BODIES = "platform.http-client-logging.no-bodies";
 
   public static final String CLIENT_SERVICE_ACCOUNT = "/clients/{id}/service-account-user";
   public static final String ID = "id";

@@ -54,18 +54,20 @@ class ModulePersistenceTest {
         .run(context -> assertThat(context).hasFailed());
   }
 
-  /** A module's pool settings as ecom-infra passes them: an environment variable per setting. */
+  /**
+   * A module's pool settings as the local stack passes them: an environment variable per setting.
+   */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties
   static class CardPool {
     @Bean
-    @ConfigurationProperties("ecom.db.card")
+    @ConfigurationProperties("app.db.card")
     DataSourceProperties cardDataSourceProperties() {
       return new DataSourceProperties();
     }
 
     @Bean
-    @ConfigurationProperties("ecom.db.card" + PersistenceConstants.HIKARI_SUFFIX)
+    @ConfigurationProperties("app.db.card" + PersistenceConstants.HIKARI_SUFFIX)
     HikariDataSource cardDataSource(DataSourceProperties cardDataSourceProperties) {
       return ModulePersistence.dataSource("card", cardDataSourceProperties);
     }
@@ -76,8 +78,8 @@ class ModulePersistenceTest {
     new ApplicationContextRunner()
         .withUserConfiguration(CardPool.class)
         .withPropertyValues(
-            "ecom.db.card.url=jdbc:postgresql://localhost:5442/acquiring",
-            "ecom.db.card.username=card_user")
+            "app.db.card.url=jdbc:postgresql://localhost:5442/acquiring",
+            "app.db.card.username=card_user")
         .withInitializer(
             context ->
                 context
@@ -86,7 +88,7 @@ class ModulePersistenceTest {
                     .addFirst(
                         new SystemEnvironmentPropertySource(
                             StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
-                            Map.of("ECOM_DB_CARD_HIKARI_MAXIMUM_POOL_SIZE", "3"))))
+                            Map.of("APP_DB_CARD_HIKARI_MAXIMUM_POOL_SIZE", "3"))))
         .run(
             context ->
                 assertThat(context.getBean(HikariDataSource.class).getMaximumPoolSize())
@@ -133,9 +135,9 @@ class ModulePersistenceTest {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(PersistenceAutoConfiguration.class))
         .withPropertyValues(
-            "ecom.persistence.jpa.properties[hibernate.jdbc.batch_size]=50",
-            "ecom.persistence.jpa.properties[hibernate.generate_statistics]=true",
-            "ecom.persistence.liquibase.enabled=false")
+            "platform.persistence.jpa.properties[hibernate.jdbc.batch_size]=50",
+            "platform.persistence.jpa.properties[hibernate.generate_statistics]=true",
+            "platform.persistence.liquibase.enabled=false")
         .run(
             context -> {
               var postProcessor =

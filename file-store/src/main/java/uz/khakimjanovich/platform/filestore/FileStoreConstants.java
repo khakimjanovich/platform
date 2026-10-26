@@ -6,7 +6,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class FileStoreConstants {
 
-  public static final String PROPERTIES_PREFIX = "ecom.file-store";
+  public static final String PROPERTIES_PREFIX = "platform.file-store";
 
   /** Stored with each object, so the store alone knows what a file is. */
   public static final String FILE_NAME_METADATA = "file-name";
@@ -25,7 +25,7 @@ public class FileStoreConstants {
   public static final String LOG_STORED = "Stored {} in {} | {} bytes, {}";
   public static final String LOG_CORRUPT = "File {} in {} doesn't match its checksum";
   public static final String BUCKET_UNCHECKED =
-      "Bucket %s can't be checked: the file store doesn't answer (ecom.file-store.storage.endpoint)";
+      "Bucket %s can't be checked: the file store doesn't answer (platform.file-store.storage.endpoint)";
   public static final String BUCKET_MISSING =
       "Bucket %s is configured but doesn't exist in the store; infrastructure creates it";
   public static final String BUCKET_UNREADABLE = "Bucket %s can't be checked in the store";

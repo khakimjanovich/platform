@@ -56,9 +56,9 @@ class MaskingTest {
   void keycloakFormsAndCredentialsAndAnyStrayCardNumber() {
     assertThat(
             masked(
-                "grant_type=client_credentials&client_id=ecom&client_secret=s3cr3t",
+                "grant_type=client_credentials&client_id=demo&client_secret=s3cr3t",
                 "application/x-www-form-urlencoded"))
-        .isEqualTo("grant_type=client_credentials&client_id=ecom&client_secret=***");
+        .isEqualTo("grant_type=client_credentials&client_id=demo&client_secret=***");
     assertThat(
             masked(
                 "{\"credentials\":[{\"type\":\"password\",\"value\":\"hunter2\"}],"
@@ -75,11 +75,11 @@ class MaskingTest {
   void aUriKeepsItsPathButNotItsSecrets() {
     var uri =
         URI.create(
-            "http://keycloak:8080/admin/realms/ecom/users?email=aziz%40example.uz"
+            "http://keycloak:8080/admin/realms/demo/users?email=aziz%40example.uz"
                 + "&access_token=eyJhbGciOiJSUzI1NiJ9.x.yz12&exact=true");
     assertThat(MASKING.uri(uri))
         .isEqualTo(
-            "http://keycloak:8080/admin/realms/ecom/users?email=aziz%40example.uz"
+            "http://keycloak:8080/admin/realms/demo/users?email=aziz%40example.uz"
                 + "&access_token=…yz12&exact=true");
     assertThat(MASKING.uri(URI.create("http://bin/internal/v1/bins/8600301234567890")))
         .isEqualTo("http://bin/internal/v1/bins/860030******7890");

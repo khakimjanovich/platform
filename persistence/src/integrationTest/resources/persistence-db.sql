@@ -1,4 +1,4 @@
--- As ecom-infra's postgres/init.sql does it: one schema and one user per module, each user owning
+-- As the local stack's postgres/init.sql does it: one schema and one user per module, each user owning
 -- only its own schema.
 DO $$
 DECLARE m text;

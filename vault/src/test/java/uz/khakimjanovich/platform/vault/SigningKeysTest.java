@@ -78,7 +78,7 @@ class SigningKeysTest {
 
   @Test
   void anIdThatIsAPathNeverReachesVault() {
-    assertThat(keys.find("../ecom")).isEmpty();
+    assertThat(keys.find("../demo")).isEmpty();
     assertThat(keys.find("..")).isEmpty();
     assertThat(keys.find("")).isEmpty();
     verifyNoInteractions(vault);

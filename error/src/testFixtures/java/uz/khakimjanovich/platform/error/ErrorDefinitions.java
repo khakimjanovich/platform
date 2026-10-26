@@ -47,7 +47,7 @@ public final class ErrorDefinitions {
 
   /** The same, against the definition files matching {@code locationPattern}. */
   public static void assertComplete(String basePackage, String locationPattern) {
-    var definitions = definitions(locationPattern).error();
+    var definitions = definitions(locationPattern).codes();
     var thrown = new TreeSet<String>();
     for (var status : statuses(basePackage)) {
       var type = status.getType();

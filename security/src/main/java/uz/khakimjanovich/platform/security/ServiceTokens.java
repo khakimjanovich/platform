@@ -23,7 +23,7 @@ import org.springframework.web.client.support.RestClientHttpServiceGroupConfigur
  * (Spring's authorization-failure handler) and the call is tried once more with a new one.
  *
  * <p>Generated client interfaces can't carry {@code @ClientRegistrationId}, so a group names its
- * registration in {@code ecom.security.service-tokens.groups}. The token is the service's own,
+ * registration in {@code platform.security.service-tokens.groups}. The token is the service's own,
  * never the caller's: every call of a group uses one authorized client.
  */
 public class ServiceTokens implements RestClientHttpServiceGroupConfigurer {

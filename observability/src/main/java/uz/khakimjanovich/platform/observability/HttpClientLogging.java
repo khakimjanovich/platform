@@ -31,7 +31,7 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
   static final int MAX_LOGGED_BYTES = 4_000;
 
   /** The request attribute that keeps both bodies of a call out of the log. */
-  public static final String NO_BODIES = "ecom.http-client-logging.no-bodies";
+  public static final String NO_BODIES = "platform.http-client-logging.no-bodies";
 
   private static final String NOT_LOGGED = "<not logged>";
 

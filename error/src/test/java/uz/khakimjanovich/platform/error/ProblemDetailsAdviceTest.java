@@ -287,11 +287,11 @@ class ProblemDetailsAdviceTest {
     var yaml = new YamlPropertiesFactoryBean();
     yaml.setResources(new ClassPathResource("properties/error-exception.yaml"));
     var properties = yaml.getObject();
-    properties.put("exception.starter.error.EMAIL_TAKEN.http-code", "409");
-    properties.put("exception.starter.error.EMAIL_TAKEN.title", "email-taken");
-    properties.put("exception.starter.error.EMAIL_TAKEN.message-en", "{0} is already registered.");
+    properties.put("platform.error.codes.EMAIL_TAKEN.http-code", "409");
+    properties.put("platform.error.codes.EMAIL_TAKEN.title", "email-taken");
+    properties.put("platform.error.codes.EMAIL_TAKEN.message-en", "{0} is already registered.");
     properties.put(
-        "exception.starter.error.EMAIL_TAKEN.message-uz", "{0} allaqachon roʻyxatdan oʻtgan.");
+        "platform.error.codes.EMAIL_TAKEN.message-uz", "{0} allaqachon roʻyxatdan oʻtgan.");
     return new Binder(new MapConfigurationPropertySource(properties))
         .bind(ErrorConstants.PROPERTIES_PREFIX, ErrorStarterProperties.class)
         .get();

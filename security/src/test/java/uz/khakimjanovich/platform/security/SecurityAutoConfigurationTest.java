@@ -33,11 +33,11 @@ import org.springframework.web.context.WebApplicationContext;
     classes = SecurityAutoConfigurationTest.App.class,
     properties = {
       "spring.config.import=classpath:properties/error-exception.yaml",
-      "ecom.security.public-routes[0]=POST /signup",
-      "ecom.security.public-routes[1]=/docs/**",
-      "ecom.security.roles[/admin/**]=ADMIN",
-      "ecom.security.roles[/me/**]=PARTNER",
-      "ecom.security.roles[/shared/**]=ADMIN, PARTNER"
+      "platform.security.public-routes[0]=POST /signup",
+      "platform.security.public-routes[1]=/docs/**",
+      "platform.security.roles[/admin/**]=ADMIN",
+      "platform.security.roles[/me/**]=PARTNER",
+      "platform.security.roles[/shared/**]=ADMIN, PARTNER"
     })
 class SecurityAutoConfigurationTest {
 

@@ -50,15 +50,15 @@ import org.testcontainers.utility.MountableFile;
     classes = ServiceTokensIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
     properties = {
-      "spring.security.oauth2.resourceserver.jwt.audiences=ecom-api",
-      "ecom.security.roles[/adapter/**]=ADAPTER_CLIENT",
-      "spring.security.oauth2.client.registration.app.client-id=ecom-app",
+      "spring.security.oauth2.resourceserver.jwt.audiences=demo-api",
+      "platform.security.roles[/adapter/**]=ADAPTER_CLIENT",
+      "spring.security.oauth2.client.registration.app.client-id=demo-app",
       "spring.security.oauth2.client.registration.app.client-secret=app-secret",
       "spring.security.oauth2.client.registration.stranger.client-id=stranger",
       "spring.security.oauth2.client.registration.stranger.client-secret=stranger-secret",
-      "ecom.security.service-tokens.groups.adapter=app",
-      "ecom.security.service-tokens.groups.stranger=stranger",
-      "ecom.security.service-tokens.groups.flaky=app"
+      "platform.security.service-tokens.groups.adapter=app",
+      "platform.security.service-tokens.groups.stranger=stranger",
+      "platform.security.service-tokens.groups.flaky=app"
     })
 @Testcontainers
 class ServiceTokensIT {
@@ -74,11 +74,11 @@ class ServiceTokensIT {
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("ecom-realm.json"),
-              "/opt/keycloak/data/import/ecom-realm.json")
+              MountableFile.forClasspathResource("demo-realm.json"),
+              "/opt/keycloak/data/import/demo-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
-              Wait.forHttp("/realms/ecom").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
+              Wait.forHttp("/realms/demo").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
   @RegisterExtension
   static final WireMockExtension FLAKY =
@@ -182,7 +182,7 @@ class ServiceTokensIT {
                 prefix + "authorization-grant-type=client_credentials",
                 prefix + "provider=keycloak",
                 "spring.security.oauth2.client.provider.keycloak.token-uri=" + tokenUri(),
-                "ecom.security.service-tokens.groups.adapter=rotating",
+                "platform.security.service-tokens.groups.adapter=rotating",
                 "spring.http.serviceclient.adapter.base-url=http://localhost:" + PORT)
             .run()) {
       return context.getBean(AdapterClient.class).ping();
@@ -208,7 +208,7 @@ class ServiceTokensIT {
                 .get("access_token");
     var api =
         RestClient.builder()
-            .baseUrl(keycloak() + "/admin/realms/ecom")
+            .baseUrl(keycloak() + "/admin/realms/demo")
             .defaultHeader("Authorization", "Bearer " + admin)
             .build();
     var id =
@@ -227,7 +227,7 @@ class ServiceTokensIT {
   }
 
   private static String realm() {
-    return keycloak() + "/realms/ecom";
+    return keycloak() + "/realms/demo";
   }
 
   private static String tokenUri() {

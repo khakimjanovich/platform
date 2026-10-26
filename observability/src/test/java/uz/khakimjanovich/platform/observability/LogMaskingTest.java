@@ -92,7 +92,7 @@ class LogMaskingTest {
 
   @Test
   void aServiceAddsItsOwnNames(CapturedOutput output) {
-    logInAnApp("--ecom.observability.masking.additional-secret-fields=EMBOS_NAME");
+    logInAnApp("--platform.observability.masking.additional-secret-fields=EMBOS_NAME");
     assertThat(output).contains("EMBOS_NAME=***").doesNotContain("AZIZ");
   }
 }

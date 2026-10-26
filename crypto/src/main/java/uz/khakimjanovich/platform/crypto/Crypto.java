@@ -33,7 +33,7 @@ public class Crypto {
   public Crypto(CryptoProperties properties) {
     if (properties.keys() == null || !properties.keys().containsKey(properties.activeKeyId())) {
       throw new IllegalStateException(
-          "ecom.crypto.active-key-id must name one of ecom.crypto.keys");
+          "platform.crypto.active-key-id must name one of platform.crypto.keys");
     }
     this.keys =
         properties.keys().entrySet().stream()
@@ -45,7 +45,7 @@ public class Crypto {
     for (var key : keys.values()) {
       if (MessageDigest.isEqual(key.getEncoded(), index)) {
         throw new IllegalStateException(
-            "ecom.crypto.blind-index-key must differ from every ecom.crypto.keys value");
+            "platform.crypto.blind-index-key must differ from every platform.crypto.keys value");
       }
     }
     this.blindIndexKey = new SecretKeySpec(index, CryptoConstants.BLIND_INDEX_ALGORITHM);

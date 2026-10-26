@@ -19,7 +19,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 
 /**
- * Setting {@code ecom.file-store.storage.endpoint} gives the app a {@link FileStore}: any
+ * Setting {@code platform.file-store.storage.endpoint} gives the app a {@link FileStore}: any
  * S3-compatible store, SeaweedFS locally (path-style addresses), AWS S3 or MinIO elsewhere. Every
  * call has a time limit, and the configured buckets must already exist.
  */

@@ -13,8 +13,8 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 /**
  * What every module's persistence beans get without a change to their configuration: each pool is
  * checked once its settings are bound, each entity manager factory gets {@code
- * ecom.persistence.jpa.properties} on top of the library's defaults before it starts, and each
- * module's Liquibase follows {@code ecom.persistence.liquibase.enabled}.
+ * platform.persistence.jpa.properties} on top of the library's defaults before it starts, and each
+ * module's Liquibase follows {@code platform.persistence.liquibase.enabled}.
  */
 @AutoConfiguration
 @EnableConfigurationProperties(PersistenceProperties.class)

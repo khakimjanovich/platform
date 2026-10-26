@@ -39,7 +39,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 @SpringBootTest(
     classes = {ModulePersistenceIT.ModuleA.class, ModulePersistenceIT.ModuleB.class},
-    properties = "ecom.db.a.hikari.maximum-pool-size=3")
+    properties = "app.db.a.hikari.maximum-pool-size=3")
 @Testcontainers
 class ModulePersistenceIT {
 
@@ -51,9 +51,9 @@ class ModulePersistenceIT {
   @DynamicPropertySource
   static void databases(DynamicPropertyRegistry registry) {
     for (var module : new String[] {"a", "b", "c", "d"}) {
-      registry.add("ecom.db." + module + ".url", POSTGRES::getJdbcUrl);
-      registry.add("ecom.db." + module + ".username", () -> module + "_user");
-      registry.add("ecom.db." + module + ".password", () -> "test");
+      registry.add("app.db." + module + ".url", POSTGRES::getJdbcUrl);
+      registry.add("app.db." + module + ".username", () -> module + "_user");
+      registry.add("app.db." + module + ".password", () -> "test");
     }
   }
 
@@ -63,13 +63,13 @@ class ModulePersistenceIT {
   @ImportAutoConfiguration(PersistenceAutoConfiguration.class)
   static class ModuleA {
     @Bean
-    @ConfigurationProperties("ecom.db.a")
+    @ConfigurationProperties("app.db.a")
     DataSourceProperties aDataSourceProperties() {
       return new DataSourceProperties();
     }
 
     @Bean
-    @ConfigurationProperties("ecom.db.a.hikari")
+    @ConfigurationProperties("app.db.a.hikari")
     HikariDataSource aDataSource(DataSourceProperties aDataSourceProperties) {
       return ModulePersistence.dataSource("a", aDataSourceProperties);
     }
@@ -96,13 +96,13 @@ class ModulePersistenceIT {
   @Configuration(proxyBeanMethods = false)
   static class ModuleB {
     @Bean
-    @ConfigurationProperties("ecom.db.b")
+    @ConfigurationProperties("app.db.b")
     DataSourceProperties bDataSourceProperties() {
       return new DataSourceProperties();
     }
 
     @Bean
-    @ConfigurationProperties("ecom.db.b.hikari")
+    @ConfigurationProperties("app.db.b.hikari")
     HikariDataSource bDataSource(DataSourceProperties bDataSourceProperties) {
       return ModulePersistence.dataSource("b", bDataSourceProperties);
     }
@@ -127,7 +127,7 @@ class ModulePersistenceIT {
   @ImportAutoConfiguration(PersistenceAutoConfiguration.class)
   static class ModuleC {
     @Bean
-    @ConfigurationProperties("ecom.db.c")
+    @ConfigurationProperties("app.db.c")
     DataSourceProperties cDataSourceProperties() {
       return new DataSourceProperties();
     }
@@ -173,7 +173,7 @@ class ModulePersistenceIT {
   @ImportAutoConfiguration(PersistenceAutoConfiguration.class)
   static class ModuleD {
     @Bean
-    @ConfigurationProperties("ecom.db.d")
+    @ConfigurationProperties("app.db.d")
     DataSourceProperties dDataSourceProperties() {
       return new DataSourceProperties();
     }
@@ -265,10 +265,10 @@ class ModulePersistenceIT {
         new SpringApplicationBuilder(ModuleD.class)
             .web(WebApplicationType.NONE)
             .properties(
-                "ecom.db.d.url=" + POSTGRES.getJdbcUrl(),
-                "ecom.db.d.username=d_user",
-                "ecom.db.d.password=test",
-                "ecom.persistence.liquibase.enabled=false")
+                "app.db.d.url=" + POSTGRES.getJdbcUrl(),
+                "app.db.d.username=d_user",
+                "app.db.d.password=test",
+                "platform.persistence.liquibase.enabled=false")
             .run()) {
       var tables =
           new JdbcTemplate(context.getBean("dDataSource", DataSource.class))
@@ -286,9 +286,9 @@ class ModulePersistenceIT {
                 new SpringApplicationBuilder(ModuleC.class)
                     .web(WebApplicationType.NONE)
                     .properties(
-                        "ecom.db.c.url=" + POSTGRES.getJdbcUrl(),
-                        "ecom.db.c.username=c_user",
-                        "ecom.db.c.password=test")
+                        "app.db.c.url=" + POSTGRES.getJdbcUrl(),
+                        "app.db.c.username=c_user",
+                        "app.db.c.password=test")
                     .run()
                     .close())
         .hasStackTraceContaining("author");

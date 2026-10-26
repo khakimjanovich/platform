@@ -22,7 +22,7 @@ dependencies {
     integrationTestImplementation libs.starter.actuator
     integrationTestImplementation libs.starter.restclient
     integrationTestImplementation libs.wiremock
-    integrationTestImplementation testFixtures(project(':keycloak')) // ecom-realm.json
+    integrationTestImplementation testFixtures(project(':keycloak')) // demo-realm.json
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
 }

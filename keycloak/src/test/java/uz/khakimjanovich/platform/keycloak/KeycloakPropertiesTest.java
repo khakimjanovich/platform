@@ -13,38 +13,39 @@ class KeycloakPropertiesTest {
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(KeycloakAutoConfiguration.class))
           .withPropertyValues(
-              "ecom.keycloak.url=http://localhost:8180", "ecom.keycloak.client-id=backend");
+              "platform.keycloak.url=http://localhost:8180", "platform.keycloak.client-id=backend");
 
   @Test
   void aCompleteConfigurationStarts() {
     runner
-        .withPropertyValues("ecom.keycloak.realm=ecom", "ecom.keycloak.client-secret=local-only")
+        .withPropertyValues(
+            "platform.keycloak.realm=demo", "platform.keycloak.client-secret=local-only")
         .run(context -> assertThat(context).hasSingleBean(KeycloakAdmin.class));
   }
 
   @Test
   void aMissingRealmStopsStartup() {
     runner
-        .withPropertyValues("ecom.keycloak.client-secret=local-only")
+        .withPropertyValues("platform.keycloak.client-secret=local-only")
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("ecom.keycloak")
+                    .hasMessageContaining("platform.keycloak")
                     .hasMessageContaining("realm"));
   }
 
   @Test
   void aMissingSecretStopsStartup() {
     runner
-        .withPropertyValues("ecom.keycloak.realm=ecom")
+        .withPropertyValues("platform.keycloak.realm=demo")
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("ecom.keycloak")
+                    .hasMessageContaining("platform.keycloak")
                     .hasMessageContaining("clientSecret"));
   }
 }

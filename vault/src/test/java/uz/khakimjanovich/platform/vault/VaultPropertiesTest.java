@@ -24,7 +24,7 @@ class VaultPropertiesTest {
   @Test
   void aPathWithoutTheClientIdStopsStartup() {
     runner
-        .withPropertyValues("ecom.vault.signing-keys.path=merchants/")
+        .withPropertyValues("platform.vault.signing-keys.path=merchants/")
         .run(
             context ->
                 assertThat(context)

@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *
  * @param masking field names to mask beyond the defaults
  */
-@ConfigurationProperties("ecom.observability")
+@ConfigurationProperties("platform.observability")
 public record ObservabilityProperties(@DefaultValue Masking masking) {
 
   /**

@@ -1,8 +1,8 @@
 # Errors every service shares: HTTP status, title and message in English, Russian and Uzbek.
 # Loaded by the library itself (its LibraryDefaults.imports); a service overrides any value in its own config.
-exception:
-  starter:
-    error:
+platform:
+  error:
+    codes:
       INTERNAL_ERROR:
         http-code: 500
         title: internal-error

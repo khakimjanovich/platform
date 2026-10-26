@@ -45,7 +45,7 @@ class KeycloakAdminIT {
   private static final ParameterizedTypeReference<Map<String, Object>> JSON =
       new ParameterizedTypeReference<>() {};
 
-  /** Keycloak sends its e-mails to "mailpit", as in ecom-infra's compose. */
+  /** Keycloak sends its e-mails to "mailpit", as in the local stack's compose. */
   static final Network NETWORK = Network.newNetwork();
 
   @Container
@@ -63,26 +63,26 @@ class KeycloakAdminIT {
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("ecom-realm.json"),
-              "/opt/keycloak/data/import/ecom-realm.json")
+              MountableFile.forClasspathResource("demo-realm.json"),
+              "/opt/keycloak/data/import/demo-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
-              Wait.forHttp("/realms/ecom").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
+              Wait.forHttp("/realms/demo").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
   static ConfigurableApplicationContext context;
   static KeycloakAdmin admin;
 
-  /** The library as an app gets it: auto-configured from ecom.keycloak.*, every call logged. */
+  /** The library as an app gets it: auto-configured from platform.keycloak.*, every call logged. */
   @BeforeAll
   static void client() {
     context =
         new SpringApplicationBuilder(App.class)
             .web(WebApplicationType.NONE)
             .properties(
-                "ecom.keycloak.url=" + url(),
-                "ecom.keycloak.realm=ecom",
-                "ecom.keycloak.client-id=ecom-backend",
-                "ecom.keycloak.client-secret=local-only",
+                "platform.keycloak.url=" + url(),
+                "platform.keycloak.realm=demo",
+                "platform.keycloak.client-id=demo-backend",
+                "platform.keycloak.client-secret=local-only",
                 // No setting has a default; this test starts no collector, and traces nothing.
                 "TRACING_SAMPLING=0.0",
                 "OTLP_TRACES_ENDPOINT=http://otlp.not-started.invalid/v1/traces",
@@ -221,7 +221,7 @@ class KeycloakAdminIT {
             .get("access_token");
     return RestClient.create()
         .get()
-        .uri(url() + "/admin/realms/ecom" + path)
+        .uri(url() + "/admin/realms/demo" + path)
         .header("Authorization", "Bearer " + token)
         .retrieve();
   }
@@ -229,12 +229,12 @@ class KeycloakAdminIT {
   private static Map<String, Object> passwordGrant(String username, String password) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
-    form.add("client_id", "ecom-portal");
+    form.add("client_id", "demo-portal");
     form.add("username", username);
     form.add("password", password);
     return RestClient.create()
         .post()
-        .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+        .uri(url() + "/realms/demo/protocol/openid-connect/token")
         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
         .body(form)
         .retrieve()
@@ -244,7 +244,7 @@ class KeycloakAdminIT {
   private static int passwordStatus(String username, String password) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
-    form.add("client_id", "ecom-portal");
+    form.add("client_id", "demo-portal");
     form.add("username", username);
     form.add("password", password);
     return tokenStatus(form);
@@ -253,7 +253,7 @@ class KeycloakAdminIT {
   private static int refreshStatus(String refreshToken) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "refresh_token");
-    form.add("client_id", "ecom-portal");
+    form.add("client_id", "demo-portal");
     form.add("refresh_token", refreshToken);
     return tokenStatus(form);
   }
@@ -261,7 +261,7 @@ class KeycloakAdminIT {
   private static int tokenStatus(LinkedMultiValueMap<String, String> form) {
     return RestClient.create()
         .post()
-        .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+        .uri(url() + "/realms/demo/protocol/openid-connect/token")
         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
         .body(form)
         .exchange((req, res) -> res.getStatusCode().value());
@@ -279,7 +279,7 @@ class KeycloakAdminIT {
     return (String)
         RestClient.create()
             .post()
-            .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+            .uri(url() + "/realms/demo/protocol/openid-connect/token")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(form)
             .retrieve()
@@ -294,7 +294,7 @@ class KeycloakAdminIT {
     form.add("client_secret", secret);
     return RestClient.create()
         .post()
-        .uri(url() + "/realms/ecom/protocol/openid-connect/token")
+        .uri(url() + "/realms/demo/protocol/openid-connect/token")
         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
         .body(form)
         .exchange((req, res) -> res.getStatusCode().value());

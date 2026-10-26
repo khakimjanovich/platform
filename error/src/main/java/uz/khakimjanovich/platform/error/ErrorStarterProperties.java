@@ -8,12 +8,12 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
  * Every error's definition by its type, from the services' {@code properties/*-exception.yaml}
- * files under {@code exception.starter.error}.
+ * files under {@code platform.error.codes}.
  *
- * @param error every error's definition, by its type (the code clients see)
+ * @param codes every error's definition, by its type (the code clients see)
  */
 @ConfigurationProperties(ErrorConstants.PROPERTIES_PREFIX)
-public record ErrorStarterProperties(@DefaultValue Map<String, ErrorDefinition> error) {
+public record ErrorStarterProperties(@DefaultValue Map<String, ErrorDefinition> codes) {
 
   /**
    * One error: its status, title, and message in each language; {0}, {1}… are its parameters.

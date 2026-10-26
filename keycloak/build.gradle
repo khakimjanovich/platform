@@ -3,7 +3,7 @@
 plugins {
     id 'platform.library'
     id 'platform.integration-test'
-    id 'java-test-fixtures' // ecom-realm.json: the one Keycloak realm every integration test imports
+    id 'java-test-fixtures' // demo-realm.json: the one Keycloak realm every integration test imports
 }
 
 dependencies {

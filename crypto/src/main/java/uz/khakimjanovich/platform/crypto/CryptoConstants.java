@@ -5,7 +5,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class CryptoConstants {
 
-  public static final String PROPERTIES_PREFIX = "ecom.crypto";
+  public static final String PROPERTIES_PREFIX = "platform.crypto";
   public static final String CIPHER = "AES/GCM/NoPadding";
   public static final String KEY_ALGORITHM = "AES";
   public static final String BLIND_INDEX_ALGORITHM = "HmacSHA256";

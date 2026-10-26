@@ -5,7 +5,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ErrorConstants {
 
-  public static final String PROPERTIES_PREFIX = "exception.starter";
+  public static final String PROPERTIES_PREFIX = "platform.error";
 
   /** Extra property on every problem detail: the stable, machine-readable error code. */
   public static final String CODE_PROPERTY = "code";

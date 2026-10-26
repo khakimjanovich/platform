@@ -23,7 +23,7 @@ public class ModulePersistence {
 
   /**
    * A pool that connects as the module's own user (Boot's {@link DataSourceProperties}, bound to
-   * the module's prefix, e.g. {@code ecom.db.card}), with the module's schema as default. The
+   * the module's prefix, e.g. {@code app.db.card}), with the module's schema as default. The
    * module's bean method binds {@code <prefix>.hikari.*} onto it, so every Hikari setting (pool
    * size, timeouts, keepalive) is set per environment; unset ones are Hikari's own defaults.
    */
@@ -61,7 +61,7 @@ public class ModulePersistence {
   /**
    * Hibernate for the module's entities only. It validates the tables against the entities and
    * never changes them: Liquibase owns the schema. Times are written as UTC, and inserts and
-   * updates go in ordered batches; {@code ecom.persistence.jpa.properties} adds to or overrides
+   * updates go in ordered batches; {@code platform.persistence.jpa.properties} adds to or overrides
    * these for every module.
    */
   public static LocalContainerEntityManagerFactoryBean entityManagerFactory(

@@ -1,5 +1,5 @@
 {
-  "realm": "ecom",
+  "realm": "demo",
   "enabled": true,
   "accessTokenLifespan": 300,
   "roles": {
@@ -49,8 +49,8 @@
         "name": "uma_authorization"
       },
       {
-        "name": "default-roles-ecom",
-        "description": "Every user and API client: offline access and the ecom-api audience",
+        "name": "default-roles-demo",
+        "description": "Every user and API client: offline access and the demo-api audience",
         "composite": true,
         "composites": {
           "realm": [
@@ -58,7 +58,7 @@
             "uma_authorization"
           ],
           "client": {
-            "ecom-api": [
+            "demo-api": [
               "caller"
             ]
           }
@@ -66,27 +66,27 @@
       }
     ],
     "client": {
-      "ecom-api": [
+      "demo-api": [
         {
           "name": "caller",
-          "description": "Puts ecom-api in the token's audience (Keycloak's audience resolve)"
+          "description": "Puts demo-api in the token's audience (Keycloak's audience resolve)"
         }
       ]
     }
   },
   "defaultRole": {
-    "name": "default-roles-ecom"
+    "name": "default-roles-demo"
   },
   "clients": [
     {
-      "clientId": "ecom-api",
-      "name": "The ecom API, the audience every token names",
+      "clientId": "demo-api",
+      "name": "The demo API, the audience every token names",
       "enabled": true,
       "bearerOnly": true
     },
     {
-      "clientId": "ecom-backend",
-      "name": "ecom backend",
+      "clientId": "demo-backend",
+      "name": "demo backend",
       "enabled": true,
       "publicClient": false,
       "secret": "local-only",
@@ -95,7 +95,7 @@
       "directAccessGrantsEnabled": false
     },
     {
-      "clientId": "ecom-portal",
+      "clientId": "demo-portal",
       "name": "Merchant and admin portal",
       "enabled": true,
       "publicClient": true,
@@ -128,7 +128,7 @@
       ]
     },
     {
-      "clientId": "ecom-app",
+      "clientId": "demo-app",
       "enabled": true,
       "publicClient": false,
       "secret": "app-secret",
@@ -159,7 +159,7 @@
     {
       "username": "aziz",
       "enabled": true,
-      "email": "aziz@heeypay.uz",
+      "email": "aziz@example.com",
       "emailVerified": true,
       "firstName": "Aziz",
       "credentials": [
@@ -171,13 +171,13 @@
       ],
       "realmRoles": [
         "admin",
-        "default-roles-ecom"
+        "default-roles-demo"
       ]
     },
     {
       "username": "malika",
       "enabled": true,
-      "email": "malika@heeypay.uz",
+      "email": "malika@example.com",
       "emailVerified": true,
       "firstName": "Malika",
       "credentials": [
@@ -189,7 +189,7 @@
       ],
       "realmRoles": [
         "admin",
-        "default-roles-ecom"
+        "default-roles-demo"
       ]
     },
     {
@@ -207,13 +207,13 @@
       ],
       "realmRoles": [
         "partner",
-        "default-roles-ecom"
+        "default-roles-demo"
       ]
     },
     {
-      "username": "service-account-ecom-backend",
+      "username": "service-account-demo-backend",
       "enabled": true,
-      "serviceAccountClientId": "ecom-backend",
+      "serviceAccountClientId": "demo-backend",
       "clientRoles": {
         "realm-management": [
           "manage-users",
@@ -226,12 +226,12 @@
       }
     },
     {
-      "username": "service-account-ecom-app",
+      "username": "service-account-demo-app",
       "enabled": true,
-      "serviceAccountClientId": "ecom-app",
+      "serviceAccountClientId": "demo-app",
       "realmRoles": [
         "adapter_client",
-        "default-roles-ecom"
+        "default-roles-demo"
       ]
     },
     {
@@ -239,7 +239,7 @@
       "enabled": true,
       "serviceAccountClientId": "stranger",
       "realmRoles": [
-        "default-roles-ecom"
+        "default-roles-demo"
       ]
     },
     {
@@ -248,7 +248,7 @@
       "serviceAccountClientId": "rotating",
       "realmRoles": [
         "adapter_client",
-        "default-roles-ecom"
+        "default-roles-demo"
       ]
     }
   ],
@@ -276,7 +276,7 @@
   "smtpServer": {
     "host": "mailpit",
     "port": "1025",
-    "from": "no-reply@heeypay.uz",
-    "fromDisplayName": "HeeyPay"
+    "from": "no-reply@example.com",
+    "fromDisplayName": "Demo"
   }
 }

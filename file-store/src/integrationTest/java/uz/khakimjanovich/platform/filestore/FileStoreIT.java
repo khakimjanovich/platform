@@ -35,19 +35,19 @@ import uz.khakimjanovich.platform.error.GeneralException;
 
 /**
  * The file store, storing into a real SeaweedFS as an identity that may only read, write and list
- * its two buckets; the buckets are created beforehand, as ecom-infra does.
+ * its two buckets; the buckets are created beforehand, as the local stack does.
  */
 @SpringBootTest(
     classes = FileStoreIT.class,
     properties = {
-      "ecom.file-store.storage.region=us-east-1",
-      "ecom.file-store.storage.access-key=ecom",
-      "ecom.file-store.storage.secret-key=local-only",
-      "ecom.file-store.storage.path-style=true",
-      "ecom.file-store.buckets.partner-documents.allowed-types=application/pdf,image/png,image/jpeg",
-      "ecom.file-store.buckets.partner-documents.max-size=10MB",
-      "ecom.file-store.buckets.sales-point-logos.allowed-types=image/png,image/jpeg",
-      "ecom.file-store.buckets.sales-point-logos.max-size=1MB"
+      "platform.file-store.storage.region=us-east-1",
+      "platform.file-store.storage.access-key=demo",
+      "platform.file-store.storage.secret-key=local-only",
+      "platform.file-store.storage.path-style=true",
+      "platform.file-store.buckets.partner-documents.allowed-types=application/pdf,image/png,image/jpeg",
+      "platform.file-store.buckets.partner-documents.max-size=10MB",
+      "platform.file-store.buckets.sales-point-logos.allowed-types=image/png,image/jpeg",
+      "platform.file-store.buckets.sales-point-logos.max-size=1MB"
     })
 @ImportAutoConfiguration(FileStoreAutoConfiguration.class)
 @Testcontainers
@@ -72,7 +72,9 @@ class FileStoreIT {
                   .forStatusCode(403)
                   .withStartupTimeout(Duration.ofMinutes(2)));
 
-  /** As ecom-infra's seaweedfs/init.sh: the buckets come from infrastructure, not from the app. */
+  /**
+   * As the local stack's seaweedfs/init.sh: the buckets come from infrastructure, not from the app.
+   */
   @BeforeAll
   static void buckets() throws Exception {
     for (var bucket : new String[] {"partner-documents", "sales-point-logos"}) {
@@ -85,7 +87,7 @@ class FileStoreIT {
 
   @DynamicPropertySource
   static void storage(DynamicPropertyRegistry registry) {
-    registry.add("ecom.file-store.storage.endpoint", FileStoreIT::endpoint);
+    registry.add("platform.file-store.storage.endpoint", FileStoreIT::endpoint);
   }
 
   private static String endpoint() {
@@ -137,13 +139,13 @@ class FileStoreIT {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(FileStoreAutoConfiguration.class))
         .withPropertyValues(
-            "ecom.file-store.storage.endpoint=" + endpoint(),
-            "ecom.file-store.storage.region=us-east-1",
-            "ecom.file-store.storage.access-key=ecom",
-            "ecom.file-store.storage.secret-key=local-only",
-            "ecom.file-store.storage.path-style=true",
-            "ecom.file-store.buckets.contracts.allowed-types=application/pdf",
-            "ecom.file-store.buckets.contracts.max-size=1MB")
+            "platform.file-store.storage.endpoint=" + endpoint(),
+            "platform.file-store.storage.region=us-east-1",
+            "platform.file-store.storage.access-key=demo",
+            "platform.file-store.storage.secret-key=local-only",
+            "platform.file-store.storage.path-style=true",
+            "platform.file-store.buckets.contracts.allowed-types=application/pdf",
+            "platform.file-store.buckets.contracts.max-size=1MB")
         .run(
             context ->
                 assertThat(context.getStartupFailure())
@@ -177,7 +179,7 @@ class FileStoreIT {
             .region(Region.US_EAST_1)
             .forcePathStyle(true)
             .credentialsProvider(
-                StaticCredentialsProvider.create(AwsBasicCredentials.create("ecom", "wrong-key")))
+                StaticCredentialsProvider.create(AwsBasicCredentials.create("demo", "wrong-key")))
             .build()) {
       var health = new FileStoreHealthIndicator(wrong, properties).health();
       assertThat(health.getStatus()).isEqualTo(Status.DOWN);

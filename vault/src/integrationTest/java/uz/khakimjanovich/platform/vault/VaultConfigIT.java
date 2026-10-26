@@ -26,8 +26,8 @@ class VaultConfigIT {
           .withVaultToken("test")
           .withSecretInVault(
               "secret/test",
-              "ecom.crypto.keys.k1=bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE=",
-              "ecom.otp.secret=from-vault");
+              "platform.crypto.keys.k1=bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE=",
+              "platform.otp.secret=from-vault");
 
   @Configuration(proxyBeanMethods = false)
   static class App {}
@@ -46,9 +46,9 @@ class VaultConfigIT {
   void secretsBindLikeAnyProperty() {
     try (var context = app("vault://secret/test").run()) {
       var environment = context.getEnvironment();
-      assertThat(environment.getProperty("ecom.crypto.keys.k1"))
+      assertThat(environment.getProperty("platform.crypto.keys.k1"))
           .isEqualTo("bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE=");
-      assertThat(environment.getProperty("ecom.otp.secret")).isEqualTo("from-vault");
+      assertThat(environment.getProperty("platform.otp.secret")).isEqualTo("from-vault");
     }
   }
 
@@ -56,7 +56,7 @@ class VaultConfigIT {
   @Test
   void aMissingPathLeavesItsPropertiesUnset() {
     try (var context = app("vault://secret/missing").run()) {
-      assertThat(context.getEnvironment().getProperty("ecom.otp.secret")).isNull();
+      assertThat(context.getEnvironment().getProperty("platform.otp.secret")).isNull();
     }
   }
 
@@ -78,7 +78,7 @@ class VaultConfigIT {
             .properties(
                 "spring.cloud.vault.uri=http://localhost:1", "spring.cloud.vault.fail-fast=false")
             .run()) {
-      assertThat(context.getEnvironment().getProperty("ecom.otp.secret")).isNull();
+      assertThat(context.getEnvironment().getProperty("platform.otp.secret")).isNull();
     }
   }
 }

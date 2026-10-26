@@ -1,8 +1,8 @@
 # Errors of the file store: HTTP status, title and message in English, Russian and Uzbek.
 # {0}, {1}… are filled with the exception's parameters.
-exception:
-  starter:
-    error:
+platform:
+  error:
+    codes:
       FILE_STORE_BUCKET_UNKNOWN:
         http-code: 500
         title: file-store-bucket-unknown

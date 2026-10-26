@@ -41,12 +41,12 @@ class ServiceTokensTest {
                   OAuth2ClientAutoConfiguration.class, ServiceTokensAutoConfiguration.class));
 
   private static final String[] REGISTRATION = {
-    "spring.security.oauth2.client.registration.adapters.client-id=ecom-app",
+    "spring.security.oauth2.client.registration.adapters.client-id=demo-app",
     "spring.security.oauth2.client.registration.adapters.client-secret=local-only",
     "spring.security.oauth2.client.registration.adapters.authorization-grant-type=client_credentials",
     "spring.security.oauth2.client.registration.adapters.provider=keycloak",
-    "spring.security.oauth2.client.provider.keycloak.token-uri=http://localhost:8180/realms/ecom/protocol/openid-connect/token",
-    "ecom.security.service-tokens.groups.uzcard=adapters"
+    "spring.security.oauth2.client.provider.keycloak.token-uri=http://localhost:8180/realms/demo/protocol/openid-connect/token",
+    "platform.security.service-tokens.groups.uzcard=adapters"
   };
 
   @Test
@@ -79,7 +79,7 @@ class ServiceTokensTest {
     var manager = mock(OAuth2AuthorizedClientManager.class);
     var registration =
         ClientRegistration.withRegistrationId("adapters")
-            .clientId("ecom-app")
+            .clientId("demo-app")
             .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
             .tokenUri("http://keycloak/token")
             .build();

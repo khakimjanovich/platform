@@ -45,10 +45,10 @@ class CryptoIT {
             "kv",
             "put",
             "secret/crypto-it",
-            "ecom.crypto.active-key-id=" + active,
-            "ecom.crypto.keys.k1=" + K1,
-            "ecom.crypto.keys.k2=" + K2,
-            "ecom.crypto.blind-index-key=" + INDEX);
+            "platform.crypto.active-key-id=" + active,
+            "platform.crypto.keys.k1=" + K1,
+            "platform.crypto.keys.k2=" + K2,
+            "platform.crypto.blind-index-key=" + INDEX);
     assertThat(put.getExitCode()).as(put.getStderr()).isZero();
   }
 

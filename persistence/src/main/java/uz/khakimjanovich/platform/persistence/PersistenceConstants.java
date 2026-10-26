@@ -5,9 +5,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class PersistenceConstants {
 
-  public static final String PROPERTIES_PREFIX = "ecom.persistence";
+  public static final String PROPERTIES_PREFIX = "platform.persistence";
 
-  /** A module's pool settings: {@code ecom.db.<module>} + this. */
+  /** A module's pool settings: {@code app.db.<module>} + this. */
   public static final String HIKARI_SUFFIX = ".hikari";
 
   public static final String UTC = "UTC";

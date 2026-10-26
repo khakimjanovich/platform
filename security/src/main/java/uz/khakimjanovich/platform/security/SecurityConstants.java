@@ -5,7 +5,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class SecurityConstants {
 
-  public static final String PROPERTIES_PREFIX = "ecom.security";
+  public static final String PROPERTIES_PREFIX = "platform.security";
 
   /* ------- Keycloak token ------- */
   public static final String USERNAME_CLAIM = "preferred_username";
@@ -23,10 +23,10 @@ public class SecurityConstants {
   public static final String METHOD_SEPARATOR = " ";
 
   /* ------- service-to-service tokens ------- */
-  public static final String SERVICE_TOKENS_PREFIX = "ecom.security.service-tokens";
+  public static final String SERVICE_TOKENS_PREFIX = "platform.security.service-tokens";
   public static final String ROUTES_IN_CONFIGURATION =
-      "A Customizer<HttpSecurity> set route rules; they belong in ecom.security.roles and"
-          + " ecom.security.public-routes, and a customizer adds filters only";
+      "A Customizer<HttpSecurity> set route rules; they belong in platform.security.roles and"
+          + " platform.security.public-routes, and a customizer adds filters only";
   public static final String HTTP_CLIENT_FACTORY =
       "org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder";
   public static final String DEFAULT_TOKEN_CONNECT_TIMEOUT = "5s";

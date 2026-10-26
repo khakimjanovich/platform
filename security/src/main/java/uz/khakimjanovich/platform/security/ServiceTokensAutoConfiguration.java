@@ -24,8 +24,8 @@ import org.springframework.web.client.RestClient;
 /**
  * Dormant until the app has OAuth2 client registrations (Spring Boot's {@code
  * spring.security.oauth2.client.registration.*}): then the HTTP service groups listed in {@code
- * ecom.security.service-tokens.groups} send client-credentials tokens ({@link ServiceTokens}). Boot
- * makes the registrations and the authorized-client store; this adds only the group wiring.
+ * platform.security.service-tokens.groups} send client-credentials tokens ({@link ServiceTokens}).
+ * Boot makes the registrations and the authorized-client store; this adds only the group wiring.
  *
  * <p>The tokens come from the app's own {@link OAuth2AuthorizedClientManager} bean when it has one.
  * Boot defines none, and Spring Security's default ({@link DefaultOAuth2AuthorizedClientManager})

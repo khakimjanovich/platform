@@ -48,11 +48,11 @@ import uz.khakimjanovich.platform.error.ProblemSecurityHandler;
     classes = SecurityIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
-      "spring.security.oauth2.resourceserver.jwt.audiences=ecom-api",
-      "ecom.security.public-routes[0]=/public/**",
-      "ecom.security.public-routes[1]=/actuator/health/**",
-      "ecom.security.roles[/admin/**]=ADMIN",
-      "ecom.security.roles[/partner/**]=PARTNER"
+      "spring.security.oauth2.resourceserver.jwt.audiences=demo-api",
+      "platform.security.public-routes[0]=/public/**",
+      "platform.security.public-routes[1]=/actuator/health/**",
+      "platform.security.roles[/admin/**]=ADMIN",
+      "platform.security.roles[/partner/**]=PARTNER"
     })
 @Testcontainers
 class SecurityIT {
@@ -67,16 +67,16 @@ class SecurityIT {
           .withEnv("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
           .withEnv("KC_BOOTSTRAP_ADMIN_PASSWORD", "test")
           .withCopyFileToContainer(
-              MountableFile.forClasspathResource("ecom-realm.json"),
-              "/opt/keycloak/data/import/ecom-realm.json")
+              MountableFile.forClasspathResource("demo-realm.json"),
+              "/opt/keycloak/data/import/demo-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
-              Wait.forHttp("/realms/ecom").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
+              Wait.forHttp("/realms/demo").forPort(8080).withStartupTimeout(Duration.ofMinutes(3)));
 
   @DynamicPropertySource
   static void issuer(DynamicPropertyRegistry registry) {
     registry.add(
-        "spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> keycloak() + "/realms/ecom");
+        "spring.security.oauth2.resourceserver.jwt.issuer-uri", () -> keycloak() + "/realms/demo");
   }
 
   @Configuration(proxyBeanMethods = false)
@@ -138,7 +138,7 @@ class SecurityIT {
   @Test
   void aTokenForAnotherAudienceIsA401() {
     var token = clientCredentials("outsider", "outsider-secret");
-    assertThat(claims(token)).doesNotContain("ecom-api");
+    assertThat(claims(token)).doesNotContain("demo-api");
     call("/admin/report", token)
         .expectStatus()
         .isUnauthorized()
@@ -203,7 +203,7 @@ class SecurityIT {
   private static String password(String username) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");
-    form.add("client_id", "ecom-portal");
+    form.add("client_id", "demo-portal");
     form.add("username", username);
     form.add("password", "local-only");
     return token(form);
@@ -221,7 +221,7 @@ class SecurityIT {
     return (String)
         RestClient.create()
             .post()
-            .uri(keycloak() + "/realms/ecom/protocol/openid-connect/token")
+            .uri(keycloak() + "/realms/demo/protocol/openid-connect/token")
             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
             .body(form)
             .retrieve()

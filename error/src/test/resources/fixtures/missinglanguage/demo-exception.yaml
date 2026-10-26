@@ -1,6 +1,6 @@
-exception:
-  starter:
-    error:
+platform:
+  error:
+    codes:
       DEMO_FAILED:
         http-code: 409
         title: demo-failed

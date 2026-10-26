@@ -17,12 +17,13 @@ class CryptoPropertiesTest {
   private final ApplicationContextRunner runner =
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(CryptoAutoConfiguration.class))
-          .withPropertyValues("ecom.crypto.active-key-id=k1");
+          .withPropertyValues("platform.crypto.active-key-id=k1");
 
   @Test
   void completeKeysStart() {
     runner
-        .withPropertyValues("ecom.crypto.keys.k1=" + KEY, "ecom.crypto.blind-index-key=" + INDEX)
+        .withPropertyValues(
+            "platform.crypto.keys.k1=" + KEY, "platform.crypto.blind-index-key=" + INDEX)
         .run(
             context -> {
               assertThat(context).hasSingleBean(Crypto.class);
@@ -33,20 +34,20 @@ class CryptoPropertiesTest {
   @Test
   void noKeysStopStartup() {
     runner
-        .withPropertyValues("ecom.crypto.blind-index-key=" + INDEX)
+        .withPropertyValues("platform.crypto.blind-index-key=" + INDEX)
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("ecom.crypto")
+                    .hasMessageContaining("platform.crypto")
                     .hasMessageContaining("keys"));
   }
 
   @Test
   void noBlindIndexKeyStopsStartup() {
     runner
-        .withPropertyValues("ecom.crypto.keys.k1=" + KEY)
+        .withPropertyValues("platform.crypto.keys.k1=" + KEY)
         .run(
             context ->
                 assertThat(context).getFailure().rootCause().hasMessageContaining("blindIndexKey"));

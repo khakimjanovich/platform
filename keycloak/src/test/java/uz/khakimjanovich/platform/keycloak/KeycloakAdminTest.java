@@ -170,7 +170,7 @@ class KeycloakAdminTest {
     var users = new AtomicInteger();
     var keycloak = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
     keycloak.createContext(
-        "/realms/ecom/protocol/openid-connect/token",
+        "/realms/demo/protocol/openid-connect/token",
         exchange -> {
           var token =
               "{\"access_token\":\"t"
@@ -183,7 +183,7 @@ class KeycloakAdminTest {
           exchange.close();
         });
     keycloak.createContext(
-        "/admin/realms/ecom/users",
+        "/admin/realms/demo/users",
         exchange -> {
           if (users.incrementAndGet() == 1) {
             exchange.getResponseHeaders().add("WWW-Authenticate", "Bearer error=\"invalid_token\"");
@@ -199,10 +199,10 @@ class KeycloakAdminTest {
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(KeycloakAutoConfiguration.class))
           .withPropertyValues(
-              "ecom.keycloak.url=http://localhost:" + keycloak.getAddress().getPort(),
-              "ecom.keycloak.realm=ecom",
-              "ecom.keycloak.client-id=backend",
-              "ecom.keycloak.client-secret=local-only")
+              "platform.keycloak.url=http://localhost:" + keycloak.getAddress().getPort(),
+              "platform.keycloak.realm=demo",
+              "platform.keycloak.client-id=backend",
+              "platform.keycloak.client-secret=local-only")
           .run(
               context -> {
                 var id =
@@ -225,11 +225,11 @@ class KeycloakAdminTest {
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(KeycloakAutoConfiguration.class))
           .withPropertyValues(
-              "ecom.keycloak.url=http://localhost:" + silent.getLocalPort(),
-              "ecom.keycloak.realm=ecom",
-              "ecom.keycloak.client-id=backend",
-              "ecom.keycloak.client-secret=local-only",
-              "ecom.keycloak.read-timeout=300ms")
+              "platform.keycloak.url=http://localhost:" + silent.getLocalPort(),
+              "platform.keycloak.realm=demo",
+              "platform.keycloak.client-id=backend",
+              "platform.keycloak.client-secret=local-only",
+              "platform.keycloak.read-timeout=300ms")
           .run(
               context -> {
                 var started = System.nanoTime();

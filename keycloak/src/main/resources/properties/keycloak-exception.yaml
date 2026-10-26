@@ -1,8 +1,8 @@
 # Errors the keycloak library returns: HTTP status, title and message in English, Russian and Uzbek.
 # Loaded by the library itself (its LibraryDefaults.imports); {0} is what already exists.
-exception:
-  starter:
-    error:
+platform:
+  error:
+    codes:
       KEYCLOAK_CONFLICT:
         http-code: 409
         title: keycloak-conflict

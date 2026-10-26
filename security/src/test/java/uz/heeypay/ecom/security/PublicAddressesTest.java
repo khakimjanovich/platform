@@ -1,7 +1,9 @@
 package uz.heeypay.ecom.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.net.UnknownHostException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,11 +54,33 @@ class PublicAddressesTest {
   }
 
   @Test
-  void aUrlNeedsTheDefaultPortUnlessItIsATestHost() {
+  void aUrlIsHttpsOnPort443ToAPublicAddress() {
     assertThat(PublicAddresses.allowed("https://8.8.8.8/hooks", List.of())).isTrue();
+    assertThat(PublicAddresses.allowed("https://8.8.8.8:443/hooks", List.of())).isTrue();
     assertThat(PublicAddresses.allowed("https://8.8.8.8:6379/hooks", List.of())).isFalse();
     assertThat(PublicAddresses.allowed("https://10.0.0.5/hooks", List.of())).isFalse();
-    assertThat(PublicAddresses.allowed("http://LOCALHOST:8080/hooks", List.of("localhost")))
+    assertThat(PublicAddresses.allowed("http://8.8.8.8/hooks", List.of())).as("http").isFalse();
+    assertThat(PublicAddresses.allowed("ftp://8.8.8.8/hooks", List.of())).as("ftp").isFalse();
+    assertThat(PublicAddresses.allowed("https://exa mple.com/x", List.of()))
+        .as("malformed")
+        .isFalse();
+    assertThat(PublicAddresses.allowed("hooks/relative", List.of())).as("no host").isFalse();
+  }
+
+  @Test
+  void aTestHostIsAnExactHostAndPortOverHttpOrHttps() {
+    var sandbox = List.of("Processing-Sandbox:8080");
+    assertThat(PublicAddresses.allowed("http://processing-sandbox:8080/merchant", sandbox))
         .isTrue();
+    assertThat(PublicAddresses.allowed("http://processing-sandbox:5432/x", sandbox)).isFalse();
+    assertThat(PublicAddresses.allowed("ftp://processing-sandbox:8080/x", sandbox)).isFalse();
+    assertThat(PublicAddresses.allowed("http://localhost:80/x", List.of("localhost:80"))).isTrue();
+  }
+
+  @Test
+  void theResolverHandsOutOnlyCheckedAddresses() throws Exception {
+    assertThat(PublicAddresses.resolvePublic("8.8.8.8")).hasSize(1);
+    assertThatThrownBy(() -> PublicAddresses.resolvePublic("169.254.169.254"))
+        .isInstanceOf(UnknownHostException.class);
   }
 }

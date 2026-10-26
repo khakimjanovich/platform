@@ -442,7 +442,6 @@ paths:
         - { $ref: "#/components/parameters/PaymentId" }
         - { $ref: "#/components/parameters/SignatureInput" }
         - { $ref: "#/components/parameters/Signature" }
-        - { $ref: "#/components/parameters/ContentDigest" }
       responses:
         "200":
           description: The events, empty when the website takes no webhooks
@@ -473,7 +472,6 @@ paths:
         - { $ref: "#/components/parameters/EventId" }
         - { $ref: "#/components/parameters/SignatureInput" }
         - { $ref: "#/components/parameters/Signature" }
-        - { $ref: "#/components/parameters/ContentDigest" }
       responses:
         "202":
           description: The event, with its next attempt due now

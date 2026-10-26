@@ -3,6 +3,7 @@ package uz.heeypay.ecom.security;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,11 +12,15 @@ import java.util.Locale;
 import lombok.experimental.UtilityClass;
 
 /**
- * Whether a merchant's URL may be called. Its host must resolve, and only to public addresses: a
- * merchant must not point the bank at its own network (SSRF). IPv4 must be outside every private,
- * shared, loopback, link-local, reserved, documentation and multicast range; IPv6 must be global
- * unicast (2000::/3) and none of the forms that carry an IPv4 address inside (6to4, Teredo, NAT64)
- * or are for documentation. Check again right before each call: DNS can change in between.
+ * Whether a merchant's URL may be called. It must be https on the default port, and its host must
+ * resolve, only to public addresses: a merchant must not point the bank at its own network (SSRF).
+ * IPv4 must be outside every private, shared, loopback, link-local, reserved, documentation and
+ * multicast range; IPv6 must be global unicast (2000::/3) and none of the forms that carry an IPv4
+ * address inside (6to4, Teredo, NAT64) or are for documentation.
+ *
+ * <p>Checking the URL is not enough on its own: DNS can answer differently when the client connects
+ * (rebinding). A client calling merchants resolves through {@link #resolvePublic}, so it connects
+ * only to the addresses that were checked, and never follows redirects, which could point anywhere.
  */
 @UtilityClass
 public class PublicAddresses {
@@ -38,6 +43,11 @@ public class PublicAddresses {
           Range.of("240.0.0.0/4"));
 
   private static final Range GLOBAL_V6 = Range.of("2000::/3");
+  private static final String HTTPS = "https";
+  private static final String HTTP = "http";
+  private static final int HTTPS_PORT = 443;
+  private static final int HTTP_PORT = 80;
+  private static final String NOT_PUBLIC = "%s resolves to an address that is not public";
 
   private static final List<Range> REFUSED_V6 =
       List.of(
@@ -47,21 +57,50 @@ public class PublicAddresses {
           Range.of("64:ff9b::/96")); // NAT64
 
   /**
-   * The URL's host is one of {@code testHosts} (local stand-ins, any port), or it uses the default
-   * https port and resolves only to public addresses.
+   * The URL is https on port 443 and its host resolves only to public addresses; or it is a listed
+   * local stand-in: {@code testHosts} are exact {@code host:port} entries, over http or https. A
+   * malformed URL is not allowed.
    */
   public static boolean allowed(String url, Collection<String> testHosts) {
-    var uri = URI.create(url);
+    URI uri;
+    try {
+      uri = new URI(url);
+    } catch (URISyntaxException e) {
+      return false;
+    }
     var host = uri.getHost();
-    if (host == null) return false;
-    if (testHosts.contains(host.toLowerCase(Locale.ROOT))) return true;
-    return uri.getPort() == -1 && resolvesPublic(host);
+    var scheme = uri.getScheme();
+    if (host == null || scheme == null) return false;
+    scheme = scheme.toLowerCase(Locale.ROOT);
+    if (!HTTPS.equals(scheme) && !HTTP.equals(scheme)) return false;
+    var port =
+        uri.getPort() == -1 ? (HTTPS.equals(scheme) ? HTTPS_PORT : HTTP_PORT) : uri.getPort();
+    var entry = host.toLowerCase(Locale.ROOT) + ":" + port;
+    if (testHosts.stream().anyMatch(test -> test.toLowerCase(Locale.ROOT).equals(entry))) {
+      return true;
+    }
+    return HTTPS.equals(scheme) && port == HTTPS_PORT && resolvesPublic(host);
+  }
+
+  /**
+   * The host's addresses, when every one is public; for a client's DNS resolver, so the connection
+   * goes only to addresses that were checked.
+   *
+   * @throws UnknownHostException when the host does not resolve or any address is not public
+   */
+  public static InetAddress[] resolvePublic(String host) throws UnknownHostException {
+    var addresses = InetAddress.getAllByName(host);
+    if (!Arrays.stream(addresses).allMatch(PublicAddresses::isPublic)) {
+      throw new UnknownHostException(NOT_PUBLIC.formatted(host));
+    }
+    return addresses;
   }
 
   /** False when the host does not resolve, or any of its addresses is not public. */
   public static boolean resolvesPublic(String host) {
     try {
-      return Arrays.stream(InetAddress.getAllByName(host)).allMatch(PublicAddresses::isPublic);
+      resolvePublic(host);
+      return true;
     } catch (UnknownHostException e) {
       return false;
     }

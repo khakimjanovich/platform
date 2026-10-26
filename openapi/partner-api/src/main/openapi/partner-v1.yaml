@@ -220,9 +220,12 @@ paths:
       operationId: updateWebhook
       summary: Where the bank tells the website how each payment ended; empty to stop
       description: >-
-        An https address on the website's own domain. Each call is signed with the API client's
-        signing key. An address that resolves to a private, loopback or link-local network is
-        refused (SALES_POINT_URL_NOT_ALLOWED), now and again before every delivery.
+        An https address on the website's own domain, on port 443. Each call is signed with the API
+        client's signing key. An address that does not resolve only to public addresses (private,
+        loopback, link-local and similar networks) is refused (SALES_POINT_URL_NOT_ALLOWED), and
+        each delivery connects only to addresses checked at that moment, without following
+        redirects. Listed local stand-ins (exact host:port, http allowed) are for test
+        environments only.
       parameters: [{ $ref: "#/components/parameters/SalesPointId" }]
       requestBody:
         required: true

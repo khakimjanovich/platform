@@ -1,5 +1,23 @@
+// The convention plugins, published with the libraries: services apply platform.java,
+// platform.library, platform.module and platform.integration-test by id and platform version.
 plugins {
     id 'groovy-gradle-plugin'
+    id 'maven-publish'
+}
+
+group = 'uz.khakimjanovich.platform'
+version = libs.versions.platform.get()
+
+// Only the release workflow publishes. Credentials are the Gradle properties
+// githubPackagesUsername and githubPackagesPassword; without them `publish` fails.
+publishing {
+    repositories {
+        maven {
+            name = 'githubPackages'
+            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            credentials(PasswordCredentials)
+        }
+    }
 }
 
 dependencies {

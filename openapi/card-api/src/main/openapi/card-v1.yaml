@@ -151,6 +151,95 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/OperationResult" }
 
+  /internal/v1/scheme-reports/uzcard/detail:
+    get:
+      tags: [CardInternal]
+      operationId: uzcardReportDetail
+      summary: "One page of Uzcard's report of a period (report.detail), card numbers masked"
+      description: >-
+        Inside the app only; never routed from outside. The period is [from, to), at most 2 days:
+        reconciliation asks for its business day (00:00 to 24:00 Tashkent) with a few minutes on
+        each side, so a call made at 23:59:59 and booked by Uzcard at 00:00:01 is still paired. The
+        report covers every terminal of the bank's SV-Gate login, so it has no terminal filter: each
+        item names its terminal. A page with fewer items than size is the last one (a period that is
+        an exact multiple of size ends with an empty page). A page Uzcard answered with an error or
+        without data, or with an item missing its reference, amount or time, is not complete: it is
+        never matched, only pulled again.
+      parameters:
+        - { $ref: "#/components/parameters/From" }
+        - { $ref: "#/components/parameters/To" }
+        - { name: page, in: query, required: true, schema: { type: integer, format: int32, minimum: 0 } }
+        - { name: size, in: query, required: true, schema: { type: integer, format: int32, minimum: 1, maximum: 500 } }
+      responses:
+        "200":
+          description: The page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UzcardReportPage" }
+
+  /internal/v1/scheme-reports/uzcard/sum:
+    get:
+      tags: [CardInternal]
+      operationId: uzcardReportSum
+      summary: "How many transactions and how much Uzcard reports for a business day (report.sum): the control total"
+      description: >-
+        Inside the app only; never routed from outside. Uzcard's own figures for 00:00:00 to 23:59:59
+        Tashkent, as it counts them: every transaction its report.detail lists for that day, whatever
+        its type and status. Whether reversals are subtracted from sum is to be confirmed on the Uzcard
+        sandbox; reconciliation compares sum with the report.detail items it pulled, counted the same
+        way, so the check holds either way once confirmed.
+      parameters: [{ $ref: "#/components/parameters/Day" }]
+      responses:
+        "200":
+          description: The totals
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UzcardReportSum" }
+
+  /internal/v1/scheme-reports/humo/terminal-totals:
+    get:
+      tags: [CardInternal]
+      operationId: humoTerminalTotals
+      summary: "Humo's totals per terminal for a business day, from the terminal reconciliations (SOAP_RECO) of that day"
+      description: >-
+        Inside the app only; never routed from outside. Each terminal's reconciliations whose slot
+        falls on the day (Tashkent) are added up. A reconciliation covers the terminal's
+        transactions since the one before it, so Humo's day runs from the previous day's last slot
+        (23:50, inside Humo's 23:45 to 00:00 window) to this day's last slot: transactions made after
+        23:50 count in the next day. A terminal with a failed, unfinished or missing reconciliation
+        that day (fewer slots than the schedule runs) says so in failedRuns: its totals are
+        incomplete.
+      parameters: [{ $ref: "#/components/parameters/Day" }]
+      responses:
+        "200":
+          description: One row per terminal reconciled that day
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HumoTerminalTotals" }
+
+  /internal/v1/scheme-reports/humo/transactions/{rrn}:
+    get:
+      tags: [CardInternal]
+      operationId: humoTransactionsByRrn
+      summary: "Humo's records of a transaction by its RRN (middleware rrn/transaction), amounts in tiyin"
+      description: >-
+        Inside the app only; never routed from outside. Humo writes the amounts in UZS with decimals
+        ("500.00"); they come back in tiyin, converted exactly. An empty list means Humo has no
+        record. tranAmount is what the card paid (our amount); amount is tranAmount less the fee
+        Humo charged (commissionFee), absent when Humo did not send one. Humo's sample: tran_Amount
+        1, amount 0.99, commission_Fee 0.01.
+      parameters: [{ name: rrn, in: path, required: true, schema: { type: string, maxLength: 12 } }]
+      responses:
+        "200":
+          description: The records, or an empty list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/HumoTransaction" }
+
   /api/v1/admin/cards/search:
     post:
       tags: [CardAdmin]
@@ -206,6 +295,24 @@ components:
       bearerFormat: JWT
       description: A Keycloak access token from realm ecom
   parameters:
+    From:
+      name: from
+      in: query
+      required: true
+      description: The period's start, inclusive
+      schema: { type: string, format: date-time }
+    To:
+      name: to
+      in: query
+      required: true
+      description: "The period's end, exclusive; at most 2 days after from"
+      schema: { type: string, format: date-time }
+    Day:
+      name: day
+      in: query
+      required: true
+      description: The business day, in Tashkent
+      schema: { type: string, format: date }
     CardToken:
       name: cardToken
       in: path
@@ -295,3 +402,58 @@ components:
         rrn: { type: string }
         held: { type: boolean, description: "A status answer only: APPROVED, but the money is only held (Humo authorized, not captured)" }
         returned: { type: boolean, description: "A status answer only: APPROVED, and the scheme shows the money given back to the card (Uzcard REVERSE_SUCCESS)" }
+    UzcardReportPage:
+      type: object
+      required: [from, to, page, size, complete, items]
+      properties:
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        page: { type: integer, format: int32 }
+        size: { type: integer, format: int32 }
+        complete: { type: boolean, description: "False: Uzcard answered with an error, or an item lacks its reference, amount or time; pull the page again" }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/UzcardReportItem" }
+    UzcardReportItem:
+      type: object
+      required: [refNum]
+      properties:
+        refNum: { type: string, description: "SV's unique id for the transaction" }
+        rrn: { type: string, description: "refNum, zero-padded to 12 digits" }
+        ext: { type: string, description: "Our payment id, as sent with the debit" }
+        maskedPan: { type: string, example: "860014******7890" }
+        tranType: { type: string, description: "DEBIT, REVERSAL, CREDIT…" }
+        amount: { type: integer, format: int64, description: In tiyin }
+        terminalId: { type: string }
+        merchantId: { type: string }
+        time: { type: string, format: date-time }
+        status: { type: string, description: "Uzcard's status: OK, ERR, ROK (reversed) or RER" }
+    UzcardReportSum:
+      type: object
+      required: [day, count, sum]
+      properties:
+        day: { type: string, format: date }
+        count: { type: integer, format: int64 }
+        sum: { type: integer, format: int64, description: In tiyin }
+    HumoTerminalTotals:
+      type: object
+      required: [terminalId, debitsNumber, debitsAmount, reversalsNumber, reversalsAmount, runs, failedRuns]
+      properties:
+        terminalId: { type: string }
+        debitsNumber: { type: integer, format: int64 }
+        debitsAmount: { type: integer, format: int64, description: In tiyin }
+        reversalsNumber: { type: integer, format: int64 }
+        reversalsAmount: { type: integer, format: int64, description: In tiyin }
+        runs: { type: integer, format: int32, description: Reconciliations of the terminal that day }
+        failedRuns: { type: integer, format: int32, description: "Of them, failed or unfinished: above 0 the totals are incomplete" }
+    HumoTransaction:
+      type: object
+      required: [rrn]
+      properties:
+        rrn: { type: string }
+        terminalId: { type: string }
+        merchantId: { type: string }
+        time: { type: string, format: date-time, description: "Humo's transaction time (respon_Date, dd.MM.yyyy HH:mm:ss in Tashkent)" }
+        tranAmount: { type: integer, format: int64, description: "In tiyin: what the card paid (tran_Amount); equals our amount" }
+        amount: { type: integer, format: int64, description: "In tiyin: tranAmount less Humo's fee (amount)" }
+        commissionFee: { type: integer, format: int64, description: "In tiyin: the fee Humo charged (commission_Fee); absent when Humo sent none" }

@@ -559,15 +559,18 @@ paths:
     get:
       tags: [PaymentInternal]
       operationId: listPaymentOperations
-      summary: "One page of a business day's card scheme calls (debits, reversals, refunds) through one scheme, for reconciliation"
+      summary: "One page of a period's card scheme calls (debits, reversals, refunds) through one scheme, for reconciliation"
       description: >-
-        Inside the app only; never routed from outside. The business day is the day the call
-        started, in Tashkent (00:00:00 to 23:59:59). Every call is listed, whatever its state, by
-        start time then operation id; a page with fewer operations than size is the last one. A
-        reversal or refund carries the same paymentId as the debit it gives back. Read a day once it
-        has ended: calls still being written may shift the pages of the current day.
+        Inside the app only; never routed from outside. The period is [from, to), at most 2 days, by
+        the time the call started: reconciliation asks for its business day (00:00 to 24:00
+        Tashkent) with a few minutes on each side, so a call started at 23:59:59 and booked by the
+        scheme at 00:00:01 is still paired. Every call is listed, whatever its state, by start time
+        then operation id; a page with fewer operations than size is the last one. A reversal or
+        refund carries the same paymentId as the debit it gives back. Read a period once it has
+        ended: calls still being written may shift the pages of the current day.
       parameters:
-        - { name: businessDate, in: query, required: true, schema: { type: string, format: date } }
+        - { name: from, in: query, required: true, description: "The period's start, inclusive", schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, description: "The period's end, exclusive; at most 2 days after from", schema: { type: string, format: date-time } }
         - { name: scheme, in: query, required: true, schema: { type: string, enum: [UZCARD, HUMO] } }
         - { name: page, in: query, required: true, schema: { type: integer, format: int32, minimum: 0 } }
         - { name: size, in: query, required: true, schema: { type: integer, format: int32, minimum: 1, maximum: 1000 } }
@@ -584,14 +587,17 @@ paths:
     post:
       tags: [PaymentInternal]
       operationId: startPaymentResolution
-      summary: "Starts asking the scheme about a payment left UNKNOWN; a second start changes nothing"
+      summary: "Starts asking the scheme about a payment whose call it has not answered; a second start changes nothing"
       description: >-
-        Inside the app only; never routed from outside. A payment no longer UNKNOWN is left as it
-        is (204 too).
+        Inside the app only; never routed from outside. The same payments the resolution sweep
+        takes: UNKNOWN, RETURNING (a reversal or refund unanswered) and one stuck mid-call. Any other
+        payment is left as it is (204 too). A start that fails, or resolution switched off, is an
+        error, never a silent 204.
       parameters: [{ $ref: "#/components/parameters/PaymentId" }]
       responses:
-        "204": { description: "Started, already running, or not UNKNOWN" }
+        "204": { description: "Started, already running, or nothing to resolve" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
 components:
   securitySchemes:

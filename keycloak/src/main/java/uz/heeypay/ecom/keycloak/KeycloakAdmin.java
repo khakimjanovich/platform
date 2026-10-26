@@ -140,12 +140,17 @@ public class KeycloakAdmin {
     call(
         () -> {
           enabled(userId, false);
-          return keycloak
-              .post()
-              .uri(KeycloakConstants.USER_LOGOUT, userId)
-              .retrieve()
-              .toBodilessEntity();
+          return loggedOut(userId);
         });
+  }
+
+  /** Ends every session the user has: its refresh tokens are refused from now on. */
+  public void logoutUser(String userId) {
+    call(() -> loggedOut(userId));
+  }
+
+  private ResponseEntity<Void> loggedOut(String userId) {
+    return keycloak.post().uri(KeycloakConstants.USER_LOGOUT, userId).retrieve().toBodilessEntity();
   }
 
   /** Lets a disabled user log in again. */

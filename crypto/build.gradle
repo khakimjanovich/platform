@@ -2,8 +2,8 @@
 // rotation, and a keyed blind index to find equal values without decrypting them. Its keys come from
 // Vault (spring.config.import=vault://…), like every secret.
 plugins {
-    id 'ecom.library'
-    id 'ecom.integration-test'
+    id 'platform.library'
+    id 'platform.integration-test'
 }
 
 dependencies {

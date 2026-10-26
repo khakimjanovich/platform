@@ -1,7 +1,7 @@
 # config
 
 Loads every library's own settings and error definitions, so no app imports them. A library lists
-its YAML files in `src/main/resources/META-INF/spring/uz.heeypay.ecom.config.LibraryDefaults.imports`,
+its YAML files in `src/main/resources/META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports`,
 one per line (`#` comments allowed, the format of Boot's `AutoConfiguration.imports`), and depends
 on this library at runtime; it ships no Java for it.
 
@@ -10,7 +10,7 @@ runtimeOnly project(':config')
 ```
 
 ```
-# META-INF/spring/uz.heeypay.ecom.config.LibraryDefaults.imports
+# META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports
 properties/otp-exception.yaml
 ```
 

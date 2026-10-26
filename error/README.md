@@ -5,8 +5,8 @@ the caller's language (`Accept-Language`: en, ru, uz), the request (`instance`) 
 (`requestId`). Use it in every web app and adapter.
 
 ```groovy
-implementation libs.ecom.error
-testImplementation testFixtures(libs.ecom.error) // ErrorDefinitions
+implementation libs.platform.error
+testImplementation testFixtures(libs.platform.error) // ErrorDefinitions
 ```
 
 ## Throwing an error
@@ -15,9 +15,9 @@ A service lists its errors in an enum that implements `StatusThrowable` and defi
 `src/main/resources/properties/<name>-exception.yaml`:
 
 ```yaml
-exception:
-  starter:
-    error:
+platform:
+  error:
+    codes:
       PARTNER_EMAIL_TAKEN:
         http-code: 409
         title: partner-email-taken
@@ -38,7 +38,7 @@ parameters, masked. A 5xx is an error, an `is-loggable` one a warning, anything 
 
 | Property | What |
 |---|---|
-| `exception.starter.error` | every error's definition by its code: `http-code`, `title`, `is-loggable`, `message-en`, `message-ru`, `message-uz` |
+| `platform.error.codes` | every error's definition by its code: `http-code`, `title`, `is-loggable`, `message-en`, `message-ru`, `message-uz` |
 
 The library loads its own `properties/error-exception.yaml` (below the app's configuration); an app
 imports its modules' files with `spring.config.import`.
@@ -74,6 +74,6 @@ empty for an HTML page or no body), `Problems.code(problem)` its code and
   `Problems`, and `ErrorDefinitions` against fixture definitions.
 - `./gradlew -p platform :error:integrationTest`: on a real server with Spring Security and Boot's
   own problem-details handler switched on, and `Problems` against WireMock.
-- Every service runs `ErrorDefinitions.assertComplete("uz.heeypay.ecom")` in a unit test: each code
+- Every service runs `ErrorDefinitions.assertComplete("com.example")` in a unit test: each code
   has a status, a title and a message in all three languages with the same placeholders, and no
   definition is left over.

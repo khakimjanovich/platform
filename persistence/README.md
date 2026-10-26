@@ -6,16 +6,16 @@ its bookkeeping tables inside that schema, and Hibernate validates the tables an
 them. A module can move out to its own service unchanged.
 
 ```groovy
-implementation libs.ecom.persistence
+implementation libs.platform.persistence
 ```
 
 Each module declares its beans with `ModulePersistence` (see any `modules/*/config/*PersistenceConfig`):
 
 ```java
-@Bean @ConfigurationProperties("ecom.db.card")
+@Bean @ConfigurationProperties("app.db.card")
 DataSourceProperties cardDataSourceProperties() { return new DataSourceProperties(); }
 
-@Bean @ConfigurationProperties("ecom.db.card.hikari")
+@Bean @ConfigurationProperties("app.db.card.hikari")
 HikariDataSource cardDataSource(DataSourceProperties cardDataSourceProperties) {
   return ModulePersistence.dataSource("card", cardDataSourceProperties);
 }
@@ -26,10 +26,10 @@ HikariDataSource cardDataSource(DataSourceProperties cardDataSourceProperties) {
 
 | Property | Default | What |
 |---|---|---|
-| `ecom.db.<module>.url`, `.username`, `.password` | — | the module's connection (Boot's `DataSourceProperties`); the password from Vault |
-| `ecom.db.<module>.hikari.*` | Hikari's | every Hikari setting, e.g. `maximum-pool-size`, set per environment in ecom-infra |
-| `ecom.persistence.jpa.properties` | — | Hibernate properties for every module, on top of the defaults (`hibernate.jdbc.time_zone=UTC`, `hibernate.jdbc.batch_size=20`, ordered inserts and updates) |
-| `ecom.persistence.liquibase.enabled` | true | false where migrations run apart from the app |
+| `app.db.<module>.url`, `.username`, `.password` | — | the module's connection (Boot's `DataSourceProperties`); the password from Vault |
+| `app.db.<module>.hikari.*` | Hikari's | every Hikari setting, e.g. `maximum-pool-size`, set per environment in the local stack |
+| `platform.persistence.jpa.properties` | — | Hibernate properties for every module, on top of the defaults (`hibernate.jdbc.time_zone=UTC`, `hibernate.jdbc.batch_size=20`, ordered inserts and updates) |
+| `platform.persistence.liquibase.enabled` | true | false where migrations run apart from the app |
 
 `spring.jpa.open-in-view` is false. A pool whose `keepalive-time` isn't shorter than its
 `max-lifetime` stops startup.

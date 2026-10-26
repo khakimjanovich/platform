@@ -16,7 +16,7 @@ logging:
         traceId: trace.id
         spanId: span.id
       # Every message masked (card numbers, key=value secrets), as on the readable console and OTLP.
-      customizer: uz.heeypay.ecom.observability.LogMasking$Json
+      customizer: uz.khakimjanovich.platform.observability.LogMasking$Json
 
 management:
   # One trace per request, carried to every call it makes (W3C traceparent) and onto every log line.

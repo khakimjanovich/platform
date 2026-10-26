@@ -1,8 +1,8 @@
 # platform
 
-The libraries every ecom service builds on, in one Gradle build. The app and each
+The libraries every service builds on, in one Gradle build. The app and each
 adapter include it (`includeBuild`), so Gradle builds these projects in place of their
-`uz.heeypay.ecom:*` coordinates; nothing is published to run them.
+`uz.khakimjanovich.platform:*` coordinates; nothing is published to run them.
 
 | Library | What it gives |
 |---|---|
@@ -32,17 +32,17 @@ released as jars and built with this catalog.
 
 Unit tests (`src/test`, `*Test`) need nothing; integration tests (`src/integrationTest`, `*IT`) start
 real Postgres, Redis, Keycloak, Vault, SeaweedFS or Grafana LGTM with Testcontainers, on the same
-image tags as ecom-infra (each library's `src/integrationTest/resources/images.properties`).
+image tags as the local stack (each library's `src/integrationTest/resources/images.properties`).
 
 ## Versions
 
-- One version for the whole platform, `ecom-platform` in `gradle/libs.versions.toml` (the catalog
+- One version for the whole platform, `platform` in `gradle/libs.versions.toml` (the catalog
   every build reads), following Semantic Versioning 2.0.
 - While 0.x: breaking changes and additions bump the minor, fixes the patch. From 1.0: breaking →
   major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
   method, property or error code.
-- A release is the tag `platform-vX.Y.Z` on `main` (it must equal `ecom-platform`). The release
+- A release is the tag `platform-vX.Y.Z` on `main` (it must equal `platform`). The release
   workflow publishes the catalog as `uz.khakimjanovich.platform:versioning:X.Y.Z` to GitHub Packages
   (`https://maven.pkg.github.com/khakimjanovich/platform`); the contracts build pins it. The
-  libraries themselves are still built from source by ecom and the adapters.
+  libraries themselves are still built from source by the services that use them.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).

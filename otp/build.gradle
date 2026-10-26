@@ -1,7 +1,7 @@
 // One-time codes for any module: stored as a keyed hash in Redis, with a lifetime, an attempt limit and a send limit.
 plugins {
-    id 'ecom.library'
-    id 'ecom.integration-test'
+    id 'platform.library'
+    id 'platform.integration-test'
 }
 
 dependencies {

@@ -1,8 +1,8 @@
 // One way to secure every app: Keycloak access tokens, realm roles, route rules from configuration,
 // and 401/403 as problem details.
 plugins {
-    id 'ecom.library'
-    id 'ecom.integration-test'
+    id 'platform.library'
+    id 'platform.integration-test'
 }
 
 dependencies {
@@ -22,7 +22,7 @@ dependencies {
     integrationTestImplementation libs.starter.actuator
     integrationTestImplementation libs.starter.restclient
     integrationTestImplementation libs.wiremock
-    integrationTestImplementation testFixtures(project(':keycloak')) // ecom-realm.json
+    integrationTestImplementation testFixtures(project(':keycloak')) // demo-realm.json
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit
 }

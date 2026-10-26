@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'uz.khakimjanovich.platform'
-version = libs.versions.ecom.platform.get()
+version = libs.versions.platform.get()
 
 catalog { versionCatalog { from(files('../gradle/libs.versions.toml')) } }
 

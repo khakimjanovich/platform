@@ -1,0 +1,282 @@
+{
+  "realm": "demo",
+  "enabled": true,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Bank staff"
+      },
+      {
+        "name": "partner",
+        "description": "Kept for one release: an alias of merchant-admin for logins made before the four merchant roles",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "merchant-admin"
+          ]
+        }
+      },
+      {
+        "name": "merchant-admin",
+        "description": "A merchant's cabinet user: everything, users and integration settings included"
+      },
+      {
+        "name": "merchant-accountant",
+        "description": "A merchant's cabinet user: views, exports, settlement account, dispute evidence"
+      },
+      {
+        "name": "merchant-operator",
+        "description": "A merchant's cabinet user: views, exports, links, cancellations and refunds"
+      },
+      {
+        "name": "merchant-observer",
+        "description": "A merchant's cabinet user: views only"
+      },
+      {
+        "name": "merchant",
+        "description": "A merchant's server (API client): creates payments"
+      },
+      {
+        "name": "adapter_client",
+        "description": "A service allowed to call the adapters"
+      },
+      {
+        "name": "offline_access"
+      },
+      {
+        "name": "uma_authorization"
+      },
+      {
+        "name": "default-roles-demo",
+        "description": "Every user and API client: offline access and the demo-api audience",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization"
+          ],
+          "client": {
+            "demo-api": [
+              "caller"
+            ]
+          }
+        }
+      }
+    ],
+    "client": {
+      "demo-api": [
+        {
+          "name": "caller",
+          "description": "Puts demo-api in the token's audience (Keycloak's audience resolve)"
+        }
+      ]
+    }
+  },
+  "defaultRole": {
+    "name": "default-roles-demo"
+  },
+  "clients": [
+    {
+      "clientId": "demo-api",
+      "name": "The demo API, the audience every token names",
+      "enabled": true,
+      "bearerOnly": true
+    },
+    {
+      "clientId": "demo-backend",
+      "name": "demo backend",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "local-only",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "demo-portal",
+      "name": "Merchant and admin portal",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:5180/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5180"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5180/*",
+        "pkce.code.challenge.method": "S256"
+      },
+      "rootUrl": "http://localhost:5180",
+      "baseUrl": "/"
+    },
+    {
+      "clientId": "outsider",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "outsider-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "basic",
+        "profile"
+      ]
+    },
+    {
+      "clientId": "demo-app",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "app-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "stranger",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "stranger-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    {
+      "clientId": "rotating",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "rotating-secret",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ],
+  "users": [
+    {
+      "username": "aziz",
+      "enabled": true,
+      "email": "aziz@example.com",
+      "emailVerified": true,
+      "firstName": "Aziz",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "local-only",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "default-roles-demo"
+      ]
+    },
+    {
+      "username": "malika",
+      "enabled": true,
+      "email": "malika@example.com",
+      "emailVerified": true,
+      "firstName": "Malika",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "local-only",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "default-roles-demo"
+      ]
+    },
+    {
+      "username": "dilnoza",
+      "firstName": "Dilnoza",
+      "email": "dilnoza@example.uz",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "local-only",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "partner",
+        "default-roles-demo"
+      ]
+    },
+    {
+      "username": "service-account-demo-backend",
+      "enabled": true,
+      "serviceAccountClientId": "demo-backend",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "manage-clients",
+          "view-clients",
+          "view-realm"
+        ]
+      }
+    },
+    {
+      "username": "service-account-demo-app",
+      "enabled": true,
+      "serviceAccountClientId": "demo-app",
+      "realmRoles": [
+        "adapter_client",
+        "default-roles-demo"
+      ]
+    },
+    {
+      "username": "service-account-stranger",
+      "enabled": true,
+      "serviceAccountClientId": "stranger",
+      "realmRoles": [
+        "default-roles-demo"
+      ]
+    },
+    {
+      "username": "service-account-rotating",
+      "enabled": true,
+      "serviceAccountClientId": "rotating",
+      "realmRoles": [
+        "adapter_client",
+        "default-roles-demo"
+      ]
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\": [{\"name\": \"username\", \"validations\": {\"length\": {\"min\": 3, \"max\": 255}, \"username-prohibited-characters\": {}, \"up-username-not-idn-homograph\": {}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"email\", \"validations\": {\"email\": {}, \"length\": {\"max\": 255}}, \"required\": {\"roles\": [\"user\"]}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"firstName\", \"validations\": {\"length\": {\"max\": 255}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}, {\"name\": \"lastName\", \"validations\": {\"length\": {\"max\": 255}}, \"permissions\": {\"view\": [\"admin\", \"user\"], \"edit\": [\"admin\", \"user\"]}, \"multivalued\": false}]}"
+          ]
+        }
+      }
+    ]
+  },
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "en",
+    "ru",
+    "uz"
+  ],
+  "defaultLocale": "en",
+  "resetPasswordAllowed": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@example.com",
+    "fromDisplayName": "Demo"
+  }
+}

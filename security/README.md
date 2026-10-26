@@ -5,21 +5,21 @@ from configuration where anything not listed is refused, public routes that igno
 401 and 403 as problem details, and client-credentials tokens on calls to other services.
 
 ```groovy
-implementation libs.ecom.security
+implementation libs.platform.security
 ```
 
 Set Boot's `spring.security.oauth2.resourceserver.jwt.issuer-uri` (the realm) and
-`spring.security.oauth2.resourceserver.jwt.audiences` (the API's audience, `ecom-api`).
+`spring.security.oauth2.resourceserver.jwt.audiences` (the API's audience, e.g. `demo-api`).
 
 ## Properties
 
 | Property | What |
 |---|---|
-| `ecom.security.public-routes` | routes anyone may call; a token sent with them is never read. `"POST /api/v1/registrations/**"` limits one to a method |
-| `ecom.security.roles` | each route and the realm role it needs, in order, e.g. `"[/api/v1/admin/**]": ADMIN` |
-| `ecom.security.service-tokens.groups` | HTTP service groups and the OAuth2 client registration (`spring.security.oauth2.client.registration.<id>`) their calls take a client-credentials token from |
-| `ecom.security.service-tokens.connect-timeout` | 5s: a token request's wait for a connection |
-| `ecom.security.service-tokens.read-timeout` | 10s: a token request's wait for its answer |
+| `platform.security.public-routes` | routes anyone may call; a token sent with them is never read. `"POST /api/v1/registrations/**"` limits one to a method |
+| `platform.security.roles` | each route and the realm role it needs, in order, e.g. `"[/api/v1/admin/**]": ADMIN` |
+| `platform.security.service-tokens.groups` | HTTP service groups and the OAuth2 client registration (`spring.security.oauth2.client.registration.<id>`) their calls take a client-credentials token from |
+| `platform.security.service-tokens.connect-timeout` | 5s: a token request's wait for a connection |
+| `platform.security.service-tokens.read-timeout` | 10s: a token request's wait for its answer |
 
 ## Adding to the chain
 
@@ -31,7 +31,7 @@ Filters only; the route rules stay in configuration: a customizer that sets rout
 
 ## Calling another service
 
-With an OAuth2 client registration and `ecom.security.service-tokens.groups.<group>=<registration>`,
+With an OAuth2 client registration and `platform.security.service-tokens.groups.<group>=<registration>`,
 the group's `@HttpExchange` clients send the service's own client-credentials token (Spring
 Security's interceptor gets and refreshes it). A 401 that refuses the token (no challenge, or
 `error="invalid_token"`) drops it and the call is tried once more; `insufficient_scope` is the

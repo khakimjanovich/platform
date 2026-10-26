@@ -1,8 +1,8 @@
 {
   "identities": [
     {
-      "name": "ecom",
-      "credentials": [{ "accessKey": "ecom", "secretKey": "local-only" }],
+      "name": "demo",
+      "credentials": [{ "accessKey": "demo", "secretKey": "local-only" }],
       "actions": [
         "Read:partner-documents", "Write:partner-documents",
         "Read:sales-point-logos", "Write:sales-point-logos"

@@ -6,13 +6,13 @@ renewal. It also makes Vault the app's source of every secret (`spring.config.im
 merchants' request-signing keys a short time so a burst of signed requests reads Vault once.
 
 ```groovy
-implementation libs.ecom.vault
+implementation libs.platform.vault
 ```
 
 ```yaml
 spring:
   config:
-    import: ${VAULT_IMPORT} # vault://secret/ecom: a Vault that can't be read stops startup
+    import: ${VAULT_IMPORT} # vault://secret/<service>: a Vault that can't be read stops startup
   cloud:
     vault:
       uri: ${VAULT_URL}
@@ -30,9 +30,9 @@ hasn't set one or the id can't be a client id (`[A-Za-z0-9_-][A-Za-z0-9._-]*`, n
 
 | Property | Default | What |
 |---|---|---|
-| `ecom.vault.mount` | `secret` | the KV version 2 mount |
-| `ecom.vault.signing-keys.path` | `merchants/%s` | a client's key path, `%s` its client id (required in the path) |
-| `ecom.vault.signing-keys.cache-ttl` | 30s | how long a key read is used; a missing key is never kept, and a Vault failure never answers with an old key |
+| `platform.vault.mount` | `secret` | the KV version 2 mount |
+| `platform.vault.signing-keys.path` | `merchants/%s` | a client's key path, `%s` its client id (required in the path) |
+| `platform.vault.signing-keys.cache-ttl` | 30s | how long a key read is used; a missing key is never kept, and a Vault failure never answers with an old key |
 
 Where Vault is and how to sign in are Spring Cloud Vault's `spring.cloud.vault.*`.
 

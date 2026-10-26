@@ -7,7 +7,7 @@ before hashing). A subject's keys share a Redis Cluster hash tag (`otp:<flow>:{<
 the scripts run on a cluster too.
 
 ```groovy
-implementation libs.ecom.otp // needs Redis (spring.data.redis.*)
+implementation libs.platform.otp // needs Redis (spring.data.redis.*)
 ```
 
 ```java
@@ -23,14 +23,14 @@ Without Redis nothing is issued or accepted, and a warning logs Redis's own mess
 
 | Property | Default | What |
 |---|---|---|
-| `ecom.otp.secret` | — | key of the stored hashes; required, from Vault |
-| `ecom.otp.length` | 6 | digits in a code, 4 to 10 |
-| `ecom.otp.ttl` | 5m | how long a code stays valid |
-| `ecom.otp.max-attempts` | 5 | wrong codes allowed per send window |
-| `ecom.otp.max-sends` | 3 | codes sent to one subject per send window |
-| `ecom.otp.send-window` | 15m | the window sends and wrong codes count in |
-| `ecom.otp.resend-after` | 60s | wait between two codes; `0s` for none |
-| `ecom.otp.key-prefix` | `otp` | first part of every Redis key |
+| `platform.otp.secret` | — | key of the stored hashes; required, from Vault |
+| `platform.otp.length` | 6 | digits in a code, 4 to 10 |
+| `platform.otp.ttl` | 5m | how long a code stays valid |
+| `platform.otp.max-attempts` | 5 | wrong codes allowed per send window |
+| `platform.otp.max-sends` | 3 | codes sent to one subject per send window |
+| `platform.otp.send-window` | 15m | the window sends and wrong codes count in |
+| `platform.otp.resend-after` | 60s | wait between two codes; `0s` for none |
+| `platform.otp.key-prefix` | `otp` | first part of every Redis key |
 
 ## Errors
 
@@ -45,7 +45,7 @@ Without Redis nothing is issued or accepted, and a warning logs Redis's own mess
 
 ## Metrics
 
-`ecom.otp.issued{flow}`, `ecom.otp.verified{flow}`, `ecom.otp.rejected{flow,reason}` in the app's
+`platform.otp.issued{flow}`, `platform.otp.verified{flow}`, `platform.otp.rejected{flow,reason}` in the app's
 meter registry.
 
 ## Beans you can replace

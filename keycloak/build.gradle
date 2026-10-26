@@ -1,9 +1,9 @@
 // Keycloak's admin API for any module: users, realm roles and machine-to-machine clients.
 // The client logs in with its own client credentials and refreshes its token when needed.
 plugins {
-    id 'ecom.library'
-    id 'ecom.integration-test'
-    id 'java-test-fixtures' // ecom-realm.json: the one Keycloak realm every integration test imports
+    id 'platform.library'
+    id 'platform.integration-test'
+    id 'java-test-fixtures' // demo-realm.json: the one Keycloak realm every integration test imports
 }
 
 dependencies {

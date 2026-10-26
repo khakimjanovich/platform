@@ -8,7 +8,7 @@ more. Its HTTP client is Boot's (`spring.http.clients.*`: SSL bundle, redirects)
 timeouts.
 
 ```groovy
-implementation libs.ecom.keycloak
+implementation libs.platform.keycloak
 ```
 
 ```java
@@ -23,12 +23,12 @@ var secret = keycloak.rotateSecret(client.id());
 
 | Property | Default | What |
 |---|---|---|
-| `ecom.keycloak.url` | — | Keycloak's base URL; setting it turns the library on |
-| `ecom.keycloak.realm` | — | the realm managed |
-| `ecom.keycloak.client-id` | — | the backend's confidential client, allowed to use the admin API |
-| `ecom.keycloak.client-secret` | — | that client's secret, from Vault; required |
-| `ecom.keycloak.connect-timeout` | 5s | for every call, the token request included |
-| `ecom.keycloak.read-timeout` | 10s | for every call, the token request included |
+| `platform.keycloak.url` | — | Keycloak's base URL; setting it turns the library on |
+| `platform.keycloak.realm` | — | the realm managed |
+| `platform.keycloak.client-id` | — | the backend's confidential client, allowed to use the admin API |
+| `platform.keycloak.client-secret` | — | that client's secret, from Vault; required |
+| `platform.keycloak.connect-timeout` | 5s | for every call, the token request included |
+| `platform.keycloak.read-timeout` | 10s | for every call, the token request included |
 
 ## Errors
 
@@ -51,7 +51,7 @@ DOWN names the error code only.
 
 - `./gradlew -p platform :keycloak:test`: every failure as its error, a refused token replaced
   once, the read timeout, the property checks.
-- Test fixtures: `ecom-realm.json`, the one realm (`ecom`) every integration test imports, here, in
-  security and in the app (`testFixtures(libs.ecom.keycloak)`).
+- Test fixtures: `demo-realm.json`, the one realm (`demo`) every integration test imports, here, in
+  security and in the app (`testFixtures(libs.platform.keycloak)`).
 - `./gradlew -p platform :keycloak:integrationTest`: a real Keycloak with that realm: users,
   roles, logins, secrets that rotate, and Keycloak stopped mid-life.

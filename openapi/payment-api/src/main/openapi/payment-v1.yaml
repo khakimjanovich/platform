@@ -134,7 +134,8 @@ paths:
         10 000 000 UZS here (PAYMENT_REFUND_CAP_EXCEEDED); above it, or after the window
         (PAYMENT_REFUND_WINDOW_CLOSED), the bank's staff refund on the merchant's application. No
         answer from the scheme leaves it RETURNING while the bank asks the scheme; it is never sent
-        twice.
+        twice. A DISPUTED payment is refunded by the same rules; a full refund, by the merchant or by
+        the bank's staff on its application, resolves its open dispute (RESOLVED_BY_REFUND).
       parameters:
         - { $ref: "#/components/parameters/PaymentId" }
         - { $ref: "#/components/parameters/SignatureInput" }
@@ -412,7 +413,7 @@ paths:
     post:
       tags: [PaymentCabinet]
       operationId: refundCabinetPayment
-      summary: The merchant gives a payment back from its cabinet, by the same rules as refundPayment
+      summary: The merchant gives a payment back from its cabinet, by the same rules as refundPayment (a DISPUTED one too)
       parameters: [{ $ref: "#/components/parameters/PaymentId" }]
       requestBody:
         required: true
@@ -529,9 +530,11 @@ paths:
       operationId: registerDispute
       summary: Staff register a complaint or a scheme claim on a PAID payment; the payment becomes DISPUTED
       description: >-
-        The dispute starts REGISTERED, the action is audited and the merchant gets payment.disputed.
-        One open dispute per payment. PAYMENT_DISPUTE_STATE_INVALID (409) when the payment is not
-        PAID or already has an open dispute.
+        The dispute starts REGISTERED, takes the scheme of the payment's card, is audited, and the
+        merchant gets payment.disputed. PAYMENT_DISPUTE_STATE_INVALID (409) when the payment is not
+        PAID (so at most one open dispute per payment). PAYMENT_DISPUTE_INVALID (422) when the
+        amount is above the payment's, a SCHEME claim has no claimRef, receivedOn is in the future
+        or the scheme deadline is before it.
       parameters: [{ $ref: "#/components/parameters/PaymentId" }]
       requestBody:
         required: true
@@ -549,6 +552,7 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "409": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "422": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
   /api/v1/admin/disputes:
     get:
@@ -592,9 +596,10 @@ paths:
       operationId: requestDisputeEvidence
       summary: Staff ask the merchant for evidence by a deadline; the dispute becomes EVIDENCE_REQUESTED
       description: >-
-        The merchant may instead refund the payment in full, which resolves the dispute
-        (RESOLVED_BY_REFUND). The deadline must be no later than 2 banking days before the scheme
-        deadline (PAYMENT_DISPUTE_DEADLINE_INVALID, 422).
+        From REGISTERED only, otherwise PAYMENT_DISPUTE_STATE_INVALID (409). The merchant may instead
+        refund the payment in full, which resolves the dispute (RESOLVED_BY_REFUND). The deadline is
+        today at the earliest and no later than 2 banking days before the scheme deadline
+        (PAYMENT_DISPUTE_DEADLINE_INVALID, 422); a staff screen offers 5 banking days from today.
       parameters: [{ $ref: "#/components/parameters/DisputeId" }]
       requestBody:
         required: true
@@ -619,6 +624,7 @@ paths:
       tags: [DisputeAdmin]
       operationId: submitDispute
       summary: Staff record the date the answer went to the scheme or the payer; the dispute becomes SUBMITTED
+      description: From REGISTERED or EVIDENCE_REQUESTED, otherwise PAYMENT_DISPUTE_STATE_INVALID (409).
       parameters: [{ $ref: "#/components/parameters/DisputeId" }]
       requestBody:
         required: true
@@ -643,8 +649,9 @@ paths:
       operationId: recordDisputeResult
       summary: "Staff record the result: WON (the payment is PAID again) or LOST (CHARGED_BACK, with the scheme's costs)"
       description: >-
-        The merchant gets payment.dispute_won or payment.dispute_lost. A LOST dispute's amount plus
-        costs is what Settlements collects from the merchant, by the bank's procedure.
+        From SUBMITTED only, otherwise PAYMENT_DISPUTE_STATE_INVALID (409). The merchant gets
+        payment.dispute_won or payment.dispute_lost. A LOST dispute's amount plus costs is what
+        Settlements collects from the merchant, by the bank's procedure.
       parameters: [{ $ref: "#/components/parameters/DisputeId" }]
       requestBody:
         required: true
@@ -668,6 +675,7 @@ paths:
       tags: [DisputeAdmin]
       operationId: closeDispute
       summary: Staff close a dispute that is WON, LOST or RESOLVED_BY_REFUND
+      description: From those three only, otherwise PAYMENT_DISPUTE_STATE_INVALID (409).
       parameters: [{ $ref: "#/components/parameters/DisputeId" }]
       requestBody:
         required: true
@@ -705,7 +713,7 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
-  /api/v1/admin/disputes/register.csv:
+  /api/v1/admin/dispute-register.csv:
     get:
       tags: [DisputeAdmin]
       operationId: downloadDisputeRegister
@@ -714,7 +722,7 @@ paths:
         - { name: month, in: query, required: true, schema: { type: string, pattern: "^[0-9]{4}-(0[1-9]|1[0-2])$" }, description: "YYYY-MM: disputes received that month" }
       responses:
         "200":
-          description: "UTF-8 CSV: partner id, registered, won, lost, resolved by refund, open, disputed amount, lost amount, costs (amounts in tiyin)"
+          description: "UTF-8 CSV, one row per merchant: partner id, registered, won, lost, resolved by refund, open, disputed amount, lost amount, costs (amounts in tiyin)"
           content:
             text/csv:
               schema: { type: string, format: binary }
@@ -795,7 +803,7 @@ paths:
     post:
       tags: [PaymentAdmin]
       operationId: requestStaffRefund
-      summary: "Staff ask to refund a payment above the cap or after the window, on the merchant's application; a second admin approves"
+      summary: "Staff ask to refund a PAID or DISPUTED payment above the cap or after the window, on the merchant's application; a second admin approves"
       parameters: [{ $ref: "#/components/parameters/PaymentId" }]
       requestBody:
         required: true
@@ -1000,9 +1008,10 @@ components:
         order stays locked · MANUAL_REVIEW: still no answer after the configured status checks, a
         person at the bank decides; not final, so no webhook · FAILED: the page closed before any debit ·
         EXPIRED: nobody paid before the page expired · RETURNING: the money is being given back ·
-        REVERSED: given back before settlement · REFUNDED: given back after it. Frozen: new lifecycle
-        values (disputes, partial refunds) appear only in `state`, which merchants read.
-      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED]
+        REVERSED: given back before settlement · REFUNDED: given back after it · DISPUTED: the bank
+        is handling a complaint or claim · CHARGED_BACK: the claim was lost. Merchants read `state`;
+        partial refunds will appear only there.
+      enum: [CREATED, AWAITING_CODE, CARD_CONFIRMED, DEBITING, PAID, DECLINED, UNKNOWN, MANUAL_REVIEW, FAILED, EXPIRED, RETURNING, REVERSED, REFUNDED, DISPUTED, CHARGED_BACK]
     PaymentState:
       type: string
       description: >-
@@ -1344,7 +1353,7 @@ components:
         partnerId: { type: string, format: uuid }
         salesPointId: { type: string, format: uuid }
         source: { $ref: "#/components/schemas/DisputeSource" }
-        scheme: { type: string, description: "UZCARD or HUMO" }
+        scheme: { type: string, description: "UZCARD or HUMO: the payment's card" }
         claimRef: { type: string }
         amount: { type: integer, format: int64, description: In tiyin }
         costs: { type: integer, format: int64, description: "The scheme's costs in tiyin, once LOST" }
@@ -1370,15 +1379,15 @@ components:
         fileName: { type: string }
         contentType: { type: string, enum: [application/pdf, image/png, image/jpeg] }
         size: { type: integer, format: int64, description: In bytes }
-        uploadedBy: { type: string, description: "The merchant user's e-mail" }
+        uploadedBy: { type: string, description: "The merchant user's e-mail (shown to the merchant's own users and to staff)" }
         uploadedAt: { type: string, format: date-time }
     WebhookDispute:
       type: object
       description: The dispute behind a payment.disputed, payment.dispute_won or payment.dispute_lost event
-      required: [id, amount, schemeDeadline]
+      required: [id, amount, costs, schemeDeadline, evidenceDeadline]
       properties:
         id: { type: string, format: uuid }
         amount: { type: integer, format: int64, description: "Disputed, in tiyin" }
-        costs: { type: integer, format: int64, description: "The scheme's costs in tiyin, on dispute_lost" }
+        costs: { type: integer, format: int64, nullable: true, description: "The scheme's costs in tiyin, on dispute_lost; null before" }
         schemeDeadline: { type: string, format: date }
-        evidenceDeadline: { type: string, format: date }
+        evidenceDeadline: { type: string, format: date, nullable: true, description: "Once evidence is requested" }

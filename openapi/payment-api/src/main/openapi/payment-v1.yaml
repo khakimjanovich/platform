@@ -983,6 +983,50 @@ paths:
         "403": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
         "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
 
+  /internal/v1/payments/operations:
+    get:
+      tags: [PaymentInternal]
+      operationId: listPaymentOperations
+      summary: "One page of a period's card scheme calls (debits, reversals, refunds) through one scheme, for reconciliation"
+      description: >-
+        Inside the app only; never routed from outside. The period is [from, to), at most 2 days, by
+        the time the call started: reconciliation asks for its business day (00:00 to 24:00
+        Tashkent) with a few minutes on each side, so a call started at 23:59:59 and booked by the
+        scheme at 00:00:01 is still paired. Every call is listed, whatever its state, by start time
+        then operation id; a page with fewer operations than size is the last one. A reversal or
+        refund carries the same paymentId as the debit it gives back. Read a period once it has
+        ended: calls still being written may shift the pages of the current day.
+      parameters:
+        - { name: from, in: query, required: true, description: "The period's start, inclusive", schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, description: "The period's end, exclusive; at most 2 days after from", schema: { type: string, format: date-time } }
+        - { name: scheme, in: query, required: true, schema: { type: string, enum: [UZCARD, HUMO] } }
+        - { name: page, in: query, required: true, schema: { type: integer, format: int32, minimum: 0 } }
+        - { name: size, in: query, required: true, schema: { type: integer, format: int32, minimum: 1, maximum: 1000 } }
+      responses:
+        "200":
+          description: The page
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PaymentOperationItem" }
+
+  /internal/v1/payments/{paymentId}/resolution:
+    post:
+      tags: [PaymentInternal]
+      operationId: startPaymentResolution
+      summary: "Starts asking the scheme about a payment whose call it has not answered; a second start changes nothing"
+      description: >-
+        Inside the app only; never routed from outside. The same payments the resolution sweep
+        takes: UNKNOWN, RETURNING (a reversal or refund unanswered) and one stuck mid-call. Any other
+        payment is left as it is (204 too). A start that fails, or resolution switched off, is an
+        error, never a silent 204.
+      parameters: [{ $ref: "#/components/parameters/PaymentId" }]
+      responses:
+        "204": { description: "Started, already running, or nothing to resolve" }
+        "404": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+        "503": { $ref: "../../../../common/problem-v1.yaml#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearer:
@@ -1048,6 +1092,20 @@ components:
       description: "RFC 9530: the body's SHA-256, sha-256=:<base64>:; required when there is a body"
       schema: { type: string }
   schemas:
+    PaymentOperationItem:
+      type: object
+      required: [operationId, paymentId, kind, state, amount, merchantId, terminalId, startedAt]
+      properties:
+        operationId: { type: string, format: uuid }
+        paymentId: { type: string, format: uuid, description: "Our payment id: Uzcard's ext, Humo's paymentRef" }
+        kind: { type: string, enum: [DEBIT, REVERSAL, REFUND] }
+        state: { $ref: "#/components/schemas/OperationState" }
+        amount: { type: integer, format: int64, description: In tiyin }
+        rrn: { type: string }
+        schemeRef: { type: string, description: "The scheme's id for the call (Uzcard refNum, Humo's reference)" }
+        merchantId: { type: string }
+        terminalId: { type: string }
+        startedAt: { type: string, format: date-time }
     CreatePaymentRequest:
       type: object
       required: [salesPointId, orderId, amount, returnUrl]

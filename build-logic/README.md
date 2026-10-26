@@ -9,11 +9,6 @@ build file says only what is particular to it.
 | `ecom.library` | platform libraries | `ecom.java`, the platform's group and version, sources, configuration metadata, NullAway as an error |
 | `ecom.module` | the app and its modules | `ecom.java`, the Spring Modulith BOM, integration tests |
 | `ecom.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
-| `ecom.contract` | `openapi/*-api` | see `../openapi/README.md` |
 
-Versions come from `../gradle/libs.versions.toml`, the one catalog.
-
-## Tests
-
-`./gradlew -p platform/build-logic test` (part of the platform's `check`) runs the contract plugin
-on a fixture build with Gradle TestKit.
+Versions come from `../gradle/libs.versions.toml`, the one catalog. The contract plugin moved with
+the contracts to [khakimjanovich/contracts](https://github.com/khakimjanovich/contracts).

@@ -1,6 +1,6 @@
 # platform
 
-The libraries and API contracts every ecom service builds on, in one Gradle build. The app and each
+The libraries every ecom service builds on, in one Gradle build. The app and each
 adapter include it (`includeBuild`), so Gradle builds these projects in place of their
 `uz.heeypay.ecom:*` coordinates; nothing is published to run them.
 
@@ -17,16 +17,16 @@ adapter include it (`includeBuild`), so Gradle builds these projects in place of
 | [crypto](crypto/README.md) | AES-256-GCM for card data, with rotation and a blind index |
 | [vault](vault/README.md) | secrets from Vault, and Vault as the source of every secret |
 | [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |
-| [openapi](openapi/README.md) | the API contracts and the contract plugin |
 | [build-logic](build-logic/README.md) | the build conventions |
 
-`versioning` publishes the catalog (`gradle/libs.versions.toml`) for when the platform becomes its
-own repository.
+`versioning` publishes the catalog (`gradle/libs.versions.toml`) on each release (§Versions). The API
+contracts live in their own repository, [khakimjanovich/contracts](https://github.com/khakimjanovich/contracts),
+released as jars and built with this catalog.
 
 ## Build
 
 ```bash
-./gradlew -p platform check   # every library and contract, unit and integration tests (Docker)
+./gradlew -p platform check   # every library, unit and integration tests (Docker)
 ./gradlew check               # from the repository root: the platform and the app
 ```
 

@@ -95,12 +95,12 @@ public class KeycloakAutoConfiguration {
     tokenClient.setRestClient(
         RestClient.builder()
             .requestFactory(http)
-            .messageConverters(
-                converters -> {
-                  converters.clear();
-                  converters.add(new FormHttpMessageConverter());
-                  converters.add(new OAuth2AccessTokenResponseHttpMessageConverter());
-                })
+            .configureMessageConverters(
+                converters ->
+                    converters
+                        .disableDefaults()
+                        .addCustomConverter(new FormHttpMessageConverter())
+                        .addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
             .defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())
             .build());
     var provider = new ClientCredentialsOAuth2AuthorizedClientProvider();

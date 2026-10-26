@@ -48,7 +48,6 @@ public class PublicAddresses {
   private static final String HTTP = "http";
   private static final int HTTPS_PORT = 443;
   private static final int HTTP_PORT = 80;
-  private static final String NOT_PUBLIC = "%s resolves to an address that is not public";
 
   private static final List<Range> REFUSED_V6 =
       List.of(
@@ -112,7 +111,8 @@ public class PublicAddresses {
   public static InetAddress[] resolvePublic(String host) throws UnknownHostException {
     var addresses = InetAddress.getAllByName(host);
     if (!Arrays.stream(addresses).allMatch(PublicAddresses::isPublic)) {
-      throw new UnknownHostException(NOT_PUBLIC.formatted(host));
+      throw new UnknownHostException(
+          "%s resolves to an address that is not public".formatted(host));
     }
     return addresses;
   }
@@ -135,10 +135,17 @@ public class PublicAddresses {
   }
 
   /** A CIDR block. */
-  private record Range(byte[] network, int prefix) {
+  private static final class Range {
+    private final byte[] network;
+    private final int prefix;
+
+    private Range(byte[] network, int prefix) {
+      this.network = network;
+      this.prefix = prefix;
+    }
 
     static Range of(String cidr) {
-      var parts = cidr.split("/");
+      var parts = cidr.split("/", 2);
       try {
         return new Range(InetAddress.getByName(parts[0]).getAddress(), Integer.parseInt(parts[1]));
       } catch (UnknownHostException e) {

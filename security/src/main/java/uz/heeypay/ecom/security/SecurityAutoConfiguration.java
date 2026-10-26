@@ -85,7 +85,7 @@ public class SecurityAutoConfiguration {
                       (route, role) ->
                           routes
                               .requestMatchers(route(route))
-                              .hasAnyRole(role.split(SecurityConstants.ROLE_SEPARATOR)));
+                              .hasAnyRole(role.toArray(String[]::new)));
               routes.anyRequest().denyAll();
             })
         .exceptionHandling(

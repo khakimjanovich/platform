@@ -11,9 +11,21 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * with an HTTP method: {@code "POST /api/v1/registrations/**"}.
  *
  * @param publicRoutes routes anyone may call, without a token
- * @param roles each route and the realm role it needs (several separated by commas: any of them),
- *     in order; a route not listed is refused
+ * @param roles each route and the realm roles that may call it (one, or several separated by
+ *     commas: any of them), in order; a route not listed is refused
  */
 @ConfigurationProperties(SecurityConstants.PROPERTIES_PREFIX)
 public record SecurityProperties(
-    @DefaultValue List<String> publicRoutes, @DefaultValue LinkedHashMap<String, String> roles) {}
+    @DefaultValue List<String> publicRoutes,
+    @DefaultValue LinkedHashMap<String, List<String>> roles) {
+
+  /** A route with no role, or a blank one, would quietly let nobody in: refused at startup. */
+  public SecurityProperties {
+    roles.forEach(
+        (route, names) -> {
+          if (names.isEmpty() || names.stream().anyMatch(String::isBlank)) {
+            throw new IllegalArgumentException(SecurityConstants.ROLE_MISSING.formatted(route));
+          }
+        });
+  }
+}

@@ -17,8 +17,7 @@ public class SecurityConstants {
   public static final String ROLES = "roles";
   public static final String ROLE_PREFIX = "ROLE_";
 
-  /** A route open to several realm roles lists them with commas: "A,B" means either. */
-  public static final String ROLE_SEPARATOR = ",";
+  public static final String ROLE_MISSING = "Route %s needs at least one realm role, none blank";
 
   /** A rule may start with an HTTP method: "POST /api/v1/registrations/**". */
   public static final String METHOD_SEPARATOR = " ";

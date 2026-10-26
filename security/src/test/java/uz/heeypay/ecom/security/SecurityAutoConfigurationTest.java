@@ -1,5 +1,6 @@
 package uz.heeypay.ecom.security;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -36,7 +37,7 @@ import org.springframework.web.context.WebApplicationContext;
       "ecom.security.public-routes[1]=/docs/**",
       "ecom.security.roles[/admin/**]=ADMIN",
       "ecom.security.roles[/me/**]=PARTNER",
-      "ecom.security.roles[/shared/**]=ADMIN,PARTNER"
+      "ecom.security.roles[/shared/**]=ADMIN, PARTNER"
     })
 class SecurityAutoConfigurationTest {
 
@@ -48,7 +49,9 @@ class SecurityAutoConfigurationTest {
     @Bean
     JwtDecoder jwtDecoder() {
       return token -> {
-        if (!List.of("admin", "partner").contains(token)) throw new BadJwtException("bad token");
+        if (!List.of("admin", "partner", "other").contains(token)) {
+          throw new BadJwtException("bad token");
+        }
         return Jwt.withTokenValue(token)
             .header("alg", "none")
             .claim("preferred_username", token)
@@ -120,7 +123,27 @@ class SecurityAutoConfigurationTest {
         .andExpect(status().isOk());
     mvc.perform(get("/shared/x").header("Authorization", "Bearer partner"))
         .andExpect(status().isOk());
+    mvc.perform(get("/shared/x").header("Authorization", "Bearer other"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     mvc.perform(get("/shared/x")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void aRouteWithABlankRoleStopsStartup() {
+    assertThatThrownBy(
+            () -> new SecurityProperties(List.of(), roles("/x/**", List.of("ADMIN", " "))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("/x/**");
+    assertThatThrownBy(() -> new SecurityProperties(List.of(), roles("/x/**", List.of())))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  private static java.util.LinkedHashMap<String, List<String>> roles(
+      String route, List<String> names) {
+    var roles = new java.util.LinkedHashMap<String, List<String>>();
+    roles.put(route, names);
+    return roles;
   }
 
   @Test

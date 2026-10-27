@@ -16,8 +16,10 @@ lists them in `platform.security.issuers` instead: each issuer's tokens must nam
 come from one of its `clients` (`azp`), and only the realm `roles` listed for it count (one unit's
 Keycloak can't grant another's roles); a token from any other issuer or client is refused (401), and
 each issuer's keys are fetched with its first token. An issuer that can't be reached then answers
-500, as Boot's one issuer does, and is tried again on the next request. `issuers` and Boot's
-`issuer-uri` together stop startup, as do an incomplete issuer and one listed twice.
+500, as Boot's one issuer does, and is tried again on the next request. One issuer may be listed again for other
+clients, each entry with the roles its clients may hold (one unit's Keycloak, a card-number role for
+one caller only). `issuers` and Boot's `issuer-uri` together stop startup, as do an incomplete
+issuer, a client of one issuer listed twice and one issuer with two audiences.
 
 ## Properties
 
@@ -25,7 +27,7 @@ each issuer's keys are fetched with its first token. An issuer that can't be rea
 |---|---|
 | `platform.security.public-routes` | routes anyone may call; a token sent with them is never read. `"POST /api/v1/registrations/**"` limits one to a method |
 | `platform.security.roles` | each route and the realm role it needs, in order, e.g. `"[/api/v1/admin/**]": ADMIN` |
-| `platform.security.issuers[n].uri`, `.audience`, `.clients`, `.roles` | trusted issuers, instead of Boot's one `issuer-uri`: each issuer's URI (its tokens' `iss`), the audience its tokens must name, the clients whose tokens are accepted, and the realm roles it may grant (others in its tokens are dropped); an incomplete one stops startup |
+| `platform.security.issuers[n].uri`, `.audience`, `.clients`, `.roles` | trusted issuers, instead of Boot's one `issuer-uri`: each issuer's URI (its tokens' `iss`), the audience its tokens must name, the clients whose tokens are accepted, and the realm roles they may hold (others in their tokens are dropped); one issuer may have several entries, one per set of clients |
 | `platform.security.service-tokens.groups` | HTTP service groups and the OAuth2 client registration (`spring.security.oauth2.client.registration.<id>`) their calls take a client-credentials token from |
 | `platform.security.service-tokens.connect-timeout` | 5s: a token request's wait for a connection |
 | `platform.security.service-tokens.read-timeout` | 10s: a token request's wait for its answer |

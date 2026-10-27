@@ -76,6 +76,11 @@ class TrustedIssuersIT {
     registry.add("platform.security.issuers[2].audience", () -> "demo-api");
     registry.add("platform.security.issuers[2].clients", () -> "demo-app");
     registry.add("platform.security.issuers[2].roles", () -> "admin");
+    // The same issuer again, for another client that may hold adapter_client.
+    registry.add("platform.security.issuers[3].uri", () -> keycloak() + "/realms/lent");
+    registry.add("platform.security.issuers[3].audience", () -> "demo-api");
+    registry.add("platform.security.issuers[3].clients", () -> "rotating");
+    registry.add("platform.security.issuers[3].roles", () -> "adapter_client");
   }
 
   @Configuration(proxyBeanMethods = false)
@@ -129,6 +134,12 @@ class TrustedIssuersIT {
 
   @Test
   void aRoleTheIssuerMayNotGrantDoesNotCount() {
+    call(token("lent", "demo-app", "app-secret")).expectStatus().isForbidden();
+  }
+
+  @Test
+  void eachClientOfOneIssuerHoldsOnlyItsOwnRoles() {
+    call(token("lent", "rotating", "rotating-secret")).expectStatus().isOk();
     call(token("lent", "demo-app", "app-secret")).expectStatus().isForbidden();
   }
 

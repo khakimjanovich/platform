@@ -19,7 +19,9 @@ public class SecurityConstants {
 
   public static final String ROLE_MISSING = "Route %s needs at least one realm role, none blank";
 
-  /** A trusted issuer without its URI, audience or clients would accept or refuse silently. */
+  /**
+   * A trusted issuer without its URI, audience, clients or roles would accept or refuse silently.
+   */
   public static final String ISSUER_INCOMPLETE =
       "Trusted issuer %s needs its uri, audience, at least one client and the roles it may grant";
 

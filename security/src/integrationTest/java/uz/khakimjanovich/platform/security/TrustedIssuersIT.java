@@ -31,9 +31,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Trusted issuers against a real Keycloak with three realms: two trusted, each for its own clients,
- * and one not. A token is accepted only from a trusted issuer and a client listed for it; the
- * route's role is checked after that.
+ * Trusted issuers against a real Keycloak with four realms: three trusted, each for its own clients
+ * and roles, and one not. A token is accepted only from a trusted issuer and a client listed for
+ * it; only the roles that issuer may grant count, and the route's role is checked after that.
  */
 @SpringBootTest(
     classes = TrustedIssuersIT.App.class,
@@ -54,6 +54,7 @@ class TrustedIssuersIT {
           .withCopyToContainer(realm("demo"), "/opt/keycloak/data/import/demo-realm.json")
           .withCopyToContainer(realm("other"), "/opt/keycloak/data/import/other-realm.json")
           .withCopyToContainer(realm("rogue"), "/opt/keycloak/data/import/rogue-realm.json")
+          .withCopyToContainer(realm("lent"), "/opt/keycloak/data/import/lent-realm.json")
           .withExposedPorts(8080)
           .waitingFor(
               Wait.forHttp("/realms/rogue")
@@ -68,6 +69,13 @@ class TrustedIssuersIT {
     registry.add("platform.security.issuers[1].uri", () -> keycloak() + "/realms/other");
     registry.add("platform.security.issuers[1].audience", () -> "demo-api");
     registry.add("platform.security.issuers[1].clients", () -> "demo-app");
+    registry.add("platform.security.issuers[0].roles", () -> "adapter_client");
+    registry.add("platform.security.issuers[1].roles", () -> "adapter_client");
+    // A trusted issuer that may not grant adapter_client, though its tokens carry it.
+    registry.add("platform.security.issuers[2].uri", () -> keycloak() + "/realms/lent");
+    registry.add("platform.security.issuers[2].audience", () -> "demo-api");
+    registry.add("platform.security.issuers[2].clients", () -> "demo-app");
+    registry.add("platform.security.issuers[2].roles", () -> "admin");
   }
 
   @Configuration(proxyBeanMethods = false)
@@ -117,6 +125,11 @@ class TrustedIssuersIT {
   void aTokenThatOnlyClaimsATrustedIssuerIsA401() {
     var rogue = token("rogue", "demo-app", "app-secret");
     call(withIssuer(rogue, keycloak() + "/realms/demo")).expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void aRoleTheIssuerMayNotGrantDoesNotCount() {
+    call(token("lent", "demo-app", "app-secret")).expectStatus().isForbidden();
   }
 
   @Test

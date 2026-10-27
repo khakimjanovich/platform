@@ -47,13 +47,15 @@ public record SecurityProperties(
 
   /**
    * An issuer whose tokens are accepted: its tokens must name {@code audience} and come from one of
-   * {@code clients} (the {@code azp} claim).
+   * {@code clients} (the {@code azp} claim), and only the realm {@code roles} listed here count;
+   * any other role its tokens carry is dropped, so one unit's Keycloak can't grant another's roles.
    *
    * @param uri the issuer, as its tokens' {@code iss} says, e.g. a Keycloak realm's URL
    * @param audience the audience its tokens must name: this API
    * @param clients the clients whose tokens are accepted
+   * @param roles the realm roles this issuer may grant
    */
-  public record Issuer(String uri, String audience, List<String> clients) {
+  public record Issuer(String uri, String audience, List<String> clients, List<String> roles) {
 
     // Constructor binding passes null for a value not set at all.
     void check() {
@@ -62,7 +64,9 @@ public record SecurityProperties(
           || audience == null
           || audience.isBlank()
           || clients == null
-          || clients.isEmpty()) {
+          || clients.isEmpty()
+          || roles == null
+          || roles.isEmpty()) {
         throw new IllegalArgumentException(SecurityConstants.ISSUER_INCOMPLETE.formatted(uri));
       }
     }

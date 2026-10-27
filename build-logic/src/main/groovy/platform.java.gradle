@@ -119,3 +119,24 @@ def verifyNoWorkarounds = tasks.register('verifyNoWorkarounds') {
     }
 }
 tasks.named('check') { dependsOn verifyNoWorkarounds }
+
+// Null-safe by default: NullAway checks only @NullMarked code, so every package in src/main must be
+// marked, in its package-info.java. `check` fails on a package that isn't.
+def verifyNullMarked = tasks.register('verifyNullMarked') {
+    def sources = fileTree('src/main/java') { include '**/*.java' }
+    def root = projectDir
+    def passed = layout.buildDirectory.file('verifyNullMarked/passed')
+    inputs.files(sources)
+    outputs.file(passed)
+    doLast {
+        def unmarked = sources.files.collect { it.parentFile }.unique().findAll { dir ->
+            def info = new File(dir, 'package-info.java')
+            // Comments don't count: a commented-out annotation marks nothing.
+            def code = info.exists() ? info.text.replaceAll(/(?s)\/\*.*?\*\//, '').replaceAll(/\/\/.*/, '') : ''
+            !(code =~ /@(org\.jspecify\.annotations\.)?NullMarked\b/)
+        }.collect { root.toPath().relativize(it.toPath()).toString() }.sort()
+        if (unmarked) throw new GradleException("Packages without @NullMarked in ${root.name}; add it to their package-info.java:\n  ${unmarked.join('\n  ')}")
+        passed.get().asFile.text = ''
+    }
+}
+tasks.named('check') { dependsOn verifyNullMarked }

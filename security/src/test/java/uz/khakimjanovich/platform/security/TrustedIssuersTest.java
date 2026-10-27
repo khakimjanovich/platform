@@ -38,11 +38,32 @@ class TrustedIssuersTest {
   }
 
   @Test
-  void anIssuerListedTwiceStopsStartup() {
-    var issuer = new SecurityProperties.Issuer(URI, "api", List.of("c"), List.of("r"));
-    assertThatThrownBy(() -> properties(issuer, issuer))
+  void oneIssuerMayBeListedForSeveralClients() {
+    properties(
+        new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),
+        new SecurityProperties.Issuer(URI, "api", List.of("b"), List.of("s")));
+  }
+
+  @Test
+  void aClientOfAnIssuerListedTwiceStopsStartup() {
+    assertThatThrownBy(
+            () ->
+                properties(
+                    new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),
+                    new SecurityProperties.Issuer(URI, "api", List.of("b", "a"), List.of("s"))))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(SecurityConstants.ISSUER_TWICE);
+        .hasMessage(SecurityConstants.ISSUER_CLIENT_TWICE.formatted("a", URI));
+  }
+
+  @Test
+  void anIssuerWithTwoAudiencesStopsStartup() {
+    assertThatThrownBy(
+            () ->
+                properties(
+                    new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),
+                    new SecurityProperties.Issuer(URI, "other", List.of("b"), List.of("s"))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(SecurityConstants.ISSUER_AUDIENCES.formatted(URI));
   }
 
   @Test

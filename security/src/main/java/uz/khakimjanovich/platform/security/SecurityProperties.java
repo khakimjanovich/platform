@@ -1,5 +1,7 @@
 package uz.khakimjanovich.platform.security;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -34,8 +36,23 @@ public record SecurityProperties(
    */
   public SecurityProperties {
     issuers.forEach(Issuer::check);
-    if (issuers.stream().map(Issuer::uri).distinct().count() < issuers.size()) {
-      throw new IllegalArgumentException(SecurityConstants.ISSUER_TWICE);
+    // One issuer may be listed for several clients, each with the roles it may hold; the same
+    // client twice, or one issuer with two audiences, would be unclear.
+    var clients = new HashSet<String>();
+    var audiences = new HashMap<String, String>();
+    for (var issuer : issuers) {
+      for (var client : issuer.clients()) {
+        if (!clients.add(issuer.uri() + " " + client)) {
+          throw new IllegalArgumentException(
+              SecurityConstants.ISSUER_CLIENT_TWICE.formatted(client, issuer.uri()));
+        }
+      }
+      if (!audiences
+          .computeIfAbsent(issuer.uri(), uri -> issuer.audience())
+          .equals(issuer.audience())) {
+        throw new IllegalArgumentException(
+            SecurityConstants.ISSUER_AUDIENCES.formatted(issuer.uri()));
+      }
     }
     roles.forEach(
         (route, names) -> {

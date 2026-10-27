@@ -27,7 +27,13 @@ public class SecurityConstants {
 
   public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
 
-  public static final String ISSUER_TWICE = "A trusted issuer is listed twice";
+  /** One client of one issuer listed in two entries: which roles it may hold would be unclear. */
+  public static final String ISSUER_CLIENT_TWICE = "Client %s of trusted issuer %s is listed twice";
+
+  /**
+   * One issuer's entries naming different audiences: its tokens can name only one this API takes.
+   */
+  public static final String ISSUER_AUDIENCES = "Trusted issuer %s names more than one audience";
 
   /** Trusted issuers replace Boot's one issuer: both set, one would be ignored. */
   public static final String ISSUERS_AND_ISSUER_URI =

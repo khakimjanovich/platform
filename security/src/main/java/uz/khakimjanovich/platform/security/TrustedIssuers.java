@@ -36,8 +36,7 @@ final class TrustedIssuers {
 
   static AuthenticationManagerResolver<HttpServletRequest> resolver(
       List<SecurityProperties.Issuer> issuers, KeycloakJwtConverter converter) {
-    // Per issuer: its audience (one, SecurityProperties checks it) and the roles each client may
-    // hold.
+    // Per issuer: its one audience (SecurityProperties checks it) and each client's roles.
     Map<String, String> audiences = new HashMap<>();
     Map<String, Map<String, Set<String>>> granted = new HashMap<>();
     for (var issuer : issuers) {

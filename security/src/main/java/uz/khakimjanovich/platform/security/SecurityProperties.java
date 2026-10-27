@@ -37,8 +37,7 @@ public record SecurityProperties(
   public SecurityProperties {
     issuers.forEach(Issuer::check);
     // One issuer may be listed for several clients, each with the roles it may hold; the same
-    // client
-    // twice, or one issuer with two audiences, would be unclear.
+    // client twice, or one issuer with two audiences, would be unclear.
     var clients = new HashSet<String>();
     var audiences = new HashMap<String, String>();
     for (var issuer : issuers) {

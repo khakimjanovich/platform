@@ -21,7 +21,7 @@ public class SecurityConstants {
 
   /** A trusted issuer without its URI, audience or clients would accept or refuse silently. */
   public static final String ISSUER_INCOMPLETE =
-      "Trusted issuer %s needs its uri, audience and at least one client";
+      "Trusted issuer %s needs its uri, audience, at least one client and the roles it may grant";
 
   public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
 

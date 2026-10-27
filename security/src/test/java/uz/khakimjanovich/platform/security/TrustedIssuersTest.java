@@ -20,11 +20,16 @@ class TrustedIssuersTest {
   static class App {}
 
   @Test
-  void anIssuerWithoutItsAudienceOrClientsStopsStartup() {
-    assertThatThrownBy(() -> properties(new SecurityProperties.Issuer(URI, "api", List.of())))
+  void anIssuerWithoutItsAudienceClientsOrRolesStopsStartup() {
+    assertThatThrownBy(
+            () -> properties(new SecurityProperties.Issuer(URI, "api", List.of(), List.of("r"))))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(URI);
-    assertThatThrownBy(() -> properties(new SecurityProperties.Issuer(URI, " ", List.of("c"))))
+    assertThatThrownBy(
+            () -> properties(new SecurityProperties.Issuer(URI, " ", List.of("c"), List.of("r"))))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(
+            () -> properties(new SecurityProperties.Issuer(URI, "api", List.of("c"), List.of())))
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> start("platform.security.issuers[0].uri=" + URI))
         .hasRootCauseInstanceOf(IllegalArgumentException.class)
@@ -34,7 +39,7 @@ class TrustedIssuersTest {
 
   @Test
   void anIssuerListedTwiceStopsStartup() {
-    var issuer = new SecurityProperties.Issuer(URI, "api", List.of("c"));
+    var issuer = new SecurityProperties.Issuer(URI, "api", List.of("c"), List.of("r"));
     assertThatThrownBy(() -> properties(issuer, issuer))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(SecurityConstants.ISSUER_TWICE);
@@ -48,6 +53,7 @@ class TrustedIssuersTest {
                     "platform.security.issuers[0].uri=" + URI,
                     "platform.security.issuers[0].audience=api",
                     "platform.security.issuers[0].clients=c",
+                    "platform.security.issuers[0].roles=r",
                     SecurityConstants.BOOT_ISSUER_URI + "=" + URI))
         .rootCause()
         .hasMessage(SecurityConstants.ISSUERS_AND_ISSUER_URI);

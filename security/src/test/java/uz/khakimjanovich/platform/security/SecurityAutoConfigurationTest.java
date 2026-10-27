@@ -132,10 +132,12 @@ class SecurityAutoConfigurationTest {
   @Test
   void aRouteWithABlankRoleStopsStartup() {
     assertThatThrownBy(
-            () -> new SecurityProperties(List.of(), roles("/x/**", List.of("ADMIN", " "))))
+            () ->
+                new SecurityProperties(List.of(), roles("/x/**", List.of("ADMIN", " ")), List.of()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("/x/**");
-    assertThatThrownBy(() -> new SecurityProperties(List.of(), roles("/x/**", List.of())))
+    assertThatThrownBy(
+            () -> new SecurityProperties(List.of(), roles("/x/**", List.of()), List.of()))
         .isInstanceOf(IllegalArgumentException.class);
   }
 

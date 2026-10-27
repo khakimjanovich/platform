@@ -19,6 +19,21 @@ public class SecurityConstants {
 
   public static final String ROLE_MISSING = "Route %s needs at least one realm role, none blank";
 
+  /** A trusted issuer without its URI, audience or clients would accept or refuse silently. */
+  public static final String ISSUER_INCOMPLETE =
+      "Trusted issuer %s needs its uri, audience and at least one client";
+
+  public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
+
+  public static final String ISSUER_TWICE = "A trusted issuer is listed twice";
+
+  /** Trusted issuers replace Boot's one issuer: both set, one would be ignored. */
+  public static final String ISSUERS_AND_ISSUER_URI =
+      "Set platform.security.issuers or spring.security.oauth2.resourceserver.jwt.issuer-uri, not both";
+
+  public static final String BOOT_ISSUER_URI =
+      "spring.security.oauth2.resourceserver.jwt.issuer-uri";
+
   /** A rule may start with an HTTP method: "POST /api/v1/registrations/**". */
   public static final String METHOD_SEPARATOR = " ";
 

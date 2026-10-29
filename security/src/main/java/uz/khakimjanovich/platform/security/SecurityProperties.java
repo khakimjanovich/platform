@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
@@ -18,12 +19,16 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  *     commas: any of them), in order; a route not listed is refused
  * @param issuers trusted issuers, each with the audience its tokens must name and the clients whose
  *     tokens are accepted; empty, Boot's one issuer-uri is used
+ * @param sslBundle the SSL bundle ({@code spring.ssl.bundle.*}) whose trust store the issuers' keys
+ *     are fetched with, for an issuer whose certificate comes from the app's own CA; unset, the
+ *     JVM's trust store
  */
 @ConfigurationProperties(SecurityConstants.PROPERTIES_PREFIX)
 public record SecurityProperties(
     @DefaultValue List<String> publicRoutes,
     @DefaultValue LinkedHashMap<String, List<String>> roles,
-    @DefaultValue List<Issuer> issuers) {
+    @DefaultValue List<Issuer> issuers,
+    @Nullable String sslBundle) {
 
   /**
    * A route with no role, or a blank one, would quietly let nobody in: refused at startup.
@@ -33,9 +38,15 @@ public record SecurityProperties(
    *     commas: any of them), in order; a route not listed is refused
    * @param issuers trusted issuers, each with the audience its tokens must name and the clients
    *     whose tokens are accepted; empty, Boot's one issuer-uri is used
+   * @param sslBundle the SSL bundle the issuers' keys are fetched with; unset, the JVM's trust
+   *     store
    */
   public SecurityProperties {
     issuers.forEach(Issuer::check);
+    // Boot's one issuer-uri fetches its keys itself: a bundle there would quietly be ignored.
+    if (sslBundle != null && issuers.isEmpty()) {
+      throw new IllegalArgumentException(SecurityConstants.SSL_BUNDLE_WITHOUT_ISSUERS);
+    }
     // One issuer may be listed for several clients, each with the roles it may hold; the same
     // client twice, or one issuer with two audiences, would be unclear.
     var clients = new HashSet<String>();

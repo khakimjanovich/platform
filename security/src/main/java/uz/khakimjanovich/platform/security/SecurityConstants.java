@@ -39,6 +39,10 @@ public class SecurityConstants {
   public static final String ISSUERS_AND_ISSUER_URI =
       "Set platform.security.issuers or spring.security.oauth2.resourceserver.jwt.issuer-uri, not both";
 
+  /** The bundle is for the trusted issuers' keys; Boot's one issuer-uri never reads it. */
+  public static final String SSL_BUNDLE_WITHOUT_ISSUERS =
+      "platform.security.ssl-bundle needs platform.security.issuers";
+
   public static final String BOOT_ISSUER_URI =
       "spring.security.oauth2.resourceserver.jwt.issuer-uri";
 

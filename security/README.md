@@ -28,9 +28,11 @@ issuer, a client of one issuer listed twice and one issuer with two audiences.
 | `platform.security.public-routes` | routes anyone may call; a token sent with them is never read. `"POST /api/v1/registrations/**"` limits one to a method |
 | `platform.security.roles` | each route and the realm role it needs, in order, e.g. `"[/api/v1/admin/**]": ADMIN` |
 | `platform.security.issuers[n].uri`, `.audience`, `.clients`, `.roles` | trusted issuers, instead of Boot's one `issuer-uri`: each issuer's URI (its tokens' `iss`), the audience its tokens must name, the clients whose tokens are accepted, and the realm roles they may hold (others in their tokens are dropped); one issuer may have several entries, one per set of clients |
+| `platform.security.ssl-bundle` | an SSL bundle (`spring.ssl.bundle.*`) whose trust store the trusted issuers' keys are fetched with, for a Keycloak whose certificate comes from the app's own CA; unset, the JVM's trust store. Needs `issuers`; a bundle not defined stops startup |
 | `platform.security.service-tokens.groups` | HTTP service groups and the OAuth2 client registration (`spring.security.oauth2.client.registration.<id>`) their calls take a client-credentials token from |
 | `platform.security.service-tokens.connect-timeout` | 5s: a token request's wait for a connection |
 | `platform.security.service-tokens.read-timeout` | 10s: a token request's wait for its answer |
+| `platform.security.service-tokens.ssl-bundle` | an SSL bundle whose trust the token requests go over, as `ssl-bundle` for the keys; unset, the JVM's trust store |
 
 ## Adding to the chain
 
@@ -74,4 +76,5 @@ Without registrations nothing changes. The registration's secret comes from Vaul
   client-credentials tokens: roles, the audience, stale tokens on public routes, a module's
   refusing filter, service tokens with a role check, one retry on 401 and a rotated secret;
   trusted issuers over three realms: a listed client of either trusted issuer, a client not listed,
-  an issuer not trusted, a listed client without the route's role.
+  an issuer not trusted, a listed client without the route's role; a Keycloak over HTTPS only, its
+  certificate from a test CA (`tls/`) the JVM doesn't trust: the token and the keys over the bundles.

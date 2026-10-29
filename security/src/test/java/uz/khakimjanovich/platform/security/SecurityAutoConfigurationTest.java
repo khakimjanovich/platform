@@ -133,12 +133,21 @@ class SecurityAutoConfigurationTest {
   void aRouteWithABlankRoleStopsStartup() {
     assertThatThrownBy(
             () ->
-                new SecurityProperties(List.of(), roles("/x/**", List.of("ADMIN", " ")), List.of()))
+                new SecurityProperties(
+                    List.of(), roles("/x/**", List.of("ADMIN", " ")), List.of(), null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("/x/**");
     assertThatThrownBy(
-            () -> new SecurityProperties(List.of(), roles("/x/**", List.of()), List.of()))
+            () -> new SecurityProperties(List.of(), roles("/x/**", List.of()), List.of(), null))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void anSslBundleWithoutTrustedIssuersStopsStartup() {
+    assertThatThrownBy(
+            () -> new SecurityProperties(List.of(), roles("/x/**", List.of("A")), List.of(), "ca"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(SecurityConstants.SSL_BUNDLE_WITHOUT_ISSUERS);
   }
 
   private static java.util.LinkedHashMap<String, List<String>> roles(

@@ -81,7 +81,7 @@ class TrustedIssuersTest {
   }
 
   private static SecurityProperties properties(SecurityProperties.Issuer... issuers) {
-    return new SecurityProperties(List.of(), new LinkedHashMap<>(), List.of(issuers));
+    return new SecurityProperties(List.of(), new LinkedHashMap<>(), List.of(issuers), null);
   }
 
   private static void start(String... properties) {

@@ -1,9 +1,11 @@
 package uz.khakimjanovich.platform.security;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
@@ -67,7 +69,8 @@ public class SecurityAutoConfiguration {
       ProblemSecurityHandler problems,
       KeycloakJwtConverter converter,
       BearerTokenResolver tokens,
-      Environment environment) {
+      Environment environment,
+      ObjectProvider<SslBundles> bundles) {
     // Spring Security applies the Customizer<HttpSecurity> beans first, and the first matching
     // rule wins: a module's own route rule would silently beat the configured ones.
     if (hasRouteRules(http)) {
@@ -106,8 +109,13 @@ public class SecurityAutoConfiguration {
               if (properties.issuers().isEmpty()) {
                 server.jwt(jwt -> jwt.jwtAuthenticationConverter(converter));
               } else {
+                // A bundle not defined stops startup here (NoSuchSslBundleException).
+                var bundle =
+                    properties.sslBundle() == null
+                        ? null
+                        : bundles.getObject().getBundle(properties.sslBundle());
                 server.authenticationManagerResolver(
-                    TrustedIssuers.resolver(properties.issuers(), converter));
+                    TrustedIssuers.resolver(properties.issuers(), converter, bundle));
               }
             })
         .build();

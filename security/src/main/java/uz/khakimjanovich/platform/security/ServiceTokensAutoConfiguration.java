@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.HttpClientSettings;
+import org.springframework.boot.ssl.SslBundles;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
@@ -31,7 +32,8 @@ import org.springframework.web.client.RestClient;
  * Boot defines none, and Spring Security's default ({@link DefaultOAuth2AuthorizedClientManager})
  * needs a servlet request, which a scheduled job's call has not; so by default the manager is one
  * over the authorized-client store, its token requests going through Boot's {@link
- * RestClient.Builder} (logged, traced, the app's customizers) with their own timeouts.
+ * RestClient.Builder} (logged, traced, the app's customizers) with their own timeouts, and over
+ * {@code platform.security.service-tokens.ssl-bundle}'s trust when it is set.
  */
 @AutoConfiguration(afterName = SecurityConstants.BOOT_OAUTH2_CLIENT)
 @ConditionalOnClass(
@@ -53,7 +55,8 @@ public class ServiceTokensAutoConfiguration {
       ObjectProvider<OAuth2AuthorizedClientManager> managers,
       ObjectProvider<RestClient.Builder> builders,
       ObjectProvider<ClientHttpRequestFactoryBuilder<?>> factories,
-      ObjectProvider<HttpClientSettings> settings) {
+      ObjectProvider<HttpClientSettings> settings,
+      ObjectProvider<SslBundles> bundles) {
     var manager =
         managers
             .orderedStream()
@@ -65,7 +68,7 @@ public class ServiceTokensAutoConfiguration {
                       new AuthorizedClientServiceOAuth2AuthorizedClientManager(
                           registrations, clients);
                   store.setAuthorizedClientProvider(
-                      tokens(builders, factories, settings, properties));
+                      tokens(builders, factories, settings, bundles, properties));
                   return store;
                 });
     return new ServiceTokens(manager, clients, properties.groups());
@@ -76,14 +79,20 @@ public class ServiceTokensAutoConfiguration {
       ObjectProvider<RestClient.Builder> builders,
       ObjectProvider<ClientHttpRequestFactoryBuilder<?>> factories,
       ObjectProvider<HttpClientSettings> settings,
+      ObjectProvider<SslBundles> bundles,
       ServiceTokensProperties properties) {
+    var timed =
+        settings
+            .getIfAvailable(HttpClientSettings::defaults)
+            .withTimeouts(properties.connectTimeout(), properties.readTimeout());
+    // A bundle not defined stops startup here (NoSuchSslBundleException).
     var http =
         factories
             .getIfAvailable(ClientHttpRequestFactoryBuilder::detect)
             .build(
-                settings
-                    .getIfAvailable(HttpClientSettings::defaults)
-                    .withTimeouts(properties.connectTimeout(), properties.readTimeout()));
+                properties.sslBundle() == null
+                    ? timed
+                    : timed.withSslBundle(bundles.getObject().getBundle(properties.sslBundle())));
     var tokenClient = new RestClientClientCredentialsTokenResponseClient();
     tokenClient.setRestClient(
         builders

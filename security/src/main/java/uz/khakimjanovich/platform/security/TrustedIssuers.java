@@ -1,6 +1,7 @@
 package uz.khakimjanovich.platform.security;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.http.HttpClient;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -8,6 +9,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
+import org.springframework.boot.ssl.SslBundle;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.ProviderManager;
@@ -22,20 +26,23 @@ import org.springframework.security.oauth2.server.resource.InvalidBearerTokenExc
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Tokens from several issuers, each with the clients it may send and the roles each client may
  * hold: the token's issuer picks its keys, and a token from any other issuer, for another audience,
  * or from a client not listed is refused (401); a role its client may not hold doesn't count. One
  * issuer may be listed for several clients with different roles. Each issuer's keys are fetched
- * with its first token, not at startup.
+ * with its first token, not at startup, over the given SSL bundle's trust when there is one.
  */
 final class TrustedIssuers {
 
   private TrustedIssuers() {}
 
   static AuthenticationManagerResolver<HttpServletRequest> resolver(
-      List<SecurityProperties.Issuer> issuers, KeycloakJwtConverter converter) {
+      List<SecurityProperties.Issuer> issuers,
+      KeycloakJwtConverter converter,
+      @Nullable SslBundle bundle) {
     // Per issuer: its one audience (SecurityProperties checks it) and each client's roles.
     Map<String, String> audiences = new HashMap<>();
     Map<String, Map<String, Set<String>>> granted = new HashMap<>();
@@ -56,7 +63,8 @@ final class TrustedIssuers {
         (uri, byClient) -> {
           var provider =
               new JwtAuthenticationProvider(
-                  decoder(uri, Objects.requireNonNull(audiences.get(uri)), byClient.keySet()));
+                  decoder(
+                      uri, Objects.requireNonNull(audiences.get(uri)), byClient.keySet(), bundle));
           provider.setJwtAuthenticationConverter(
               jwt -> {
                 var token = converter.convert(jwt);
@@ -83,10 +91,20 @@ final class TrustedIssuers {
         });
   }
 
-  static JwtDecoder decoder(String uri, String audience, Set<String> clients) {
+  static JwtDecoder decoder(
+      String uri, String audience, Set<String> clients, @Nullable SslBundle bundle) {
     return new SupplierJwtDecoder(
         () -> {
-          var decoder = NimbusJwtDecoder.withIssuerLocation(uri).build();
+          var location = NimbusJwtDecoder.withIssuerLocation(uri);
+          // Its discovery document and keys, over the bundle's trust (JDK client: host names are
+          // checked).
+          if (bundle != null) {
+            location.restOperations(
+                new RestTemplate(
+                    new JdkClientHttpRequestFactory(
+                        HttpClient.newBuilder().sslContext(bundle.createSslContext()).build())));
+          }
+          var decoder = location.build();
           decoder.setJwtValidator(
               new DelegatingOAuth2TokenValidator<>(
                   JwtValidators.createDefaultWithIssuer(uri),

@@ -36,6 +36,7 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
-          $(case "$GITHUB_REF_NAME" in *-*-*) echo --prerelease;; esac)
+        # A case inside $( ) is beyond the runner's bash (macOS's 3.2), so the flag is decided first.
+        run: |
+          prerelease=; case "$GITHUB_REF_NAME" in *-*-*) prerelease=--prerelease ;; esac
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes $prerelease

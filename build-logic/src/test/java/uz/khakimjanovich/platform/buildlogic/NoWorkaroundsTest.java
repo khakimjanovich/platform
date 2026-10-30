@@ -103,7 +103,7 @@ class NoWorkaroundsTest {
 
           /** Uses {@code @SuppressWarnings} nowhere else. */
           void plainWords(int i) {
-            String url = "https://bank.uz/api?note=TODO list app";
+            String url = "https://example.com/api?note=TODO list app";
             String order = "Order #" + i + " workaround mode";
             i--;
             String later = "for now";

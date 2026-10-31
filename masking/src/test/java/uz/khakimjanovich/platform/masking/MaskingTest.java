@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** What must never reach a log, in every format the services send. */
@@ -13,12 +14,18 @@ class MaskingTest {
   private static final String JSON = "application/json";
   private static final Masking MASKING = Masking.defaults();
 
+  /** A service whose one-time codes sit beside a card number or under "otp". */
+  private static final Masking SERVICE =
+      new Masking(
+          MaskingRules.defaults()
+              .with(List.of(), List.of("aacct"), List.of(), Map.of("code", List.of("pan", "otp"))));
+
   private static String masked(String body, String type) {
-    return MASKING.body(body.getBytes(StandardCharsets.UTF_8), type);
+    return SERVICE.body(body.getBytes(StandardCharsets.UTF_8), type);
   }
 
   @Test
-  void uzcardJsonKeepsItsErrorsButNotTheCard() {
+  void jsonKeepsItsErrorsButNotTheCard() {
     var request =
         """
         {"method":"cards.new.verify","params":{"card":{"pan":"8600301234567890","expiry":"2812"},\
@@ -41,7 +48,7 @@ class MaskingTest {
   }
 
   @Test
-  void humoXmlItemsAndAMiddlewareCodeNextToAPan() {
+  void xmlNameValuePairsAndACodeNextToAPan() {
     var soap =
         "<ns:Payment><item><name>pan</name><value>9860090101191238</value></item>"
             + "<item><name>expiry</name><value>2905</value></item></ns:Payment>";
@@ -53,7 +60,7 @@ class MaskingTest {
   }
 
   @Test
-  void keycloakFormsAndCredentialsAndAnyStrayCardNumber() {
+  void formsAndTypedCredentialsAndAnyStrayCardNumber() {
     assertThat(
             masked(
                 "grant_type=client_credentials&client_id=demo&client_secret=s3cr3t",
@@ -65,8 +72,10 @@ class MaskingTest {
                     + "\"note\":\"card 8600301234567890\"}",
                 JSON))
         .doesNotContain("hunter2", "8600301234567890");
-    assertThat(masked("{\"type\":\"secret\",\"value\":\"abc\"}", JSON))
-        .as("a client secret, as Keycloak answers it")
+    assertThat(
+            MASKING.body(
+                "{\"type\":\"secret\",\"value\":\"abc\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .as("a typed secret, by the defaults alone")
         .isEqualTo("{\"type\":\"secret\",\"value\":\"***\"}");
     assertThat(masked("<html>502</html>", "text/html")).isEqualTo("<16 bytes, text/html>");
   }
@@ -107,7 +116,8 @@ class MaskingTest {
   void aServiceAddsItsOwnNamesToTheDefaults() {
     var masking =
         new Masking(
-            MaskingRules.defaults().with(List.of("EMBOS_NAME"), List.of("hpan"), List.of()));
+            MaskingRules.defaults()
+                .with(List.of("EMBOS_NAME"), List.of("hpan"), List.of(), Map.of()));
     assertThat(
             masking.body(
                 "{\"EMBOS_NAME\":\"AZIZ K\",\"hpan\":\"abcdef1234\",\"password\":\"x\"}"
@@ -117,5 +127,10 @@ class MaskingTest {
     assertThat(MASKING.body("{\"hpan\":\"abcdef1234\"}".getBytes(StandardCharsets.UTF_8), JSON))
         .as("the defaults alone don't know it")
         .contains("abcdef1234");
+    assertThat(
+            MASKING.body(
+                "{\"pan\":\"x\",\"code\":\"660130\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .as("nor a code beside a card number")
+        .contains("660130");
   }
 }

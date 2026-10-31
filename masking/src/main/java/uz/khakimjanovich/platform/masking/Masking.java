@@ -3,6 +3,7 @@ package uz.khakimjanovich.platform.masking;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -16,9 +17,9 @@ import tools.jackson.databind.node.ObjectNode;
 /**
  * Text as it may be logged. Card numbers keep their first 6 and last 4 digits (PCI DSS 3.4.1),
  * tokens their last 4 characters, and secrets are hidden, by field name ({@link MaskingRules}): in
- * JSON, XML (also Humo's name/value items), forms, URI queries and {@code key=value} text. As a
- * last guard, any run of 13 to 19 digits is treated as a card number. A body of any other type is
- * shown only by its size.
+ * JSON, XML (also {@code <name>}/{@code <value>} pairs), forms, URI queries and {@code key=value}
+ * text. As a last guard, any run of 13 to 19 digits is treated as a card number. A body of any
+ * other type is shown only by its size.
  */
 public final class Masking {
 
@@ -96,20 +97,15 @@ public final class Masking {
 
   private void mask(JsonNode node, String parent) {
     if (node instanceof ObjectNode object) {
-      // A code next to a card number, or under "otp", is a one-time code; every Keycloak credential
-      // or secret is {"type": …, "value": …} ("password", "secret", "otp", …).
-      var oneTimeCode = parent.equals("otp") || object.has("pan");
-      var credential = object.has("type");
-      for (var name : object.propertyNames().stream().toList()) {
+      var names = object.propertyNames().stream().toList();
+      for (var name : names) {
         var value = object.get(name);
         if (!value.isValueNode()) {
           mask(value, name);
           continue;
         }
         var key = name.toLowerCase(Locale.ROOT);
-        if (rules.secretFields().contains(key)
-            || (key.equals("code") && oneTimeCode)
-            || (key.equals("value") && credential)) {
+        if (rules.secretFields().contains(key) || secretHere(key, names, parent)) {
           object.put(name, HIDDEN);
         } else if (rules.tokenFields().contains(key)) object.put(name, last4(value.asString()));
         else if (rules.cardFields().contains(key)) object.put(name, card(value.asString()));
@@ -117,6 +113,16 @@ public final class Masking {
     } else if (node.isArray()) {
       node.forEach(element -> mask(element, parent));
     }
+  }
+
+  /**
+   * A field secret only beside, or under, one of its names in {@link MaskingRules#secretsBeside}.
+   */
+  private boolean secretHere(String key, List<String> siblings, String parent) {
+    var context = rules.secretsBeside().get(key);
+    if (context == null) return false;
+    return context.contains(parent.toLowerCase(Locale.ROOT))
+        || siblings.stream().anyMatch(name -> context.contains(name.toLowerCase(Locale.ROOT)));
   }
 
   private String xml(String text) {

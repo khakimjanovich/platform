@@ -8,10 +8,13 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
@@ -81,11 +84,24 @@ class TrustedIssuersIT {
     registry.add("platform.security.issuers[3].audience", () -> "demo-api");
     registry.add("platform.security.issuers[3].clients", () -> "rotating");
     registry.add("platform.security.issuers[3].roles", () -> "adapter_client");
+    // The other issuer again, for clients known only at runtime (ClientGroups below).
+    registry.add("platform.security.issuers[4].uri", () -> keycloak() + "/realms/other");
+    registry.add("platform.security.issuers[4].audience", () -> "demo-api");
+    registry.add("platform.security.issuers[4].client-group", () -> "late");
+    registry.add("platform.security.issuers[4].roles", () -> "adapter_client");
   }
+
+  /** Group late's clients, as a registry would hold them: changed while the app runs. */
+  static final Set<String> LATE = ConcurrentHashMap.newKeySet();
 
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
   static class App {
+
+    @Bean
+    ClientGroups clientGroups() {
+      return (group, client) -> group.equals("late") && LATE.contains(client);
+    }
 
     @RestController
     static class Endpoints {
@@ -113,6 +129,19 @@ class TrustedIssuersIT {
         .jsonPath("$.code")
         .isEqualTo("UNAUTHORIZED");
     call(token("other", "stranger", "stranger-secret")).expectStatus().isUnauthorized();
+  }
+
+  @Test
+  void aClientOfAGroupIsLetInWhileItIsThereWithoutARestart() {
+    var rotating = token("other", "rotating", "rotating-secret");
+    call(rotating).expectStatus().isUnauthorized();
+    try {
+      LATE.add("rotating");
+      call(rotating).expectStatus().isOk();
+    } finally {
+      LATE.remove("rotating");
+    }
+    call(rotating).expectStatus().isUnauthorized();
   }
 
   @Test

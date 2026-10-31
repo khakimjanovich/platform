@@ -70,7 +70,8 @@ public class SecurityAutoConfiguration {
       KeycloakJwtConverter converter,
       BearerTokenResolver tokens,
       Environment environment,
-      ObjectProvider<SslBundles> bundles) {
+      ObjectProvider<SslBundles> bundles,
+      ObjectProvider<ClientGroups> groups) {
     // Spring Security applies the Customizer<HttpSecurity> beans first, and the first matching
     // rule wins: a module's own route rule would silently beat the configured ones.
     if (hasRouteRules(http)) {
@@ -115,7 +116,8 @@ public class SecurityAutoConfiguration {
                         ? null
                         : bundles.getObject().getBundle(properties.sslBundle());
                 server.authenticationManagerResolver(
-                    TrustedIssuers.resolver(properties.issuers(), converter, bundle));
+                    TrustedIssuers.resolver(
+                        properties.issuers(), converter, bundle, groups.getIfAvailable()));
               }
             })
         .build();

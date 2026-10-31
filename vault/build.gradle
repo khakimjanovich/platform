@@ -1,6 +1,7 @@
 // Secrets from HashiCorp Vault (KV version 2) for any module, through Spring Vault: read only,
 // failing closed, with Vault's own authentication methods (token, AppRole, Kubernetes) and token
-// renewal from Spring Cloud Vault, and a short cache for merchants' signing keys.
+// renewal from Spring Cloud Vault, a short cache for merchants' signing keys, and a client registry
+// read while the app runs.
 plugins {
     id 'platform.library'
     id 'platform.integration-test'

@@ -19,25 +19,14 @@ public class SecurityConstants {
 
   public static final String ROLE_MISSING = "Route %s needs at least one realm role, none blank";
 
-  /**
-   * A trusted issuer without its URI, audience, clients or roles would accept or refuse silently.
-   */
+  /** A trusted issuer without its URI, audience or roles would accept or refuse silently. */
   public static final String ISSUER_INCOMPLETE =
-      "Trusted issuer %s needs its uri, audience, either clients or a client-group (not both) and the roles it may grant";
-
-  /** An issuer's client-group with no {@link ClientGroups} bean would refuse every token. */
-  public static final String CLIENT_GROUPS_MISSING =
-      "Trusted issuer %s names client-group %s, but the app provides no ClientGroups bean";
+      "Trusted issuer %s needs its uri, audience and the roles it may grant";
 
   public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
 
-  /** One client of one issuer listed in two entries: which roles it may hold would be unclear. */
-  public static final String ISSUER_CLIENT_TWICE = "Client %s of trusted issuer %s is listed twice";
-
-  /**
-   * One issuer's entries naming different audiences: its tokens can name only one this API takes.
-   */
-  public static final String ISSUER_AUDIENCES = "Trusted issuer %s names more than one audience";
+  /** One issuer listed twice: which audience and roles count would be unclear. */
+  public static final String ISSUER_TWICE = "Trusted issuer %s is listed twice";
 
   /** Trusted issuers replace Boot's one issuer: both set, one would be ignored. */
   public static final String ISSUERS_AND_ISSUER_URI =

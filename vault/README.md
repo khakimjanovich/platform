@@ -31,8 +31,8 @@ library names no path or field.
 key per client id, its value the client's record: `find(clientId)` and `all()` give them as they are,
 unread (the record's format is the app's, parsed by the app alone). The entry is read once per
 `cache-ttl`; past that a failed read throws, never an old copy, so a client added or taken away in
-Vault counts without a restart. It knows nothing of platform security: an app whose trusted issuer
-has a `client-group` parses its records and declares its own `ClientGroups` bean.
+Vault counts without a restart. It holds an app's own per-client data, never permissions: who may
+call what is granted in Keycloak.
 
 ## Properties
 

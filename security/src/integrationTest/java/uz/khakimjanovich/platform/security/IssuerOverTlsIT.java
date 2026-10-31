@@ -78,7 +78,6 @@ class IssuerOverTlsIT {
     // A list comes whole from one property source.
     registry.add("platform.security.issuers[0].uri", IssuerOverTlsIT::realm);
     registry.add("platform.security.issuers[0].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[0].clients", () -> "demo-app");
     registry.add("platform.security.issuers[0].roles", () -> "adapter_client");
     registry.add(
         "spring.security.oauth2.client.provider.keycloak.token-uri",

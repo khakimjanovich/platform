@@ -20,16 +20,13 @@ class TrustedIssuersTest {
   static class App {}
 
   @Test
-  void anIssuerWithoutItsAudienceClientsOrRolesStopsStartup() {
-    assertThatThrownBy(
-            () -> properties(new SecurityProperties.Issuer(URI, "api", List.of(), List.of("r"))))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessageContaining(URI);
-    assertThatThrownBy(
-            () -> properties(new SecurityProperties.Issuer(URI, " ", List.of("c"), List.of("r"))))
+  void anIssuerWithoutItsUriAudienceOrRolesStopsStartup() {
+    assertThatThrownBy(() -> properties(new SecurityProperties.Issuer(" ", "api", List.of("r"))))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(
-            () -> properties(new SecurityProperties.Issuer(URI, "api", List.of("c"), List.of())))
+    assertThatThrownBy(() -> properties(new SecurityProperties.Issuer(URI, " ", List.of("r"))))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage(SecurityConstants.ISSUER_INCOMPLETE.formatted(URI));
+    assertThatThrownBy(() -> properties(new SecurityProperties.Issuer(URI, "api", List.of())))
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> start("platform.security.issuers[0].uri=" + URI))
         .hasRootCauseInstanceOf(IllegalArgumentException.class)
@@ -38,59 +35,14 @@ class TrustedIssuersTest {
   }
 
   @Test
-  void anIssuerHasEitherClientsOrAClientGroup() {
-    properties(new SecurityProperties.Issuer(URI, "api", null, "callers", List.of("r")));
+  void anIssuerListedTwiceStopsStartup() {
     assertThatThrownBy(
             () ->
                 properties(
-                    new SecurityProperties.Issuer(
-                        URI, "api", List.of("c"), "callers", List.of("r"))))
-        .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(
-            () -> properties(new SecurityProperties.Issuer(URI, "api", null, " ", List.of("r"))))
-        .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void aClientGroupWithoutClientGroupsStopsStartup() {
-    assertThatThrownBy(
-            () ->
-                start(
-                    "platform.security.issuers[0].uri=" + URI,
-                    "platform.security.issuers[0].audience=api",
-                    "platform.security.issuers[0].client-group=callers",
-                    "platform.security.issuers[0].roles=r"))
-        .rootCause()
-        .hasMessage(SecurityConstants.CLIENT_GROUPS_MISSING.formatted(URI, "callers"));
-  }
-
-  @Test
-  void oneIssuerMayBeListedForSeveralClients() {
-    properties(
-        new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),
-        new SecurityProperties.Issuer(URI, "api", List.of("b"), List.of("s")));
-  }
-
-  @Test
-  void aClientOfAnIssuerListedTwiceStopsStartup() {
-    assertThatThrownBy(
-            () ->
-                properties(
-                    new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),
-                    new SecurityProperties.Issuer(URI, "api", List.of("b", "a"), List.of("s"))))
+                    new SecurityProperties.Issuer(URI, "api", List.of("r")),
+                    new SecurityProperties.Issuer(URI, "api", List.of("s"))))
         .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(SecurityConstants.ISSUER_CLIENT_TWICE.formatted("a", URI));
-  }
-
-  @Test
-  void anIssuerWithTwoAudiencesStopsStartup() {
-    assertThatThrownBy(
-            () ->
-                properties(
-                    new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),
-                    new SecurityProperties.Issuer(URI, "other", List.of("b"), List.of("s"))))
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage(SecurityConstants.ISSUER_AUDIENCES.formatted(URI));
+        .hasMessage(SecurityConstants.ISSUER_TWICE.formatted(URI));
   }
 
   @Test
@@ -100,7 +52,6 @@ class TrustedIssuersTest {
                 start(
                     "platform.security.issuers[0].uri=" + URI,
                     "platform.security.issuers[0].audience=api",
-                    "platform.security.issuers[0].clients=c",
                     "platform.security.issuers[0].roles=r",
                     SecurityConstants.BOOT_ISSUER_URI + "=" + URI))
         .rootCause()

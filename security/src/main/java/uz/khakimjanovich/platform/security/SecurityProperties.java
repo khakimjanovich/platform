@@ -1,28 +1,26 @@
 package uz.khakimjanovich.platform.security;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
  * Who may call what. {@code public} routes need no token; {@code signed-in} routes need a valid
  * token and no particular role; {@code roles} maps a route to the realm role it needs, checked in
  * the order written. Any route not listed is refused. A route may start with an HTTP method: {@code
- * "POST /api/v1/registrations/**"}. {@code issuers} trusts tokens from several issuers, each for
- * its own clients, instead of Boot's one {@code issuer-uri}.
+ * "POST /api/v1/registrations/**"}. {@code issuers} trusts tokens from several issuers, each with
+ * the roles it may grant, instead of Boot's one {@code issuer-uri}.
  *
  * @param publicRoutes routes anyone may call, without a token
  * @param signedInRoutes routes any caller with a valid token may call, whatever its roles; the
  *     operation decides what it gives
  * @param roles each route and the realm roles that may call it (one, or several separated by
  *     commas: any of them), in order; a route not listed is refused
- * @param issuers trusted issuers, each with the audience its tokens must name and the clients whose
- *     tokens are accepted; empty, Boot's one issuer-uri is used
+ * @param issuers trusted issuers, each with the audience its tokens must name and the roles it may
+ *     grant; empty, Boot's one issuer-uri is used
  * @param sslBundle the SSL bundle ({@code spring.ssl.bundle.*}) whose trust store the issuers' keys
  *     are fetched with, for an issuer whose certificate comes from the app's own CA; unset, the
  *     JVM's trust store
@@ -42,8 +40,8 @@ public record SecurityProperties(
    * @param signedInRoutes routes any caller with a valid token may call, whatever its roles
    * @param roles each route and the realm roles that may call it (one, or several separated by
    *     commas: any of them), in order; a route not listed is refused
-   * @param issuers trusted issuers, each with the audience its tokens must name and the clients
-   *     whose tokens are accepted; empty, Boot's one issuer-uri is used
+   * @param issuers trusted issuers, each with the audience its tokens must name and the roles it
+   *     may grant; empty, Boot's one issuer-uri is used
    * @param sslBundle the SSL bundle the issuers' keys are fetched with; unset, the JVM's trust
    *     store
    */
@@ -53,22 +51,11 @@ public record SecurityProperties(
     if (sslBundle != null && issuers.isEmpty()) {
       throw new IllegalArgumentException(SecurityConstants.SSL_BUNDLE_WITHOUT_ISSUERS);
     }
-    // One issuer may be listed for several clients, each with the roles it may hold; the same
-    // client twice, or one issuer with two audiences, would be unclear.
-    var clients = new HashSet<String>();
-    var audiences = new HashMap<String, String>();
+    // One entry per issuer: two would make its audience and roles unclear.
+    var uris = new HashSet<String>();
     for (var issuer : issuers) {
-      for (var client : issuer.fixedClients()) {
-        if (!clients.add(issuer.uri() + " " + client)) {
-          throw new IllegalArgumentException(
-              SecurityConstants.ISSUER_CLIENT_TWICE.formatted(client, issuer.uri()));
-        }
-      }
-      if (!audiences
-          .computeIfAbsent(issuer.uri(), uri -> issuer.audience())
-          .equals(issuer.audience())) {
-        throw new IllegalArgumentException(
-            SecurityConstants.ISSUER_AUDIENCES.formatted(issuer.uri()));
+      if (!uris.add(issuer.uri())) {
+        throw new IllegalArgumentException(SecurityConstants.ISSUER_TWICE.formatted(issuer.uri()));
       }
     }
     roles.forEach(
@@ -80,47 +67,23 @@ public record SecurityProperties(
   }
 
   /**
-   * An issuer whose tokens are accepted: its tokens must name {@code audience} and come from one of
-   * its clients (the {@code azp} claim), and only the realm {@code roles} listed here count; any
-   * other role its tokens carry is dropped, so one unit's Keycloak can't grant another's roles. Its
-   * clients are either {@code clients}, fixed, or {@code clientGroup}, a group the app's {@link
-   * ClientGroups} answers for while it runs: exactly one of the two.
+   * An issuer whose tokens are accepted: its tokens must name {@code audience}, and only the realm
+   * {@code roles} listed here count; any other role its tokens carry is dropped, so one unit's
+   * Keycloak can't grant another's roles. Which caller holds which role is granted in that Keycloak
+   * alone.
    *
    * @param uri the issuer, as its tokens' {@code iss} says, e.g. a Keycloak realm's URL
    * @param audience the audience its tokens must name: this API
-   * @param clients the clients whose tokens are accepted, fixed
-   * @param clientGroup the group of clients, known at runtime, whose tokens are accepted
    * @param roles the realm roles this issuer may grant
    */
-  public record Issuer(
-      String uri,
-      String audience,
-      @Nullable List<String> clients,
-      @Nullable String clientGroup,
-      List<String> roles) {
-
-    @ConstructorBinding
-    public Issuer {}
-
-    /** Fixed clients, as before client groups. */
-    public Issuer(String uri, String audience, List<String> clients, List<String> roles) {
-      this(uri, audience, clients, null, roles);
-    }
-
-    /** The fixed clients; none for a client group. */
-    List<String> fixedClients() {
-      return clients == null ? List.of() : clients;
-    }
+  public record Issuer(String uri, String audience, List<String> roles) {
 
     // Constructor binding passes null for a value not set at all.
     void check() {
-      var fixed = clients != null && !clients.isEmpty();
-      var group = clientGroup != null && !clientGroup.isBlank();
       if (uri == null
           || uri.isBlank()
           || audience == null
           || audience.isBlank()
-          || fixed == group
           || roles == null
           || roles.isEmpty()) {
         throw new IllegalArgumentException(SecurityConstants.ISSUER_INCOMPLETE.formatted(uri));

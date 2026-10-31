@@ -2,14 +2,9 @@ package uz.khakimjanovich.platform.security;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.http.HttpClient;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.ssl.SslBundle;
@@ -31,79 +26,39 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtIss
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Tokens from several issuers, each with the clients it may send and the roles each client may
- * hold: the token's issuer picks its keys, and a token from any other issuer, for another audience,
- * or from a client not listed is refused (401); a role its client may not hold doesn't count. One
- * issuer may be listed for several clients with different roles. Each issuer's keys are fetched
- * with its first token, not at startup, over the given SSL bundle's trust when there is one.
+ * Tokens from several issuers, each with the roles it may grant: the token's issuer picks its keys,
+ * and a token from any other issuer or for another audience is refused (401); a role its issuer may
+ * not grant doesn't count. Who holds which role is granted in the issuer (Keycloak) alone. Each
+ * issuer's keys are fetched with its first token, not at startup, over the given SSL bundle's trust
+ * when there is one.
  */
 final class TrustedIssuers {
 
   private TrustedIssuers() {}
 
-  /** One entry of an issuer: which clients (fixed, or a group asked at runtime) and their roles. */
-  private record Entry(Predicate<String> clients, Set<String> roles) {}
-
   static AuthenticationManagerResolver<HttpServletRequest> resolver(
       List<SecurityProperties.Issuer> issuers,
       KeycloakJwtConverter converter,
-      @Nullable SslBundle bundle,
-      @Nullable ClientGroups groups) {
-    // Per issuer: its one audience (SecurityProperties checks it) and its entries.
-    Map<String, String> audiences = new HashMap<>();
-    Map<String, List<Entry>> entries = new HashMap<>();
-    for (var issuer : issuers) {
-      audiences.put(issuer.uri(), issuer.audience());
-      var roles =
-          issuer.roles().stream().map(KeycloakJwtConverter::authority).collect(Collectors.toSet());
-      var group = issuer.clientGroup();
-      Predicate<String> clients;
-      if (group == null) {
-        clients = Set.copyOf(issuer.fixedClients())::contains;
-      } else {
-        if (groups == null) {
-          throw new IllegalStateException(
-              SecurityConstants.CLIENT_GROUPS_MISSING.formatted(issuer.uri(), group));
-        }
-        clients = client -> groups.contains(group, client);
-      }
-      entries
-          .computeIfAbsent(issuer.uri(), uri -> new ArrayList<>())
-          .add(new Entry(clients, roles));
-    }
+      @Nullable SslBundle bundle) {
+    // SecurityProperties checks each issuer is listed once.
     Map<String, AuthenticationManager> managers = new HashMap<>();
-    entries.forEach(
-        (uri, list) -> {
-          // The roles a client may hold: those of every entry it belongs to now; none, refused.
-          Function<@Nullable String, Set<String>> allowed =
-              client ->
-                  client == null
-                      ? Set.of()
-                      : list.stream()
-                          .filter(entry -> entry.clients().test(client))
-                          .flatMap(entry -> entry.roles().stream())
-                          .collect(Collectors.toSet());
-          var provider =
-              new JwtAuthenticationProvider(
-                  decoder(
-                      uri,
-                      Objects.requireNonNull(audiences.get(uri)),
-                      client -> !allowed.apply(client).isEmpty(),
-                      bundle));
-          provider.setJwtAuthenticationConverter(
-              jwt -> {
-                var token = converter.convert(jwt);
-                // Only the roles its client may hold count; any other in the token is dropped. The
-                // decoder already refused a client not listed.
-                var held = allowed.apply(jwt.getClaimAsString(SecurityConstants.CLIENT_CLAIM));
-                var roles =
-                    token.getAuthorities().stream()
-                        .filter(authority -> held.contains(authority.getAuthority()))
-                        .toList();
-                return new JwtAuthenticationToken(jwt, roles, token.getName());
-              });
-          managers.put(uri, new ProviderManager(provider));
-        });
+    for (var issuer : issuers) {
+      var granted =
+          issuer.roles().stream().map(KeycloakJwtConverter::authority).collect(Collectors.toSet());
+      var provider =
+          new JwtAuthenticationProvider(decoder(issuer.uri(), issuer.audience(), bundle));
+      provider.setJwtAuthenticationConverter(
+          jwt -> {
+            var token = converter.convert(jwt);
+            // Only the roles this issuer may grant count; any other in the token is dropped.
+            var roles =
+                token.getAuthorities().stream()
+                    .filter(authority -> granted.contains(authority.getAuthority()))
+                    .toList();
+            return new JwtAuthenticationToken(jwt, roles, token.getName());
+          });
+      managers.put(issuer.uri(), new ProviderManager(provider));
+    }
     return new JwtIssuerAuthenticationManagerResolver(
         uri -> {
           var manager = managers.get(uri);
@@ -114,8 +69,7 @@ final class TrustedIssuers {
         });
   }
 
-  static JwtDecoder decoder(
-      String uri, String audience, Predicate<String> clients, @Nullable SslBundle bundle) {
+  static JwtDecoder decoder(String uri, String audience, @Nullable SslBundle bundle) {
     return new SupplierJwtDecoder(
         () -> {
           var location = NimbusJwtDecoder.withIssuerLocation(uri);
@@ -132,10 +86,7 @@ final class TrustedIssuers {
               new DelegatingOAuth2TokenValidator<>(
                   JwtValidators.createDefaultWithIssuer(uri),
                   new JwtClaimValidator<List<String>>(
-                      JwtClaimNames.AUD, aud -> aud != null && aud.contains(audience)),
-                  new JwtClaimValidator<String>(
-                      SecurityConstants.CLIENT_CLAIM,
-                      client -> client != null && clients.test(client))));
+                      JwtClaimNames.AUD, aud -> aud != null && aud.contains(audience))));
           return decoder;
         });
   }

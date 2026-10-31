@@ -8,13 +8,10 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ClassPathResource;
@@ -34,9 +31,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Trusted issuers against a real Keycloak with four realms: three trusted, each for its own clients
- * and roles, and one not. A token is accepted only from a trusted issuer and a client listed for
- * it; only the roles that issuer may grant count, and the route's role is checked after that.
+ * Trusted issuers against a real Keycloak with four realms: three trusted, each with the roles it
+ * may grant, and one not. A token is accepted only from a trusted issuer and for this audience; any
+ * client the issuer gave the token to counts, only the roles that issuer may grant count, and the
+ * route's role is checked after that.
  */
 @SpringBootTest(
     classes = TrustedIssuersIT.App.class,
@@ -68,40 +66,19 @@ class TrustedIssuersIT {
   static void issuers(DynamicPropertyRegistry registry) {
     registry.add("platform.security.issuers[0].uri", () -> keycloak() + "/realms/demo");
     registry.add("platform.security.issuers[0].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[0].clients", () -> "demo-app,stranger,outsider");
+    registry.add("platform.security.issuers[0].roles", () -> "adapter_client");
     registry.add("platform.security.issuers[1].uri", () -> keycloak() + "/realms/other");
     registry.add("platform.security.issuers[1].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[1].clients", () -> "demo-app");
-    registry.add("platform.security.issuers[0].roles", () -> "adapter_client");
     registry.add("platform.security.issuers[1].roles", () -> "adapter_client");
     // A trusted issuer that may not grant adapter_client, though its tokens carry it.
     registry.add("platform.security.issuers[2].uri", () -> keycloak() + "/realms/lent");
     registry.add("platform.security.issuers[2].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[2].clients", () -> "demo-app");
     registry.add("platform.security.issuers[2].roles", () -> "admin");
-    // The same issuer again, for another client that may hold adapter_client.
-    registry.add("platform.security.issuers[3].uri", () -> keycloak() + "/realms/lent");
-    registry.add("platform.security.issuers[3].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[3].clients", () -> "rotating");
-    registry.add("platform.security.issuers[3].roles", () -> "adapter_client");
-    // The other issuer again, for clients known only at runtime (ClientGroups below).
-    registry.add("platform.security.issuers[4].uri", () -> keycloak() + "/realms/other");
-    registry.add("platform.security.issuers[4].audience", () -> "demo-api");
-    registry.add("platform.security.issuers[4].client-group", () -> "late");
-    registry.add("platform.security.issuers[4].roles", () -> "adapter_client");
   }
-
-  /** Group late's clients, as a registry would hold them: changed while the app runs. */
-  static final Set<String> LATE = ConcurrentHashMap.newKeySet();
 
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
   static class App {
-
-    @Bean
-    ClientGroups clientGroups() {
-      return (group, client) -> group.equals("late") && LATE.contains(client);
-    }
 
     @RestController
     static class Endpoints {
@@ -115,33 +92,11 @@ class TrustedIssuersIT {
   @LocalServerPort int port;
 
   @Test
-  void aListedClientOfEitherTrustedIssuerIsLetIn() {
+  void aClientOfEitherTrustedIssuerWithTheRoleIsLetIn() {
     call(token("demo", "demo-app", "app-secret")).expectStatus().isOk();
     call(token("other", "demo-app", "app-secret")).expectStatus().isOk();
-  }
-
-  @Test
-  void aClientNotListedForItsIssuerIsA401EvenWithTheRole() {
-    call(token("demo", "rotating", "rotating-secret"))
-        .expectStatus()
-        .isUnauthorized()
-        .expectBody()
-        .jsonPath("$.code")
-        .isEqualTo("UNAUTHORIZED");
-    call(token("other", "stranger", "stranger-secret")).expectStatus().isUnauthorized();
-  }
-
-  @Test
-  void aClientOfAGroupIsLetInWhileItIsThereWithoutARestart() {
-    var rotating = token("other", "rotating", "rotating-secret");
-    call(rotating).expectStatus().isUnauthorized();
-    try {
-      LATE.add("rotating");
-      call(rotating).expectStatus().isOk();
-    } finally {
-      LATE.remove("rotating");
-    }
-    call(rotating).expectStatus().isUnauthorized();
+    // No list of clients in the service: the issuer's audience and role are the whole grant.
+    call(token("other", "rotating", "rotating-secret")).expectStatus().isOk();
   }
 
   @Test
@@ -151,7 +106,7 @@ class TrustedIssuersIT {
 
   @Test
   void aTokenForAnotherAudienceIsA401() {
-    // outsider is listed, but its tokens don't name demo-api
+    // outsider's tokens don't name demo-api
     call(token("demo", "outsider", "outsider-secret")).expectStatus().isUnauthorized();
   }
 
@@ -167,13 +122,7 @@ class TrustedIssuersIT {
   }
 
   @Test
-  void eachClientOfOneIssuerHoldsOnlyItsOwnRoles() {
-    call(token("lent", "rotating", "rotating-secret")).expectStatus().isOk();
-    call(token("lent", "demo-app", "app-secret")).expectStatus().isForbidden();
-  }
-
-  @Test
-  void aListedClientWithoutTheRouteRoleIsA403() {
+  void aClientWithoutTheRouteRoleIsA403() {
     call(token("demo", "stranger", "stranger-secret"))
         .expectStatus()
         .isForbidden()

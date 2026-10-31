@@ -10,10 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 /**
- * Each merchant API client's request-signing key, put into Vault by the bank under the configured
- * path (by default {@code merchants/<client id>}, e.g. {@code vault kv put secret/merchants/<client
- * id> signingKey=<base64>}). The app never creates or shows one. Every module that checks or makes
- * a signature reads it here, so the key never travels between modules.
+ * Each API client's request-signing key, put into Vault under the app's configured path and field
+ * (e.g. path {@code clients/%s} and field {@code key}: {@code vault kv put secret/clients/<client
+ * id> key=<base64>}). The app never creates or shows one. Every module that checks or makes a
+ * signature reads it here, so the key never travels between modules.
  *
  * <p>A key read is kept for a short time, so a burst of signed requests reads Vault once per
  * client. A client without a key is never remembered (the bank may add one any moment), and a Vault
@@ -26,6 +26,7 @@ public class SigningKeys {
 
   private final VaultSecrets vault;
   private final String path;
+  private final String field;
   private final Duration ttl;
   private final Clock clock;
   private final Map<String, Cached> cache = new ConcurrentHashMap<>();
@@ -40,9 +41,10 @@ public class SigningKeys {
     }
   }
 
-  public SigningKeys(VaultSecrets vault, String path, Duration ttl, Clock clock) {
+  public SigningKeys(VaultSecrets vault, String path, String field, Duration ttl, Clock clock) {
     this.vault = vault;
     this.path = path;
+    this.field = field;
     this.ttl = ttl;
     this.clock = clock;
   }
@@ -60,7 +62,7 @@ public class SigningKeys {
     var key =
         vault
             .get(path.formatted(clientId))
-            .map(secret -> secret.get(VaultConstants.SIGNING_KEY))
+            .map(secret -> secret.get(field))
             .map(Base64.getDecoder()::decode);
     key.ifPresent(bytes -> cache.put(clientId, new Cached(bytes.clone(), now.plus(ttl))));
     return key;

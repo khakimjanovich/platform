@@ -27,7 +27,7 @@ class SigningKeysTest {
 
   private final VaultSecrets vault = mock(VaultSecrets.class);
   private final TestClock clock = new TestClock();
-  private final SigningKeys keys = new SigningKeys(vault, "merchants/%s", TTL, clock);
+  private final SigningKeys keys = new SigningKeys(vault, "merchants/%s", "signingKey", TTL, clock);
 
   private void vaultHas(byte[] key) {
     when(vault.get("merchants/shop-1"))

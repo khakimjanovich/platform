@@ -19,6 +19,13 @@ adapter include it (`includeBuild`), so Gradle builds these projects in place of
 | [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |
 | [build-logic](build-logic/README.md) | the build conventions |
 
+`config` is the platform's base layer, not a module an app wires in: error, file-store, keycloak,
+observability, otp and persistence each depend on it (`runtimeOnly project(':config')`) and list
+their own defaults in `META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports`.
+Adding one of them brings `config` along, the way a library brings its own dependencies. It holds
+no business code and connects no two libraries; the Composition Root rule (an app wires our modules
+together) is about the others.
+
 `versioning` publishes the catalog (`gradle/libs.versions.toml`) on each release (§Versions). The API
 contracts live in their own repository, [khakimjanovich/contracts](https://github.com/khakimjanovich/contracts),
 released as jars and built with this catalog.

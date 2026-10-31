@@ -26,6 +26,7 @@ issuer, a client of one issuer listed twice and one issuer with two audiences.
 | Property | What |
 |---|---|
 | `platform.security.public-routes` | routes anyone may call; a token sent with them is never read. `"POST /api/v1/registrations/**"` limits one to a method |
+| `platform.security.signed-in-routes` | routes any caller with a valid token may call, whatever its roles; the operation decides what it gives |
 | `platform.security.roles` | each route and the realm role it needs, in order, e.g. `"[/api/v1/admin/**]": ADMIN` |
 | `platform.security.issuers[n].uri`, `.audience`, `.clients`, `.roles` | trusted issuers, instead of Boot's one `issuer-uri`: each issuer's URI (its tokens' `iss`), the audience its tokens must name, the clients whose tokens are accepted, and the realm roles they may hold (others in their tokens are dropped); one issuer may have several entries, one per set of clients |
 | `platform.security.issuers[n].client-group` | instead of `.clients`: a group of clients known only while the app runs, asked of the app's `ClientGroups` bean on each token (the app declares it from its own client records, e.g. read through platform/vault's `ClientRegistry`; neither library knows the other); a client the bean doesn't place in the group, or can't, is refused. An entry has `clients` or `client-group`, not both |
@@ -55,6 +56,8 @@ servlet request, which a job's call has not), its token requests over Boot's `Re
 Without registrations nothing changes. The registration's secret comes from Vault.
 
 `CurrentUser.name()` and `CurrentUser.clientId()` say who is calling, or null without a token.
+`CurrentUser.hasRealmRole("merchant-admin")` asks for a realm role by its Keycloak name, so no app
+rebuilds the `ROLE_*` authority itself.
 
 ## Errors
 

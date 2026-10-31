@@ -8,7 +8,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 /**
  * Who is calling, from the access token: a person's name (an admin's username or a partner's email)
  * and Keycloak id, or the API client a merchant's server uses. Each is {@code null} without a
- * token.
+ * token. {@link #hasRealmRole} is the one place an app asks for a realm role in code.
  */
 @UtilityClass
 public class CurrentUser {
@@ -33,5 +33,14 @@ public class CurrentUser {
             instanceof JwtAuthenticationToken token
         ? token.getToken().getClaimAsString(SecurityConstants.CLIENT_CLAIM)
         : null;
+  }
+
+  /** Whether the caller's token carries this realm role (e.g. {@code merchant-admin}). */
+  public static boolean hasRealmRole(String realmRole) {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) return false;
+    var wanted = KeycloakJwtConverter.authority(realmRole);
+    return authentication.getAuthorities().stream()
+        .anyMatch(authority -> wanted.equals(authority.getAuthority()));
   }
 }

@@ -24,10 +24,11 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 
 /**
  * Adding the library secures the app: every call carries a Keycloak access token except the
- * configured public routes, which ignore any token sent; each listed route needs its role, anything
- * else is refused. 401 and 403 are answered by the app's {@link AuthenticationEntryPoint} and
- * {@link AccessDeniedHandler} beans (the error library's answer with problem details). Boot's
- * {@code spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API.
+ * configured public routes, which ignore any token sent; a signed-in route needs only a valid
+ * token, each listed role route needs its role, anything else is refused. 401 and 403 are answered
+ * by the app's {@link AuthenticationEntryPoint} and {@link AccessDeniedHandler} beans (the error
+ * library's answer with problem details). Boot's {@code
+ * spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API.
  *
  * <p>A module adds to this one chain with a {@code Customizer<HttpSecurity>} bean, which Spring
  * Security applies to the {@link HttpSecurity} before these rules, e.g. {@code http.addFilterAfter(
@@ -92,6 +93,9 @@ public class SecurityAutoConfiguration {
               properties
                   .publicRoutes()
                   .forEach(route -> routes.requestMatchers(route(route)).permitAll());
+              properties
+                  .signedInRoutes()
+                  .forEach(route -> routes.requestMatchers(route(route)).authenticated());
               properties
                   .roles()
                   .forEach(

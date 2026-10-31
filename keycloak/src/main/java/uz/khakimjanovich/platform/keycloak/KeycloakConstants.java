@@ -53,6 +53,7 @@ public class KeycloakConstants {
   public static final String FIRST_NAME = "firstName";
   public static final String REQUIRED_ACTIONS = "requiredActions";
   public static final String UPDATE_PASSWORD = "UPDATE_PASSWORD";
+  public static final String CONFIGURE_TOTP = "CONFIGURE_TOTP";
   public static final String CLIENT_ID = "clientId";
   public static final String PUBLIC_CLIENT = "publicClient";
   public static final String SERVICE_ACCOUNTS_ENABLED = "serviceAccountsEnabled";

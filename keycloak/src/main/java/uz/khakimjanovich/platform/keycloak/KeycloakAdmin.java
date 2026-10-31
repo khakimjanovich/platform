@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.core.ParameterizedTypeReference;
@@ -43,18 +44,32 @@ public class KeycloakAdmin {
     call(() -> keycloak.get().uri(KeycloakConstants.ROLES_ONE).retrieve().toBodilessEntity());
   }
 
-  /** Creates an enabled user with a password; returns its id. */
-  public String createUser(String username, String email, String password, boolean emailVerified) {
-    return call(() -> newUser(username, email, password, emailVerified));
+  /**
+   * Creates an enabled user with a password and the given required actions (Keycloak's names, e.g.
+   * {@link KeycloakConstants#CONFIGURE_TOTP}), done at its next login; returns its id.
+   */
+  public String createUser(
+      String username,
+      String email,
+      String password,
+      boolean emailVerified,
+      List<String> requiredActions) {
+    return call(() -> newUser(username, email, password, emailVerified, requiredActions));
   }
 
-  private String newUser(String username, String email, String password, boolean emailVerified) {
+  private String newUser(
+      String username,
+      String email,
+      String password,
+      boolean emailVerified,
+      List<String> requiredActions) {
     var user =
         Map.of(
             KeycloakConstants.USERNAME, username,
             KeycloakConstants.EMAIL, email,
             KeycloakConstants.ENABLED, true,
             KeycloakConstants.EMAIL_VERIFIED, emailVerified,
+            KeycloakConstants.REQUIRED_ACTIONS, requiredActions,
             KeycloakConstants.CREDENTIALS,
                 List.of(
                     Map.of(
@@ -83,10 +98,15 @@ public class KeycloakAdmin {
 
   /**
    * Creates an enabled user without a password, with the given realm roles, and has Keycloak e-mail
-   * them a link to set one; returns its id. If a role or the e-mail fails, the user is removed
-   * again and the call fails.
+   * them a link to set one and do the given required actions (Keycloak's names, e.g. {@link
+   * KeycloakConstants#CONFIGURE_TOTP}); returns its id. If a role or the e-mail fails, the user is
+   * removed again and the call fails.
    */
-  public String inviteUser(String email, String firstName, String... realmRoles) {
+  public String inviteUser(
+      String email, String firstName, List<String> requiredActions, String... realmRoles) {
+    var actions =
+        Stream.concat(Stream.of(KeycloakConstants.UPDATE_PASSWORD), requiredActions.stream())
+            .toList();
     return call(
         () -> {
           // E-mail verified already: the only way in is the link e-mailed to this address.
@@ -103,14 +123,14 @@ public class KeycloakAdmin {
                   KeycloakConstants.EMAIL_VERIFIED,
                   true,
                   KeycloakConstants.REQUIRED_ACTIONS,
-                  List.of(KeycloakConstants.UPDATE_PASSWORD));
+                  actions);
           var id = idOf(created(user, email).getHeaders().getLocation());
           try {
             for (var role : realmRoles) realmRole(id, role);
             keycloak
                 .put()
                 .uri(KeycloakConstants.USER_ACTIONS_EMAIL, id)
-                .body(List.of(KeycloakConstants.UPDATE_PASSWORD))
+                .body(actions)
                 .retrieve()
                 .toBodilessEntity();
           } catch (RestClientException e) {

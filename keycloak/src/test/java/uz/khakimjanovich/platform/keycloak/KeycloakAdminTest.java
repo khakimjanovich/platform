@@ -14,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -39,13 +40,48 @@ class KeycloakAdminTest {
   @Test
   void anExistingUserIsAConflict() {
     server.expect(requestTo("http://keycloak/users")).andRespond(withStatus(HttpStatus.CONFLICT));
-    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.uz", "pw", false))
+    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.com", "pw", false, List.of()))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> {
               assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT);
               assertThat(e.getParams()).containsExactly("aziz");
             });
+  }
+
+  @Test
+  void aCreatedUserCarriesTheRequiredActionsAsked() {
+    server
+        .expect(requestTo("http://keycloak/users"))
+        .andExpect(
+            content().json("{\"requiredActions\":[\"CONFIGURE_TOTP\"]}", JsonCompareMode.LENIENT))
+        .andRespond(
+            withStatus(HttpStatus.CREATED).location(URI.create("http://keycloak/users/user-1")));
+    assertThat(
+            admin.createUser(
+                "aziz", "aziz@example.com", "pw", false, List.of(KeycloakConstants.CONFIGURE_TOTP)))
+        .isEqualTo("user-1");
+    server.verify();
+  }
+
+  /** The user and the e-mail both carry the password and every action asked. */
+  @Test
+  void anInviteSetsAndEmailsAPasswordAndTheRequiredActionsAsked() {
+    var actions = "[\"UPDATE_PASSWORD\",\"CONFIGURE_TOTP\"]";
+    server
+        .expect(requestTo("http://keycloak/users"))
+        .andExpect(content().json("{\"requiredActions\":" + actions + "}", JsonCompareMode.LENIENT))
+        .andRespond(
+            withStatus(HttpStatus.CREATED).location(URI.create("http://keycloak/users/user-1")));
+    server
+        .expect(requestTo("http://keycloak/users/user-1/execute-actions-email"))
+        .andExpect(content().json(actions, JsonCompareMode.STRICT))
+        .andRespond(withStatus(HttpStatus.NO_CONTENT));
+    assertThat(
+            admin.inviteUser(
+                "aziz@example.com", "Aziza", List.of(KeycloakConstants.CONFIGURE_TOTP)))
+        .isEqualTo("user-1");
+    server.verify();
   }
 
   @Test
@@ -56,12 +92,13 @@ class KeycloakAdminTest {
             withStatus(HttpStatus.CREATED).location(URI.create("http://keycloak/users/user-1")));
     server
         .expect(requestTo("http://keycloak/users/user-1/execute-actions-email"))
+        .andExpect(content().json("[\"UPDATE_PASSWORD\"]", JsonCompareMode.STRICT))
         .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
     server
         .expect(requestTo("http://keycloak/users/user-1"))
         .andExpect(method(HttpMethod.DELETE))
         .andRespond(withStatus(HttpStatus.NO_CONTENT));
-    assertThatThrownBy(() -> admin.inviteUser("aziz@example.uz", "Aziza"))
+    assertThatThrownBy(() -> admin.inviteUser("aziz@example.com", "Aziza", List.of()))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE));
@@ -81,7 +118,8 @@ class KeycloakAdminTest {
         .expect(requestTo("http://keycloak/users/user-1"))
         .andExpect(method(HttpMethod.DELETE))
         .andRespond(withStatus(HttpStatus.NO_CONTENT));
-    assertThatThrownBy(() -> admin.inviteUser("aziz@example.uz", "Aziza", "no-such-role"))
+    assertThatThrownBy(
+            () -> admin.inviteUser("aziz@example.com", "Aziza", List.of(), "no-such-role"))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_REJECTED));
@@ -106,7 +144,7 @@ class KeycloakAdminTest {
   @Test
   void aCreateAnsweredWithoutALocationIsUnavailable() {
     server.expect(requestTo("http://keycloak/users")).andRespond(withStatus(HttpStatus.CREATED));
-    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.uz", "pw", false))
+    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.com", "pw", false, List.of()))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE));
@@ -152,7 +190,7 @@ class KeycloakAdminTest {
             withStatus(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body("{\"errorMessage\":\"invalidPasswordMinLengthMessage\"}"));
-    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.uz", "pw", false))
+    assertThatThrownBy(() -> admin.createUser("aziz", "aziz@example.com", "pw", false, List.of()))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> {
@@ -208,7 +246,7 @@ class KeycloakAdminTest {
                 var id =
                     context
                         .getBean(KeycloakAdmin.class)
-                        .createUser("aziz", "aziz@example.uz", "pw", false);
+                        .createUser("aziz", "aziz@example.com", "pw", false, List.of());
                 assertThat(id).isEqualTo("u-1");
                 assertThat(tokens).hasValue(2);
                 assertThat(users).hasValue(2);

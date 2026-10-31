@@ -26,7 +26,7 @@ class VaultConfigIT {
           .withVaultToken("test")
           .withInitCommand(
               "kv put secret/test"
-                  + " platform.crypto.keys.k1=bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE="
+                  + " platform.example.key=bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE="
                   + " platform.otp.secret=from-vault");
 
   @Configuration(proxyBeanMethods = false)
@@ -46,7 +46,7 @@ class VaultConfigIT {
   void secretsBindLikeAnyProperty() {
     try (var context = app("vault://secret/test").run()) {
       var environment = context.getEnvironment();
-      assertThat(environment.getProperty("platform.crypto.keys.k1"))
+      assertThat(environment.getProperty("platform.example.key"))
           .isEqualTo("bG9jYWwtb25seS1rZXktZm9yLWNhcmQtZGF0YS1rMSE=");
       assertThat(environment.getProperty("platform.otp.secret")).isEqualTo("from-vault");
     }

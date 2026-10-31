@@ -322,7 +322,7 @@ public class KeycloakAdmin {
   }
 
   private static String secretOf(RestClient.RequestHeadersSpec<?> request) {
-    var answer = request.attribute(KeycloakConstants.NO_LOGGED_BODIES, true).retrieve().body(JSON);
+    var answer = request.retrieve().body(JSON);
     return (String) field(answer, KeycloakConstants.VALUE);
   }
 

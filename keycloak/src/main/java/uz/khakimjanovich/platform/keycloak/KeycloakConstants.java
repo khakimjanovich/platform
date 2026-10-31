@@ -25,9 +25,6 @@ public class KeycloakConstants {
   public static final String CLIENT_SECRET = "/clients/{id}/client-secret";
   public static final String INVALID_TOKEN = "error=\"invalid_token\"";
 
-  /** The observability library's HttpClientLogging.NO_BODIES: the secret never reaches a log. */
-  public static final String NO_LOGGED_BODIES = "platform.http-client-logging.no-bodies";
-
   public static final String CLIENT_SERVICE_ACCOUNT = "/clients/{id}/service-account-user";
   public static final String ID = "id";
 

@@ -134,8 +134,8 @@ class KeycloakAdminIT {
     assertThat(clientCredentials(clientId, issued.secret())).isEqualTo(401);
     assertThat(clientCredentials(clientId, rotated)).isEqualTo(200);
     assertThat(output)
-        .as("the calls are logged, the secrets are not")
-        .contains("/client-secret | <not logged>")
+        .as("the calls are logged, the secrets masked")
+        .contains("/client-secret | ")
         .doesNotContain(issued.secret(), rotated);
   }
 

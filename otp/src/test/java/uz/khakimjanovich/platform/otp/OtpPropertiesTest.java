@@ -45,6 +45,8 @@ class OtpPropertiesTest {
                     .hasMessageContaining("length")
                     .hasMessageContaining("ttl")
                     .hasMessageContaining("maxAttempts")
+                    .hasMessageContaining("maxSends")
+                    .hasMessageContaining("sendWindow")
                     .hasMessageContaining("resendAfter")
                     .hasMessageContaining("keyPrefix"));
   }

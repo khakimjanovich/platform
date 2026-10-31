@@ -6,6 +6,9 @@ import lombok.experimental.UtilityClass;
 public class VaultConstants {
 
   public static final String PROPERTIES_PREFIX = "platform.vault";
+  public static final String CLIENTS_PREFIX = "platform.vault.clients";
+  public static final String CLIENTS_CACHE_TTL_MISSING =
+      "platform.vault.clients.cache-ttl is required with platform.vault.clients.path";
   public static final String DEFAULT_MOUNT = "secret";
 
   public static final String SIGNING_KEY_PATH = "merchants/%s";

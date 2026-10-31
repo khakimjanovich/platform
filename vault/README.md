@@ -25,6 +25,12 @@ spring:
 `VaultUnavailableException` if Vault can't be read: it refuses, or it doesn't answer at all.
 `SigningKeys.find(clientId)` gives a merchant's signing key (base64 in Vault), empty if the bank
 hasn't set one or the id can't be a client id (`[A-Za-z0-9_-][A-Za-z0-9._-]*`, never a path).
+`ClientRegistry` (with `platform.vault.clients.path`) is an app's clients kept in one KV entry, one
+key per client id, its value the client's record: `find(clientId)` and `all()` give them as they are,
+unread (the record's format is the app's, parsed by the app alone). The entry is read once per
+`cache-ttl`; past that a failed read throws, never an old copy, so a client added or taken away in
+Vault counts without a restart. It knows nothing of platform security: an app whose trusted issuer
+has a `client-group` parses its records and declares its own `ClientGroups` bean.
 
 ## Properties
 
@@ -33,6 +39,8 @@ hasn't set one or the id can't be a client id (`[A-Za-z0-9_-][A-Za-z0-9._-]*`, n
 | `platform.vault.mount` | `secret` | the KV version 2 mount |
 | `platform.vault.signing-keys.path` | `merchants/%s` | a client's key path, `%s` its client id (required in the path) |
 | `platform.vault.signing-keys.cache-ttl` | 30s | how long a key read is used; a missing key is never kept, and a Vault failure never answers with an old key |
+| `platform.vault.clients.path` | none | the client registry's KV entry; unset, there is no registry |
+| `platform.vault.clients.cache-ttl` | none, required with `path` | how long one read of the registry is used |
 
 Where Vault is and how to sign in are Spring Cloud Vault's `spring.cloud.vault.*`.
 

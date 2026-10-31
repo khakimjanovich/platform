@@ -23,7 +23,11 @@ public class SecurityConstants {
    * A trusted issuer without its URI, audience, clients or roles would accept or refuse silently.
    */
   public static final String ISSUER_INCOMPLETE =
-      "Trusted issuer %s needs its uri, audience, at least one client and the roles it may grant";
+      "Trusted issuer %s needs its uri, audience, either clients or a client-group (not both) and the roles it may grant";
+
+  /** An issuer's client-group with no {@link ClientGroups} bean would refuse every token. */
+  public static final String CLIENT_GROUPS_MISSING =
+      "Trusted issuer %s names client-group %s, but the app provides no ClientGroups bean";
 
   public static final String ISSUER_NOT_TRUSTED = "The token's issuer is not trusted";
 

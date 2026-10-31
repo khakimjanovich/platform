@@ -38,6 +38,33 @@ class TrustedIssuersTest {
   }
 
   @Test
+  void anIssuerHasEitherClientsOrAClientGroup() {
+    properties(new SecurityProperties.Issuer(URI, "api", null, "callers", List.of("r")));
+    assertThatThrownBy(
+            () ->
+                properties(
+                    new SecurityProperties.Issuer(
+                        URI, "api", List.of("c"), "callers", List.of("r"))))
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(
+            () -> properties(new SecurityProperties.Issuer(URI, "api", null, " ", List.of("r"))))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void aClientGroupWithoutClientGroupsStopsStartup() {
+    assertThatThrownBy(
+            () ->
+                start(
+                    "platform.security.issuers[0].uri=" + URI,
+                    "platform.security.issuers[0].audience=api",
+                    "platform.security.issuers[0].client-group=callers",
+                    "platform.security.issuers[0].roles=r"))
+        .rootCause()
+        .hasMessage(SecurityConstants.CLIENT_GROUPS_MISSING.formatted(URI, "callers"));
+  }
+
+  @Test
   void oneIssuerMayBeListedForSeveralClients() {
     properties(
         new SecurityProperties.Issuer(URI, "api", List.of("a"), List.of("r")),

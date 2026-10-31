@@ -62,6 +62,34 @@ class VaultSecretsIT {
   }
 
   @Test
+  void aClientAddedInVaultIsFoundWithoutARestart() throws Exception {
+    withToken("test")
+        .withPropertyValues(
+            "platform.vault.clients.path=registry", "platform.vault.clients.cache-ttl=0s")
+        .run(
+            context -> {
+              var registry = context.getBean(ClientRegistry.class);
+              assertThat(registry.find("caller-a")).isEmpty();
+              var added =
+                  VAULT.execInContainer(
+                      "vault", "kv", "put", "secret/registry", "caller-a=opaque record");
+              assertThat(added.getExitCode()).as(added.getStderr()).isZero();
+              assertThat(registry.find("caller-a")).contains("opaque record");
+            });
+  }
+
+  @Test
+  void aClientRegistryWithoutItsCacheTtlStopsStartup() {
+    withToken("test")
+        .withPropertyValues("platform.vault.clients.path=registry")
+        .run(
+            context ->
+                assertThat(context.getStartupFailure())
+                    .rootCause()
+                    .hasMessage(VaultConstants.CLIENTS_CACHE_TTL_MISSING));
+  }
+
+  @Test
   void appRoleSignsIn() throws Exception {
     put("merchants/shop-2", "approle");
     // The app's role may only read secrets, as in a real Vault.

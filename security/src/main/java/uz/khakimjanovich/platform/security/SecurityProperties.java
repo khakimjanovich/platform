@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
@@ -52,7 +53,7 @@ public record SecurityProperties(
     var clients = new HashSet<String>();
     var audiences = new HashMap<String, String>();
     for (var issuer : issuers) {
-      for (var client : issuer.clients()) {
+      for (var client : issuer.fixedClients()) {
         if (!clients.add(issuer.uri() + " " + client)) {
           throw new IllegalArgumentException(
               SecurityConstants.ISSUER_CLIENT_TWICE.formatted(client, issuer.uri()));
@@ -75,24 +76,46 @@ public record SecurityProperties(
 
   /**
    * An issuer whose tokens are accepted: its tokens must name {@code audience} and come from one of
-   * {@code clients} (the {@code azp} claim), and only the realm {@code roles} listed here count;
-   * any other role its tokens carry is dropped, so one unit's Keycloak can't grant another's roles.
+   * its clients (the {@code azp} claim), and only the realm {@code roles} listed here count; any
+   * other role its tokens carry is dropped, so one unit's Keycloak can't grant another's roles. Its
+   * clients are either {@code clients}, fixed, or {@code clientGroup}, a group the app's {@link
+   * ClientGroups} answers for while it runs: exactly one of the two.
    *
    * @param uri the issuer, as its tokens' {@code iss} says, e.g. a Keycloak realm's URL
    * @param audience the audience its tokens must name: this API
-   * @param clients the clients whose tokens are accepted
+   * @param clients the clients whose tokens are accepted, fixed
+   * @param clientGroup the group of clients, known at runtime, whose tokens are accepted
    * @param roles the realm roles this issuer may grant
    */
-  public record Issuer(String uri, String audience, List<String> clients, List<String> roles) {
+  public record Issuer(
+      String uri,
+      String audience,
+      @Nullable List<String> clients,
+      @Nullable String clientGroup,
+      List<String> roles) {
+
+    @ConstructorBinding
+    public Issuer {}
+
+    /** Fixed clients, as before client groups. */
+    public Issuer(String uri, String audience, List<String> clients, List<String> roles) {
+      this(uri, audience, clients, null, roles);
+    }
+
+    /** The fixed clients; none for a client group. */
+    List<String> fixedClients() {
+      return clients == null ? List.of() : clients;
+    }
 
     // Constructor binding passes null for a value not set at all.
     void check() {
+      var fixed = clients != null && !clients.isEmpty();
+      var group = clientGroup != null && !clientGroup.isBlank();
       if (uri == null
           || uri.isBlank()
           || audience == null
           || audience.isBlank()
-          || clients == null
-          || clients.isEmpty()
+          || fixed == group
           || roles == null
           || roles.isEmpty()) {
         throw new IllegalArgumentException(SecurityConstants.ISSUER_INCOMPLETE.formatted(uri));

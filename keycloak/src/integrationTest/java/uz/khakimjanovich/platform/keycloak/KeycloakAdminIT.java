@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -107,14 +108,14 @@ class KeycloakAdminIT {
 
   @Test
   void aUserGetsAVerifiedEmailAndARoleAndCanLogIn() {
-    var email = UUID.randomUUID() + "@example.uz";
-    var id = admin.createUser(email, email, "correct-horse-42", false);
+    var email = UUID.randomUUID() + "@example.com";
+    var id = admin.createUser(email, email, "correct-horse-42", false, List.of());
     admin.markEmailVerified(id);
     admin.grantRealmRole(id, "partner");
 
     var token = passwordToken(email, "correct-horse-42");
     assertThat(token).isNotBlank();
-    assertThatThrownBy(() -> admin.createUser(email, email, "another-password", false))
+    assertThatThrownBy(() -> admin.createUser(email, email, "another-password", false, List.of()))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT));
@@ -140,8 +141,8 @@ class KeycloakAdminIT {
 
   @Test
   void anInvitedUserGetsAnEmailToSetAPassword() {
-    var email = UUID.randomUUID() + "@example.uz";
-    var id = admin.inviteUser(email, "Aziza", "merchant-operator");
+    var email = UUID.randomUUID() + "@example.com";
+    var id = admin.inviteUser(email, "Aziza", List.of(), "merchant-operator");
 
     var user = adminGet("/users/" + id);
     assertThat(user)
@@ -158,19 +159,53 @@ class KeycloakAdminIT {
     assertThat(adminGetList("/users/" + id + "/role-mappings/realm"))
         .extracting(role -> role.get("name"))
         .contains("merchant-operator");
-    assertThatThrownBy(() -> admin.inviteUser(email, "Aziza"))
+    assertThatThrownBy(() -> admin.inviteUser(email, "Aziza", List.of()))
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(KeycloakExceptionStatus.KEYCLOAK_CONFLICT));
 
     admin.deleteUser(id);
-    assertThat(admin.inviteUser(email, "Aziza")).as("the e-mail is free again").isNotEqualTo(id);
+    assertThat(admin.inviteUser(email, "Aziza", List.of()))
+        .as("the e-mail is free again")
+        .isNotEqualTo(id);
+  }
+
+  @Test
+  void aCreatedUserCarriesTheRequiredActionsAsked() {
+    var email = UUID.randomUUID() + "@example.com";
+    var id =
+        admin.createUser(
+            email, email, "correct-horse-42", true, List.of(KeycloakConstants.CONFIGURE_TOTP));
+
+    assertThat(adminGet("/users/" + id))
+        .containsEntry("requiredActions", List.of(KeycloakConstants.CONFIGURE_TOTP));
+  }
+
+  @Test
+  void anInvitedUserIsEmailedEveryRequiredActionAsked() {
+    var email = UUID.randomUUID() + "@example.com";
+    var id =
+        admin.inviteUser(
+            email, "Aziza", List.of(KeycloakConstants.CONFIGURE_TOTP), "merchant-operator");
+
+    assertThat(adminGet("/users/" + id))
+        .extractingByKey("requiredActions", InstanceOfAssertFactories.LIST)
+        .as("Keycloak keeps them in no particular order")
+        .containsExactlyInAnyOrder(
+            KeycloakConstants.UPDATE_PASSWORD, KeycloakConstants.CONFIGURE_TOTP);
+    var mails =
+        RestClient.create("http://" + MAILPIT.getHost() + ":" + MAILPIT.getMappedPort(8025))
+            .get()
+            .uri("/api/v1/search?query=to:{email}", email)
+            .retrieve()
+            .body(JSON);
+    assertThat(mails).containsEntry("messages_count", 1);
   }
 
   @Test
   void aRoleIsSwappedAndADisabledUserLosesItsSessionsUntilEnabled() {
-    var email = UUID.randomUUID() + "@example.uz";
-    var id = admin.createUser(email, email, "correct-horse-42", true);
+    var email = UUID.randomUUID() + "@example.com";
+    var id = admin.createUser(email, email, "correct-horse-42", true, List.of());
     admin.grantRealmRole(id, "merchant-operator");
     admin.revokeRealmRole(id, "merchant-operator");
     admin.grantRealmRole(id, "merchant-observer");

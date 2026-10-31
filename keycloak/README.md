@@ -1,18 +1,19 @@
 # keycloak
 
-Keycloak's admin API for the few things modules need: users (with a password, a verified email
-and realm roles) and machine-to-machine clients with rotating secrets. It logs in as its own
-confidential client with client credentials, refreshing the token through Spring Security; a token
-Keycloak refuses (`invalid_token`: a restart, a rotated secret) is dropped and the call tried once
-more. Its HTTP client is Boot's (`spring.http.clients.*`: SSL bundle, redirects) with its own
-timeouts.
+Keycloak's admin API for the few things modules need: users (with a password, a verified email,
+realm roles and the required actions the app asks for, e.g. `CONFIGURE_TOTP`) and
+machine-to-machine clients with rotating secrets. It logs in as its own confidential client with
+client credentials, refreshing the token through Spring Security; a token Keycloak refuses
+(`invalid_token`: a restart, a rotated secret) is dropped and the call tried once more. Its HTTP
+client is Boot's (`spring.http.clients.*`: SSL bundle, redirects) with its own timeouts.
 
 ```groovy
 implementation libs.platform.keycloak
 ```
 
 ```java
-var id = keycloak.createUser(email, email, password, false);
+var id = keycloak.createUser(email, email, password, false, List.of(KeycloakConstants.CONFIGURE_TOTP));
+var invited = keycloak.inviteUser(email, firstName, List.of(), "merchant-operator"); // e-mails UPDATE_PASSWORD
 keycloak.markEmailVerified(id);
 keycloak.grantRealmRole(id, "partner");
 var client = keycloak.createConfidentialClient("shop-1", "merchant"); // secret shown only here

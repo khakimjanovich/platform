@@ -21,16 +21,19 @@ Without Redis nothing is issued or accepted, and a warning logs Redis's own mess
 
 ## Properties
 
-| Property | Default | What |
-|---|---|---|
-| `platform.otp.secret` | — | key of the stored hashes; required, from Vault |
-| `platform.otp.length` | 6 | digits in a code, 4 to 10 |
-| `platform.otp.ttl` | 5m | how long a code stays valid |
-| `platform.otp.max-attempts` | 5 | wrong codes allowed per send window |
-| `platform.otp.max-sends` | 3 | codes sent to one subject per send window |
-| `platform.otp.send-window` | 15m | the window sends and wrong codes count in |
-| `platform.otp.resend-after` | 60s | wait between two codes; `0s` for none |
-| `platform.otp.key-prefix` | `otp` | first part of every Redis key |
+None has a default: each is the service's policy, so the service sets every one, and a missing or
+unworkable value stops startup, naming the property.
+
+| Property | What |
+|---|---|
+| `platform.otp.secret` | key of the stored hashes, from Vault |
+| `platform.otp.length` | digits in a code, 4 to 10 |
+| `platform.otp.ttl` | how long a code stays valid |
+| `platform.otp.max-attempts` | wrong codes allowed per send window |
+| `platform.otp.max-sends` | codes sent to one subject per send window |
+| `platform.otp.send-window` | the window sends and wrong codes count in |
+| `platform.otp.resend-after` | wait between two codes; `0s` for none |
+| `platform.otp.key-prefix` | first part of every Redis key |
 
 ## Errors
 

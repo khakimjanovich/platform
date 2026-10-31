@@ -36,12 +36,4 @@ public class OtpConstants {
   public static final String VERIFY_SCRIPT = "otp/verify.lua";
   public static final String SECRET_MISSING =
       "Set platform.otp.secret: codes are stored as HMACs keyed with it.";
-
-  public static final String DEFAULT_LENGTH = "6";
-  public static final String DEFAULT_TTL = "5m";
-  public static final String DEFAULT_MAX_ATTEMPTS = "5";
-  public static final String DEFAULT_MAX_SENDS = "3";
-  public static final String DEFAULT_SEND_WINDOW = "15m";
-  public static final String DEFAULT_RESEND_AFTER = "60s";
-  public static final String DEFAULT_KEY_PREFIX = "otp";
 }

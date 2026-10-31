@@ -5,7 +5,6 @@ import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -56,9 +55,7 @@ final class TrustedIssuers {
     for (var issuer : issuers) {
       audiences.put(issuer.uri(), issuer.audience());
       var roles =
-          issuer.roles().stream()
-              .map(role -> SecurityConstants.ROLE_PREFIX + role.toUpperCase(Locale.ROOT))
-              .collect(Collectors.toSet());
+          issuer.roles().stream().map(KeycloakJwtConverter::authority).collect(Collectors.toSet());
       var group = issuer.clientGroup();
       Predicate<String> clients;
       if (group == null) {

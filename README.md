@@ -14,7 +14,6 @@ adapter include it (`includeBuild`), so Gradle builds these projects in place of
 | [keycloak](keycloak/README.md) | Keycloak's admin API: users, roles, machine clients |
 | [otp](otp/README.md) | one-time codes in Redis |
 | [persistence](persistence/README.md) | each module's own pool, schema, migrations and entity manager |
-| [crypto](crypto/README.md) | AES-256-GCM for card data, with rotation and a blind index |
 | [vault](vault/README.md) | secrets from Vault, and Vault as the source of every secret |
 | [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |
 | [build-logic](build-logic/README.md) | the build conventions |

@@ -93,7 +93,6 @@ platform-otp = { module = "uz.khakimjanovich.platform:otp", version.ref = "platf
 platform-security = { module = "uz.khakimjanovich.platform:security", version.ref = "platform" }
 platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform" }
 platform-persistence = { module = "uz.khakimjanovich.platform:persistence", version.ref = "platform" }
-platform-crypto = { module = "uz.khakimjanovich.platform:crypto", version.ref = "platform" }
 platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "platform" }
 platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform" }
 platform-masking = { module = "uz.khakimjanovich.platform:masking", version.ref = "platform" }

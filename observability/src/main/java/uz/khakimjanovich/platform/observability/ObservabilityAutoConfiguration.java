@@ -41,7 +41,8 @@ public class ObservabilityAutoConfiguration {
             .with(
                 extra.additionalSecretFields(),
                 extra.additionalTokenFields(),
-                extra.additionalCardFields()));
+                extra.additionalCardFields(),
+                extra.additionalSecretsBeside()));
   }
 
   /** The console prints masked messages, and OTLP gets every line through a masking appender. */

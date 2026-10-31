@@ -25,6 +25,7 @@ without them doesn't start (config, "Required settings").
 | `platform.observability.masking.additional-secret-fields` | field names hidden whole, beyond the defaults |
 | `platform.observability.masking.additional-token-fields` | field names cut to their last 4 characters |
 | `platform.observability.masking.additional-card-fields` | field names kept to their first 6 and last 4 digits |
+| `platform.observability.masking.additional-secrets-beside.<field>` | in JSON, `<field>` hidden only beside or under one of these names, e.g. `code: [pan, otp]` |
 
 ## Client calls
 

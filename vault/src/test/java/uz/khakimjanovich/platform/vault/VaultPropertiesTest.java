@@ -8,7 +8,10 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.vault.core.VaultTemplate;
 
-/** A signing-key path without the client id would give every client one key: it stops startup. */
+/**
+ * Signing keys are where the app says, or not at all: a path without the client id would give every
+ * client one key, and a path without its field or cache time stops startup.
+ */
 class VaultPropertiesTest {
 
   private final ApplicationContextRunner runner =
@@ -17,20 +20,59 @@ class VaultPropertiesTest {
           .withBean(VaultTemplate.class, () -> mock(VaultTemplate.class));
 
   @Test
-  void theDefaultPathStarts() {
-    runner.run(context -> assertThat(context).hasSingleBean(SigningKeys.class));
+  void withoutAPathThereAreNoSigningKeys() {
+    runner.run(context -> assertThat(context).doesNotHaveBean(SigningKeys.class));
   }
 
   @Test
-  void aPathWithoutTheClientIdStopsStartup() {
+  void theAppsPathFieldAndCacheTimeStart() {
     runner
-        .withPropertyValues("platform.vault.signing-keys.path=merchants/")
+        .withPropertyValues(
+            "platform.vault.signing-keys.path=clients/%s",
+            "platform.vault.signing-keys.field=key", "platform.vault.signing-keys.cache-ttl=30s")
+        .run(context -> assertThat(context).hasSingleBean(SigningKeys.class));
+  }
+
+  @Test
+  void aPathWithoutItsFieldStopsStartup() {
+    runner
+        .withPropertyValues(
+            "platform.vault.signing-keys.path=clients/%s",
+            "platform.vault.signing-keys.cache-ttl=30s")
         .run(
             context ->
                 assertThat(context)
                     .getFailure()
                     .rootCause()
-                    .hasMessageContaining("signingKeys.path")
+                    .hasMessage(VaultConstants.SIGNING_KEYS_FIELD_MISSING));
+  }
+
+  @Test
+  void aPathWithoutItsCacheTimeStopsStartup() {
+    runner
+        .withPropertyValues(
+            "platform.vault.signing-keys.path=clients/%s", "platform.vault.signing-keys.field=key")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessage(VaultConstants.SIGNING_KEYS_CACHE_TTL_MISSING));
+  }
+
+  @Test
+  void aPathWithoutTheClientIdStopsStartup() {
+    runner
+        .withPropertyValues(
+            "platform.vault.signing-keys.path=clients/",
+            "platform.vault.signing-keys.field=key",
+            "platform.vault.signing-keys.cache-ttl=30s")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("path")
                     .hasMessageContaining("must contain %s"));
   }
 }

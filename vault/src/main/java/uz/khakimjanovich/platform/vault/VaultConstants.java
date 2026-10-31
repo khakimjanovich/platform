@@ -11,9 +11,11 @@ public class VaultConstants {
       "platform.vault.clients.cache-ttl is required with platform.vault.clients.path";
   public static final String DEFAULT_MOUNT = "secret";
 
-  public static final String SIGNING_KEY_PATH = "merchants/%s";
-  public static final String SIGNING_KEY = "signingKey";
-  public static final String DEFAULT_CACHE_TTL = "30s";
+  public static final String SIGNING_KEYS_PREFIX = "platform.vault.signing-keys";
+  public static final String SIGNING_KEYS_FIELD_MISSING =
+      "platform.vault.signing-keys.field is required with platform.vault.signing-keys.path";
+  public static final String SIGNING_KEYS_CACHE_TTL_MISSING =
+      "platform.vault.signing-keys.cache-ttl is required with platform.vault.signing-keys.path";
   public static final String TOKEN_LOOKUP_SELF = "auth/token/lookup-self";
   public static final String HEALTH_INDICATOR_BEAN = "vaultTokenHealthIndicator";
   public static final String HEALTH_ERROR_DETAIL = "error";

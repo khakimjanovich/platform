@@ -165,7 +165,10 @@ class VaultSecretsIT {
   void aKeyRotatedInVaultIsSeenAfterTheCacheTtl() throws Exception {
     put("merchants/shop-3", encode("first"));
     withToken("test")
-        .withPropertyValues("platform.vault.signing-keys.cache-ttl=1s")
+        .withPropertyValues(
+            "platform.vault.signing-keys.path=merchants/%s",
+            "platform.vault.signing-keys.field=signingKey",
+            "platform.vault.signing-keys.cache-ttl=1s")
         .run(
             context -> {
               var keys = context.getBean(SigningKeys.class);

@@ -14,12 +14,16 @@ import org.springframework.vault.core.VaultTemplate;
 
 /**
  * Where Spring Cloud Vault gives the app a {@link VaultTemplate} ({@code spring.cloud.vault.*}),
- * this library gives it {@link VaultSecrets} and {@link SigningKeys}, and, with {@code
- * platform.vault.clients.path}, a {@link ClientRegistry}.
+ * this library gives it {@link VaultSecrets}; with {@code platform.vault.signing-keys.path}, {@link
+ * SigningKeys}; and with {@code platform.vault.clients.path}, a {@link ClientRegistry}.
  */
 @AutoConfiguration(afterName = VaultConstants.SPRING_CLOUD_VAULT)
 @ConditionalOnBean(VaultTemplate.class)
-@EnableConfigurationProperties({VaultProperties.class, VaultClientsProperties.class})
+@EnableConfigurationProperties({
+  VaultProperties.class,
+  VaultSigningKeysProperties.class,
+  VaultClientsProperties.class
+})
 public class VaultAutoConfiguration {
 
   @Bean
@@ -30,9 +34,15 @@ public class VaultAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  SigningKeys signingKeys(VaultSecrets vaultSecrets, VaultProperties properties) {
-    var keys = properties.signingKeys();
-    return new SigningKeys(vaultSecrets, keys.path(), keys.cacheTtl(), Clock.systemUTC());
+  @ConditionalOnProperty(prefix = VaultConstants.SIGNING_KEYS_PREFIX, name = "path")
+  SigningKeys signingKeys(VaultSecrets vaultSecrets, VaultSigningKeysProperties properties) {
+    var field =
+        Objects.requireNonNull(properties.field(), VaultConstants.SIGNING_KEYS_FIELD_MISSING);
+    var ttl =
+        Objects.requireNonNull(
+            properties.cacheTtl(), VaultConstants.SIGNING_KEYS_CACHE_TTL_MISSING);
+    return new SigningKeys(
+        vaultSecrets, Objects.requireNonNull(properties.path()), field, ttl, Clock.systemUTC());
   }
 
   @Bean

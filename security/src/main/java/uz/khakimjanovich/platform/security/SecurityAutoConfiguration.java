@@ -15,23 +15,25 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import uz.khakimjanovich.platform.error.ProblemSecurityHandler;
 
 /**
  * Adding the library secures the app: every call carries a Keycloak access token except the
  * configured public routes, which ignore any token sent; each listed route needs its role, anything
- * else is refused, and 401 and 403 answer with problem details. Boot's {@code
- * spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API.
+ * else is refused. 401 and 403 are answered by the app's {@link AuthenticationEntryPoint} and
+ * {@link AccessDeniedHandler} beans (the error library's answer with problem details). Boot's
+ * {@code spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API.
  *
  * <p>A module adds to this one chain with a {@code Customizer<HttpSecurity>} bean, which Spring
  * Security applies to the {@link HttpSecurity} before these rules, e.g. {@code http.addFilterAfter(
- * filter, BearerTokenAuthenticationFilter.class)}; to refuse a request it hands the {@link
- * ProblemSecurityHandler} the reason, so the refusal is a problem detail. Filters only: the route
- * rules stay here. An app that needs a different chain defines its own {@link SecurityFilterChain}.
+ * filter, BearerTokenAuthenticationFilter.class)}; to refuse a request it hands the app's entry
+ * point or access-denied handler the reason. Filters only: the route rules stay here. An app that
+ * needs a different chain defines its own {@link SecurityFilterChain}.
  */
 @AutoConfiguration(
     beforeName = {
@@ -66,7 +68,8 @@ public class SecurityAutoConfiguration {
   SecurityFilterChain apiSecurity(
       HttpSecurity http,
       SecurityProperties properties,
-      ProblemSecurityHandler problems,
+      AuthenticationEntryPoint unauthenticated,
+      AccessDeniedHandler denied,
       KeycloakJwtConverter converter,
       BearerTokenResolver tokens,
       Environment environment,
@@ -99,13 +102,13 @@ public class SecurityAutoConfiguration {
               routes.anyRequest().denyAll();
             })
         .exceptionHandling(
-            errors -> errors.authenticationEntryPoint(problems).accessDeniedHandler(problems))
+            errors -> errors.authenticationEntryPoint(unauthenticated).accessDeniedHandler(denied))
         .oauth2ResourceServer(
             server -> {
               server
                   .bearerTokenResolver(tokens)
-                  .authenticationEntryPoint(problems)
-                  .accessDeniedHandler(problems);
+                  .authenticationEntryPoint(unauthenticated)
+                  .accessDeniedHandler(denied);
               // Several trusted issuers, or Boot's one issuer-uri.
               if (properties.issuers().isEmpty()) {
                 server.jwt(jwt -> jwt.jwtAuthenticationConverter(converter));

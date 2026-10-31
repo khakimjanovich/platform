@@ -1,5 +1,5 @@
 // One way to secure every app: Keycloak access tokens, realm roles, route rules from configuration,
-// and 401/403 as problem details.
+// 401/403 answered by the app's handlers.
 plugins {
     id 'platform.library'
     id 'platform.integration-test'
@@ -7,7 +7,6 @@ plugins {
 
 dependencies {
     api platform(libs.spring.boot.bom)
-    api project(":error")
     api libs.starter.oauth2.resource.server
     implementation libs.spring.boot.autoconfigure
     compileOnly libs.spring.security.oauth2.client // service tokens, only in an app with OAuth2 clients
@@ -15,6 +14,7 @@ dependencies {
     compileOnly libs.jakarta.servlet // provided by the app's web server
 
     testImplementation libs.starter.webmvc
+    testImplementation project(':error') // the app's 401/403 handlers in tests
     testImplementation libs.spring.security.test
     testImplementation libs.starter.oauth2.client
     testImplementation libs.spring.boot.http.client

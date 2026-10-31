@@ -58,7 +58,10 @@ Without registrations nothing changes. The registration's secret comes from Vaul
 
 ## Errors
 
-`UNAUTHORIZED` (401) and `FORBIDDEN` (403), defined by the error library.
+401 and 403 are answered by the app's `AuthenticationEntryPoint` and `AccessDeniedHandler` beans;
+the library has none of its own and doesn't depend on error. Without them the app doesn't start. With
+the error library on the classpath, its `ProblemSecurityHandler` is both, so the answers are
+`UNAUTHORIZED` (401) and `FORBIDDEN` (403) problem details.
 
 ## Beans you can replace
 

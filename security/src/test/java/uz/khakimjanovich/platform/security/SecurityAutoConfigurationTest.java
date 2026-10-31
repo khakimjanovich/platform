@@ -35,6 +35,7 @@ import org.springframework.web.context.WebApplicationContext;
       "spring.config.import=classpath:properties/error-exception.yaml",
       "platform.security.public-routes[0]=POST /signup",
       "platform.security.public-routes[1]=/docs/**",
+      "platform.security.signed-in-routes[0]=/session",
       "platform.security.roles[/admin/**]=ADMIN",
       "platform.security.roles[/me/**]=PARTNER",
       "platform.security.roles[/shared/**]=ADMIN, PARTNER"
@@ -69,7 +70,7 @@ class SecurityAutoConfigurationTest {
         return "ok";
       }
 
-      @GetMapping({"/signup", "/admin/x", "/me/x", "/shared/x", "/other", "/docs/x"})
+      @GetMapping({"/signup", "/admin/x", "/me/x", "/shared/x", "/other", "/docs/x", "/session"})
       String any() {
         return "ok";
       }
@@ -109,6 +110,14 @@ class SecurityAutoConfigurationTest {
   }
 
   @Test
+  void aSignedInRouteNeedsATokenButNoRole() throws Exception {
+    mvc.perform(get("/session").header("Authorization", "Bearer other")).andExpect(status().isOk());
+    mvc.perform(get("/session")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/session").header("Authorization", "Bearer garbage"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void eachRouteNeedsItsRole() throws Exception {
     mvc.perform(get("/admin/x").header("Authorization", "Bearer admin")).andExpect(status().isOk());
     mvc.perform(get("/me/x").header("Authorization", "Bearer partner")).andExpect(status().isOk());
@@ -134,18 +143,22 @@ class SecurityAutoConfigurationTest {
     assertThatThrownBy(
             () ->
                 new SecurityProperties(
-                    List.of(), roles("/x/**", List.of("ADMIN", " ")), List.of(), null))
+                    List.of(), List.of(), roles("/x/**", List.of("ADMIN", " ")), List.of(), null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("/x/**");
     assertThatThrownBy(
-            () -> new SecurityProperties(List.of(), roles("/x/**", List.of()), List.of(), null))
+            () ->
+                new SecurityProperties(
+                    List.of(), List.of(), roles("/x/**", List.of()), List.of(), null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
   void anSslBundleWithoutTrustedIssuersStopsStartup() {
     assertThatThrownBy(
-            () -> new SecurityProperties(List.of(), roles("/x/**", List.of("A")), List.of(), "ca"))
+            () ->
+                new SecurityProperties(
+                    List.of(), List.of(), roles("/x/**", List.of("A")), List.of(), "ca"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage(SecurityConstants.SSL_BUNDLE_WITHOUT_ISSUERS);
   }

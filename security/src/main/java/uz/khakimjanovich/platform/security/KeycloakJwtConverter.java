@@ -35,11 +35,14 @@ public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticati
       return List.of();
     }
     return roles.stream()
-        .map(
-            role ->
-                (GrantedAuthority)
-                    new SimpleGrantedAuthority(
-                        SecurityConstants.ROLE_PREFIX + role.toString().toUpperCase(Locale.ROOT)))
+        .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(authority(role.toString())))
         .toList();
+  }
+
+  /**
+   * The authority a realm role becomes, e.g. {@code merchant-admin} → {@code ROLE_MERCHANT-ADMIN}.
+   */
+  static String authority(String realmRole) {
+    return SecurityConstants.ROLE_PREFIX + realmRole.toUpperCase(Locale.ROOT);
   }
 }

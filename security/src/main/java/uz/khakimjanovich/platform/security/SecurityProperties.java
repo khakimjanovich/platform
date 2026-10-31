@@ -10,12 +10,15 @@ import org.springframework.boot.context.properties.bind.ConstructorBinding;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
- * Who may call what. {@code public} routes need no token; {@code roles} maps a route to the realm
- * role it needs, checked in the order written. Any route not listed is refused. A route may start
- * with an HTTP method: {@code "POST /api/v1/registrations/**"}. {@code issuers} trusts tokens from
- * several issuers, each for its own clients, instead of Boot's one {@code issuer-uri}.
+ * Who may call what. {@code public} routes need no token; {@code signed-in} routes need a valid
+ * token and no particular role; {@code roles} maps a route to the realm role it needs, checked in
+ * the order written. Any route not listed is refused. A route may start with an HTTP method: {@code
+ * "POST /api/v1/registrations/**"}. {@code issuers} trusts tokens from several issuers, each for
+ * its own clients, instead of Boot's one {@code issuer-uri}.
  *
  * @param publicRoutes routes anyone may call, without a token
+ * @param signedInRoutes routes any caller with a valid token may call, whatever its roles; the
+ *     operation decides what it gives
  * @param roles each route and the realm roles that may call it (one, or several separated by
  *     commas: any of them), in order; a route not listed is refused
  * @param issuers trusted issuers, each with the audience its tokens must name and the clients whose
@@ -27,6 +30,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties(SecurityConstants.PROPERTIES_PREFIX)
 public record SecurityProperties(
     @DefaultValue List<String> publicRoutes,
+    @DefaultValue List<String> signedInRoutes,
     @DefaultValue LinkedHashMap<String, List<String>> roles,
     @DefaultValue List<Issuer> issuers,
     @Nullable String sslBundle) {
@@ -35,6 +39,7 @@ public record SecurityProperties(
    * A route with no role, or a blank one, would quietly let nobody in: refused at startup.
    *
    * @param publicRoutes routes anyone may call, without a token
+   * @param signedInRoutes routes any caller with a valid token may call, whatever its roles
    * @param roles each route and the realm roles that may call it (one, or several separated by
    *     commas: any of them), in order; a route not listed is refused
    * @param issuers trusted issuers, each with the audience its tokens must name and the clients

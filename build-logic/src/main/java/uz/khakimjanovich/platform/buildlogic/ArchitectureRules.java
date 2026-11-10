@@ -62,7 +62,7 @@ import java.util.Set;
  *       tree ({@code ObjectNode}, {@code ArrayNode}, {@code JsonNodeFactory}).
  *   <li>Errors, in a service only: outside {@code config} and {@code property} (which fail at
  *       startup, before any request) the only throwable a class creates is the error library's
- *       {@code GeneralException}: a problem detail with a stable code. A case that cannot happen is
+ *       {@code GeneralException} or a subclass of it: a problem detail with a stable code. A case that cannot happen is
  *       {@code GeneralException(INTERNAL_ERROR)}.
  * </ul>
  *
@@ -207,7 +207,7 @@ public final class ArchitectureRules {
    * A new throwable other than GeneralException. A class the build cannot see the hierarchy of (a
    * library's) counts when its name says it is an exception or an error. A private constructor's
    * guard (Lombok's @UtilityClass: "this class is never made") is not an error path and passes, nor
-   * is what the compiler puts in an exhaustive switch.
+   * is what the compiler puts in an exhaustive switch. A subclass of GeneralException is one.
    */
   private static final DescribedPredicate<JavaConstructorCall> NEW_OTHER_THROWABLE =
       describe(
@@ -218,6 +218,13 @@ public final class ArchitectureRules {
               return false;
             }
             var owner = call.getTargetOwner();
+            // A GeneralException or its subclass builds its own superclass: super(...).
+            var from = origin.getOwner();
+            if (origin.isConstructor()
+                && from.isAssignableTo(GENERAL_EXCEPTION)
+                && from.getRawSuperclass().map(owner::equals).orElse(false)) {
+              return false;
+            }
             if (COMPILER_THROWABLES.contains(owner.getName())) {
               return false;
             }

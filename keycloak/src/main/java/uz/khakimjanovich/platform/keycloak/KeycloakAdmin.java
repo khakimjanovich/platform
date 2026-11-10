@@ -2,13 +2,11 @@ package uz.khakimjanovich.platform.keycloak;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +14,16 @@ import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
+import tools.jackson.databind.node.ObjectNode;
 import uz.khakimjanovich.platform.error.GeneralException;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Client;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Credential;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Enabled;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Failure;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Identified;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Role;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Secret;
+import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.User;
 
 /**
  * Keycloak's admin API, for the few things our modules need. Every failure is a {@link
@@ -27,9 +34,6 @@ import uz.khakimjanovich.platform.error.GeneralException;
  */
 @RequiredArgsConstructor
 public class KeycloakAdmin {
-
-  private static final ParameterizedTypeReference<Map<String, Object>> JSON =
-      new ParameterizedTypeReference<>() {};
 
   private final RestClient keycloak;
 
@@ -64,25 +68,18 @@ public class KeycloakAdmin {
       boolean emailVerified,
       List<String> requiredActions) {
     var user =
-        Map.of(
-            KeycloakConstants.USERNAME, username,
-            KeycloakConstants.EMAIL, email,
-            KeycloakConstants.ENABLED, true,
-            KeycloakConstants.EMAIL_VERIFIED, emailVerified,
-            KeycloakConstants.REQUIRED_ACTIONS, requiredActions,
-            KeycloakConstants.CREDENTIALS,
-                List.of(
-                    Map.of(
-                        KeycloakConstants.TYPE,
-                        KeycloakConstants.PASSWORD,
-                        KeycloakConstants.VALUE,
-                        password,
-                        KeycloakConstants.TEMPORARY,
-                        false)));
+        new User(
+            username,
+            email,
+            null,
+            true,
+            emailVerified,
+            requiredActions,
+            List.of(new Credential(KeycloakConstants.PASSWORD, password, false)));
     return idOf(created(user, username).getHeaders().getLocation());
   }
 
-  private ResponseEntity<Void> created(Map<String, Object> user, String username) {
+  private ResponseEntity<Void> created(User user, String username) {
     return keycloak
         .post()
         .uri(KeycloakConstants.USERS)
@@ -110,20 +107,7 @@ public class KeycloakAdmin {
     return call(
         () -> {
           // E-mail verified already: the only way in is the link e-mailed to this address.
-          var user =
-              Map.of(
-                  KeycloakConstants.USERNAME,
-                  email,
-                  KeycloakConstants.EMAIL,
-                  email,
-                  KeycloakConstants.FIRST_NAME,
-                  firstName,
-                  KeycloakConstants.ENABLED,
-                  true,
-                  KeycloakConstants.EMAIL_VERIFIED,
-                  true,
-                  KeycloakConstants.REQUIRED_ACTIONS,
-                  actions);
+          var user = new User(email, email, firstName, true, true, actions, null);
           var id = idOf(created(user, email).getHeaders().getLocation());
           try {
             for (var role : realmRoles) realmRole(id, role);
@@ -183,7 +167,7 @@ public class KeycloakAdmin {
     return keycloak
         .put()
         .uri(KeycloakConstants.USER, userId)
-        .body(Map.of(KeycloakConstants.ENABLED, enabled))
+        .body(new Enabled(enabled))
         .retrieve()
         .toBodilessEntity();
   }
@@ -193,9 +177,14 @@ public class KeycloakAdmin {
         () -> {
           // Keycloak replaces the whole user on update, so change the field on the full
           // representation.
+          // The whole user as Keycloak sent it, every field kept: a tree, not a DTO.
           var user =
               Objects.requireNonNull(
-                  keycloak.get().uri(KeycloakConstants.USER, userId).retrieve().body(JSON));
+                  keycloak
+                      .get()
+                      .uri(KeycloakConstants.USER, userId)
+                      .retrieve()
+                      .body(ObjectNode.class));
           user.put(KeycloakConstants.EMAIL_VERIFIED, true);
           return keycloak
               .put()
@@ -221,9 +210,10 @@ public class KeycloakAdmin {
                 .toBodilessEntity());
   }
 
-  private Map<String, Object> roleOf(String role) {
-    return Objects.requireNonNull(
-        keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(JSON));
+  private Role roleOf(String role) {
+    var found = keycloak.get().uri(KeycloakConstants.ROLE, role).retrieve().body(Role.class);
+    required(found == null ? null : found.id(), KeycloakConstants.ID);
+    return Objects.requireNonNull(found);
   }
 
   private Object realmRole(String userId, String role) {
@@ -244,14 +234,7 @@ public class KeycloakAdmin {
   }
 
   private IssuedClient newClient(String clientId, String... realmRoles) {
-    var client =
-        Map.of(
-            KeycloakConstants.CLIENT_ID, clientId,
-            KeycloakConstants.ENABLED, true,
-            KeycloakConstants.PUBLIC_CLIENT, false,
-            KeycloakConstants.SERVICE_ACCOUNTS_ENABLED, true,
-            KeycloakConstants.STANDARD_FLOW_ENABLED, false,
-            KeycloakConstants.DIRECT_ACCESS_GRANTS_ENABLED, false);
+    var client = new Client(clientId, true, false, true, false, false);
     var created =
         keycloak
             .post()
@@ -266,15 +249,13 @@ public class KeycloakAdmin {
             .toBodilessEntity();
     var id = idOf(created.getHeaders().getLocation());
     if (realmRoles.length > 0) {
-      var serviceAccount =
-          (String)
-              field(
-                  keycloak
-                      .get()
-                      .uri(KeycloakConstants.CLIENT_SERVICE_ACCOUNT, id)
-                      .retrieve()
-                      .body(JSON),
-                  KeycloakConstants.ID);
+      var account =
+          keycloak
+              .get()
+              .uri(KeycloakConstants.CLIENT_SERVICE_ACCOUNT, id)
+              .retrieve()
+              .body(Identified.class);
+      var serviceAccount = required(account == null ? null : account.id(), KeycloakConstants.ID);
       for (var role : realmRoles) realmRole(serviceAccount, role);
     }
     return new IssuedClient(id, secretOf(keycloak.get().uri(KeycloakConstants.CLIENT_SECRET, id)));
@@ -311,19 +292,18 @@ public class KeycloakAdmin {
   /** Keycloak's {@code errorMessage} (admin API) or {@code error_description} (token endpoint). */
   private static @Nullable String errorMessage(RestClientResponseException e) {
     try {
-      var body = e.getResponseBodyAs(JSON);
+      var body = e.getResponseBodyAs(Failure.class);
       if (body == null) return e.getStatusText();
-      var message =
-          body.getOrDefault(KeycloakConstants.ERROR_MESSAGE, body.get(KeycloakConstants.ERROR));
-      return message == null ? e.getStatusText() : message.toString();
+      var message = body.errorMessage() != null ? body.errorMessage() : body.error();
+      return message == null ? e.getStatusText() : message;
     } catch (RuntimeException notJson) {
       return e.getStatusText();
     }
   }
 
   private static String secretOf(RestClient.RequestHeadersSpec<?> request) {
-    var answer = request.retrieve().body(JSON);
-    return (String) field(answer, KeycloakConstants.VALUE);
+    var answer = request.retrieve().body(Secret.class);
+    return required(answer == null ? null : answer.value(), KeycloakConstants.VALUE);
   }
 
   /** An answer Keycloak never gives when it works: as good as no answer. */
@@ -332,8 +312,7 @@ public class KeycloakAdmin {
   }
 
   /** A field Keycloak always sends; a body without it is a broken answer. */
-  private static Object field(@Nullable Map<String, Object> body, String name) {
-    var value = body == null ? null : body.get(name);
+  private static String required(@Nullable String value, String name) {
     if (value == null) throw broken(KeycloakConstants.MISSING_FIELD.formatted(name));
     return value;
   }

@@ -102,6 +102,106 @@ class ArchitectureTest {
   }
 
   @Test
+  void aHandBuiltMapBodyFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import java.util.Map;
+
+        public class DemoService {
+          public Map<String, Object> body(String jobId) {
+            return Map.of("job_id", jobId);
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("never a Map<String, Object>"), output);
+    assertTrue(output.contains("DemoService.body(java.lang.String)"), output);
+  }
+
+  @Test
+  void aServicePackageOutOfPlaceFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/JobRequest.java",
+        "package demo.service;\n\npublic record JobRequest(String jobId) {}\n");
+    write(
+        "src/main/java/demo/config/DemoSettings.java",
+        """
+        package demo.config;
+
+        @org.springframework.boot.context.properties.ConfigurationProperties("demo")
+        public record DemoSettings(String host) {}
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework.boot:spring-boot' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("what goes over the wire is a DTO in model"), output);
+    assertTrue(output.contains("demo.service.JobRequest"), output);
+    assertTrue(output.contains("a service's settings live in property"), output);
+    assertTrue(output.contains("demo.config.DemoSettings"), output);
+  }
+
+  @Test
+  void aServiceThatMapsJsonFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import tools.jackson.databind.JsonNode;
+
+        public class DemoService {
+          public String jobId(JsonNode answer) {
+            return answer.path("job_id").asString();
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'tools.jackson.core:jackson-databind' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a mapper in mapper maps a response"), output);
+    assertTrue(output.contains("demo.service.DemoService"), output);
+  }
+
+  @Test
+  void aLibraryKeepsItsFlatPackage() throws IOException {
+    write(
+        "settings.gradle",
+        """
+        rootProject.name = 'demo-lib'
+        dependencyResolutionManagement {
+            repositories { mavenCentral() }
+            versionCatalogs { create('libs') { from(files('%s')) } }
+        }
+        """
+            .formatted(System.getProperty("catalog")));
+    write("build.gradle", "plugins { id 'platform.library' }\n");
+    write(
+        "src/main/java/demo/service/JobRequest.java",
+        "package demo.service;\n\npublic record JobRequest(String jobId) {}\n");
+
+    var output = runner().build().getOutput();
+
+    assertFalse(output.contains("The architecture is broken"), output);
+  }
+
+  @Test
   void layersAndConstantsKeptPass() throws IOException {
     write(
         "src/main/java/demo/service/DemoService.java",

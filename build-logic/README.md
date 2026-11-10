@@ -42,4 +42,27 @@ generated code is left out. The rules are in `ArchitectureRules`, the same for e
   `*Constants` class, and such a class holds only static final fields. An enum's values,
   `serialVersionUID` and objects that are not values (a logger, a mapper) are not constants.
 
+- no `Map<String, Object>` (or `Map<String, ?>`) as a field, a parameter or a return type: a
+  request body or any other structure is a DTO. A tree whose fields must all be kept as they came
+  (Jackson's `ObjectNode`) is not a map.
+
+A service (not a library, which is one flat package and its public API) also keeps the packages of
+the Humo and Uzcard adapters:
+
+| What | Package |
+|---|---|
+| `@RestController` | `controller` |
+| `@Configuration` | `config` |
+| `@ConfigurationProperties` | `property` |
+| a `*Request`, `*Response` or `*Params` DTO | `model`, data only: no controller, service, client, config, property, repository or mapper |
+| `*ExceptionStatus` | `constant` |
+
+And it maps in one place:
+
+- a controller passes the request to a service and returns the service's result: no client, no
+  mapper, no JSON;
+- a service returns a dedicated result and never touches JSON: a mapper in `mapper` turns an
+  answer into that result;
+- a mapper only maps: no service, no controller.
+
 A project without a layer (a library with no controller) passes the rules about it.

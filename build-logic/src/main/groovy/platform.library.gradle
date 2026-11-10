@@ -12,6 +12,9 @@ version = libs.findVersion('platform').get().requiredVersion
 
 java { withSourcesJar() }
 
+// A library is one flat package, its public API: verifyArchitecture leaves out a service's package rules.
+tasks.named('verifyArchitecture') { serviceLayout.set(false) }
+
 // Never incremental: the configuration processor writes the metadata only from the sources it
 // compiles, so recompiling one class dropped every other property's description, and the build
 // cache then served that metadata to clean builds too.

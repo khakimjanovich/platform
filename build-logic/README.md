@@ -45,6 +45,8 @@ generated code is left out. The rules are in `ArchitectureRules`, the same for e
 - no `Map<String, Object>` (or `Map<String, ?>`) as a field, a parameter or a return type: a
   request body or any other structure is a DTO. A tree whose fields must all be kept as they came
   (Jackson's `ObjectNode`) is not a map.
+- no `MultiValueMap` (or `LinkedMultiValueMap`): a form body is typed `@RequestParam`s on an
+  `@HttpExchange` method, a multipart body typed `@RequestPart`s.
 
 A service (not a library, which is one flat package and its public API) also keeps the packages of
 the Humo and Uzcard adapters:
@@ -68,5 +70,9 @@ And it maps in one place:
 And it calls out in one place: an outgoing call is an `@HttpExchange` interface in `client`, with its
 paths, built in `config` (as the Humo and Uzcard adapters do); a service never builds a request with
 `RestClient`, `RestTemplate` or `WebClient`.
+
+And it never builds a body from name, value pairs: no method takes a `String...` or `Object...`
+(`main` aside), and nothing outside `mapper` builds a JSON tree (`ObjectNode`, `ArrayNode`,
+`JsonNodeFactory`). A body is a DTO, or typed parameters of an `@HttpExchange` method.
 
 A project without a layer (a library with no controller) passes the rules about it.

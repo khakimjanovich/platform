@@ -51,6 +51,9 @@ import java.util.Set;
  *   <li>Mapping, in a service only: a service never touches JSON (a mapper in {@code mapper} maps
  *       a response), a controller passes the request to a service and returns its result (no
  *       client, mapper or JSON), and a mapper only maps (no service or controller).
+ *   <li>Outgoing calls, in a service only: an {@code @HttpExchange} interface in {@code client}
+ *       holds the paths; a service never builds a request with RestClient, RestTemplate or
+ *       WebClient.
  *   <li>No {@code Map<String, Object>} as a field, a parameter or a return type: a body or a
  *       structure is a DTO.
  * </ul>
@@ -168,6 +171,28 @@ public final class ArchitectureRules {
   /** A service's packages, as in the Humo and Uzcard adapters; a library is one flat package. */
   private static final List<ArchRule> SERVICE_RULES =
       List.of(
+          noClasses()
+              .that()
+              .resideInAPackage("..service..")
+              .should()
+              .dependOnClassesThat(
+                  describe(
+                      "an HTTP client of its own (RestClient, RestTemplate, WebClient)",
+                      (JavaClass c) ->
+                          c.getName().startsWith("org.springframework.web.client.RestClient")
+                              || c.getName().equals("org.springframework.web.client.RestTemplate")
+                              || c.getName()
+                                  .startsWith(
+                                      "org.springframework.web.reactive.function.client.WebClient")))
+              .because("an outgoing call is an @HttpExchange interface in client, its paths in one place")
+              .allowEmptyShould(true),
+          classes()
+              .that()
+              .areAnnotatedWith("org.springframework.web.service.annotation.HttpExchange")
+              .should()
+              .resideInAPackage("..client..")
+              .because("an outgoing call is an @HttpExchange interface in client")
+              .allowEmptyShould(true),
           noClasses()
               .that()
               .resideInAPackage("..service..")

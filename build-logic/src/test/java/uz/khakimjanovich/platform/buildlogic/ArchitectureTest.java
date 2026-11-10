@@ -180,6 +180,40 @@ class ArchitectureTest {
   }
 
   @Test
+  void aServiceThatBuildsItsOwnRequestFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import org.springframework.web.client.RestClient;
+
+        public class DemoService {
+          private final RestClient http;
+
+          public DemoService(RestClient http) {
+            this.http = http;
+          }
+
+          public void ping() {
+            http.get().uri("/api/v1/status").retrieve().toBodilessEntity();
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-web' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("an outgoing call is an @HttpExchange interface in client"), output);
+    assertTrue(output.contains("demo.service.DemoService"), output);
+  }
+
+  @Test
   void aLibraryKeepsItsFlatPackage() throws IOException {
     write(
         "settings.gradle",

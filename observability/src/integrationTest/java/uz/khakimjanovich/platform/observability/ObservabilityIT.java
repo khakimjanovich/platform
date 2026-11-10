@@ -101,7 +101,7 @@ class ObservabilityIT {
             .uri("/pay")
             .retrieve()
             .toEntity(String.class);
-    var requestId = response.getHeaders().getFirst(RequestIdFilter.REQUEST_ID_HEADER);
+    var requestId = response.getHeaders().getFirst(ObservabilityConstants.REQUEST_ID_HEADER);
     assertThat(requestId).matches("[0-9a-f]{32}");
 
     await()

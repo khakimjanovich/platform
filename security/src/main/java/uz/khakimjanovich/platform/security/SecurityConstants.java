@@ -76,4 +76,12 @@ public class SecurityConstants {
 
   public static final String BOOT_RESOURCE_SERVER_SECURITY =
       "org.springframework.boot.security.oauth2.server.resource.autoconfigure.web.OAuth2ResourceServerWebSecurityAutoConfiguration";
+
+  static final String HTTPS = "https";
+
+  static final String HTTP = "http";
+
+  static final int HTTPS_PORT = 443;
+
+  static final int HTTP_PORT = 80;
 }

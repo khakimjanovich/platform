@@ -1,5 +1,9 @@
 package uz.khakimjanovich.platform.observability;
 
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.MAX_LOGGED_BYTES;
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.NOT_LOGGED;
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.NO_BODIES;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +31,6 @@ import uz.khakimjanovich.platform.masking.Masking;
  * #NO_BODIES} attribute (one that sends or receives a secret) is logged without its bodies.
  */
 public class HttpClientLogging implements ClientHttpRequestInterceptor {
-
-  static final int MAX_LOGGED_BYTES = 4_000;
-
-  /** The request attribute that keeps both bodies of a call out of the log. */
-  public static final String NO_BODIES = "platform.http-client-logging.no-bodies";
-
-  private static final String NOT_LOGGED = "<not logged>";
 
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
 

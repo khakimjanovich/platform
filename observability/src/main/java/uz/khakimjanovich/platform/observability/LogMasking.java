@@ -1,5 +1,9 @@
 package uz.khakimjanovich.platform.observability;
 
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.JSON_TEXT;
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.MESSAGE_WORDS;
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.THROWABLE_WORDS;
+
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.PatternLayout;
@@ -11,7 +15,6 @@ import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
-import java.util.List;
 import org.springframework.boot.json.JsonWriter;
 import org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter;
 import org.springframework.boot.logging.structured.StructuredLoggingJsonMembersCustomizer;
@@ -24,17 +27,6 @@ import uz.khakimjanovich.platform.masking.Masking;
  * nothing logged before the context starts (the banner, Vault's bootstrap) is masked.
  */
 public final class LogMasking {
-
-  /** Logback's names for the message in a pattern: %m, %msg, %message. */
-  private static final List<String> MESSAGE_WORDS = List.of("m", "msg", "message");
-
-  /** Logback's and Boot's names for the stack trace in a pattern (Boot's default is %wEx). */
-  private static final List<String> THROWABLE_WORDS =
-      List.of("ex", "exception", "throwable", "xEx", "xException", "xThrowable", "wex", "wEx");
-
-  /** ECS members that carry text a program wrote. */
-  private static final List<String> JSON_TEXT =
-      List.of("message", "error.message", "error.stack_trace");
 
   private static volatile Masking masking = Masking.defaults();
 

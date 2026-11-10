@@ -140,3 +140,22 @@ def verifyNullMarked = tasks.register('verifyNullMarked') {
     }
 }
 tasks.named('check') { dependsOn verifyNullMarked }
+
+// One architecture for every service (ArchitectureRules): controllers call services, only a service
+// implementation, a workflow or configuration reaches a repository, nothing calls a controller, and a
+// constant lives in a ConstantUtils or *Constants class. `check` fails on a class in src/main/java
+// that breaks a rule; generated code is left out.
+def verifyArchitecture = tasks.register('verifyArchitecture') {
+    def classDirs = sourceSets.main.output.classesDirs
+    def sources = file('src/main/java')
+    def root = projectDir
+    def passed = layout.buildDirectory.file('verifyArchitecture/passed')
+    inputs.files(classDirs)
+    outputs.file(passed)
+    doLast {
+        def found = uz.khakimjanovich.platform.buildlogic.ArchitectureRules.violations(classDirs.files, sources)
+        if (found) throw new GradleException("The architecture is broken in ${root.name}:\n${found.join('\n')}")
+        passed.get().asFile.text = ''
+    }
+}
+tasks.named('check') { dependsOn verifyArchitecture }

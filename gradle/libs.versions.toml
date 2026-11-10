@@ -16,10 +16,11 @@ spotless = "8.10.4"
 wiremock = "3.13.2"
 aws-sdk = "2.57.3"
 google-java-format = "1.30.0" # newer releases fail inside Spotless 8.10 (missing commonmark extension)
-platform = "1.0.0" # SemVer; see README.md §Versions
+platform = "2.0.0" # SemVer; see README.md §Versions
 errorprone = "2.51.0"
 errorprone-gradle = "5.1.1"
 nullaway = "0.14.3"
+archunit = "1.4.2" # the release the Modulith BOM manages; build-logic runs it in verifyArchitecture
 jspecify = "1.0.1"
 opentelemetry-instrumentation = "2.28.1-alpha" # the release built on the OpenTelemetry Boot manages (1.62)
 
@@ -69,7 +70,7 @@ testcontainers-vault = { module = "org.testcontainers:testcontainers-vault" }
 testcontainers-grafana = { module = "org.testcontainers:testcontainers-grafana" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 modulith-core = { module = "org.springframework.modulith:spring-modulith-core" }
-archunit = { module = "com.tngtech.archunit:archunit" } # version from the Modulith BOM
+archunit = { module = "com.tngtech.archunit:archunit", version.ref = "archunit" }
 springdoc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 spring-web = { module = "org.springframework:spring-web" }
 spring-webmvc = { module = "org.springframework:spring-webmvc" }

@@ -1,5 +1,7 @@
 package uz.khakimjanovich.platform.observability;
 
+import static uz.khakimjanovich.platform.observability.ObservabilityConstants.REQUEST_ID_HEADER;
+
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,8 +19,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * carries it too.
  */
 public class RequestIdFilter extends OncePerRequestFilter implements Ordered {
-
-  public static final String REQUEST_ID_HEADER = "X-Request-Id";
 
   private final ObjectProvider<Tracer> tracer;
 

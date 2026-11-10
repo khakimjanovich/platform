@@ -75,4 +75,11 @@ And it never builds a body from name, value pairs: no method takes a `String...`
 (`main` aside), and nothing outside `mapper` builds a JSON tree (`ObjectNode`, `ArrayNode`,
 `JsonNodeFactory`). A body is a DTO, or typed parameters of an `@HttpExchange` method.
 
+And it throws one kind of error: outside `config` and `property` (which fail at startup, before any
+request) the only throwable a class creates is `GeneralException`, a problem detail with a stable
+code. A case that cannot happen (no SHA-256, a cipher that fails) is
+`GeneralException(ErrorExceptionStatus.INTERNAL_ERROR)`. A private constructor's guard (Lombok's
+`@UtilityClass`) and what the compiler puts in an exhaustive `switch` (`MatchException`) pass. A library (`platform.library`) keeps its own
+exceptions; the service maps them.
+
 A project without a layer (a library with no controller) passes the rules about it.

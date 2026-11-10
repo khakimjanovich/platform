@@ -10,6 +10,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaConstructorCall;
 import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaModifier;
@@ -59,6 +60,10 @@ import java.util.Set;
  *   <li>Name, value pairs, in a service only: no method takes a {@code String...} or {@code
  *       Object...} (pairs to build a body from), and nothing outside {@code mapper} builds a JSON
  *       tree ({@code ObjectNode}, {@code ArrayNode}, {@code JsonNodeFactory}).
+ *   <li>Errors, in a service only: outside {@code config} and {@code property} (which fail at
+ *       startup, before any request) the only throwable a class creates is the error library's
+ *       {@code GeneralException}: a problem detail with a stable code. A case that cannot happen is
+ *       {@code GeneralException(INTERNAL_ERROR)}.
  * </ul>
  *
  * A rule whose classes a project does not have (a library with no controller) passes.
@@ -191,6 +196,41 @@ public final class ArchitectureRules {
           "com.fasterxml.jackson.databind.node.ArrayNode",
           "com.fasterxml.jackson.databind.node.JsonNodeFactory");
 
+  /** The error library's exception: a problem detail with a stable code. */
+  private static final String GENERAL_EXCEPTION = "uz.khakimjanovich.platform.error.GeneralException";
+
+  /** The throwables the compiler puts in an exhaustive switch: not ours. */
+  private static final Set<String> COMPILER_THROWABLES =
+      Set.of("java.lang.MatchException", "java.lang.IncompatibleClassChangeError");
+
+  /**
+   * A new throwable other than GeneralException. A class the build cannot see the hierarchy of (a
+   * library's) counts when its name says it is an exception or an error. A private constructor's
+   * guard (Lombok's @UtilityClass: "this class is never made") is not an error path and passes, nor
+   * is what the compiler puts in an exhaustive switch.
+   */
+  private static final DescribedPredicate<JavaConstructorCall> NEW_OTHER_THROWABLE =
+      describe(
+          "a throwable other than GeneralException",
+          call -> {
+            var origin = call.getOrigin();
+            if (origin.isConstructor() && origin.getModifiers().contains(JavaModifier.PRIVATE)) {
+              return false;
+            }
+            var owner = call.getTargetOwner();
+            if (COMPILER_THROWABLES.contains(owner.getName())) {
+              return false;
+            }
+            if (owner.isAssignableTo(GENERAL_EXCEPTION)
+                || owner.getName().equals(GENERAL_EXCEPTION)) {
+              return false;
+            }
+            var name = owner.getSimpleName();
+            return owner.isAssignableTo(Throwable.class)
+                || name.endsWith("Exception")
+                || name.endsWith("Error");
+          });
+
   /** A service's packages, as in the Humo and Uzcard adapters; a library is one flat package. */
   private static final List<ArchRule> SERVICE_RULES =
       List.of(
@@ -312,6 +352,15 @@ public final class ArchitectureRules {
               .should()
               .resideInAPackage("..constant..")
               .because("error codes live in constant")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideOutsideOfPackages("..config..", "..property..")
+              .should()
+              .callConstructorWhere(NEW_OTHER_THROWABLE)
+              .because(
+                  "a service throws GeneralException, a problem detail with a stable code; only"
+                      + " config and property, which fail at startup, throw others")
               .allowEmptyShould(true));
 
   private ArchitectureRules() {}

@@ -302,6 +302,93 @@ class ArchitectureTest {
   }
 
   @Test
+  void aServiceThatThrowsAGenericExceptionFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        public class DemoService {
+          public String hash(String text) {
+            if (text.isEmpty()) {
+              throw new IllegalStateException("no text");
+            }
+            return text;
+          }
+        }
+        """);
+    write(
+        "src/main/java/demo/service/DemoFailure.java",
+        """
+        package demo.service;
+
+        public class DemoFailure extends RuntimeException {
+          private static final long serialVersionUID = 1L;
+
+          public DemoFailure(String message) {
+            super(message);
+          }
+
+          public static DemoFailure of(String message) {
+            return new DemoFailure(message);
+          }
+        }
+        """);
+
+    write(
+        "src/main/java/demo/service/DemoTexts.java",
+        """
+        package demo.service;
+
+        public final class DemoTexts {
+          private DemoTexts() {
+            throw new UnsupportedOperationException("a private constructor's guard passes");
+          }
+
+          public enum Kind { ONE, TWO }
+
+          public static String name(Kind kind) {
+            return switch (kind) {
+              case ONE -> "one";
+              case TWO -> "two";
+            };
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a service throws GeneralException"), output);
+    assertTrue(output.contains("java.lang.IllegalStateException"), output);
+    assertTrue(output.contains("demo.service.DemoFailure.<init>"), output);
+    assertFalse(output.contains("UnsupportedOperationException"), output);
+    assertFalse(output.contains("MatchException"), output);
+  }
+
+  @Test
+  void configurationMayStopStartupWithAnyException() throws IOException {
+    write(
+        "src/main/java/demo/config/DemoChecks.java",
+        """
+        package demo.config;
+
+        public final class DemoChecks {
+          private DemoChecks() {}
+
+          public static void host(String host) {
+            if (host.isBlank()) {
+              throw new IllegalStateException("demo.host is not set");
+            }
+          }
+        }
+        """);
+
+    var output = runner().build().getOutput();
+
+    assertFalse(output.contains("The architecture is broken"), output);
+  }
+
+  @Test
   void aLibraryKeepsItsFlatPackage() throws IOException {
     write(
         "settings.gradle",

@@ -57,4 +57,12 @@ the Humo and Uzcard adapters:
 | a `*Request`, `*Response` or `*Params` DTO | `model`, data only: no controller, service, client, config, property, repository or mapper |
 | `*ExceptionStatus` | `constant` |
 
+And it maps in one place:
+
+- a controller passes the request to a service and returns the service's result: no client, no
+  mapper, no JSON;
+- a service returns a dedicated result and never touches JSON: a mapper in `mapper` turns an
+  answer into that result;
+- a mapper only maps: no service, no controller.
+
 A project without a layer (a library with no controller) passes the rules about it.

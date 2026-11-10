@@ -152,6 +152,34 @@ class ArchitectureTest {
   }
 
   @Test
+  void aServiceThatMapsJsonFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import tools.jackson.databind.JsonNode;
+
+        public class DemoService {
+          public String jobId(JsonNode answer) {
+            return answer.path("job_id").asString();
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'tools.jackson.core:jackson-databind' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a mapper in mapper maps a response"), output);
+    assertTrue(output.contains("demo.service.DemoService"), output);
+  }
+
+  @Test
   void aLibraryKeepsItsFlatPackage() throws IOException {
     write(
         "settings.gradle",

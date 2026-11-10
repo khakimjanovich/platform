@@ -48,6 +48,9 @@ import java.util.Set;
  *       class in {@code property}, a {@code *Request}, {@code *Response} or {@code *Params} DTO in
  *       {@code model}, data only (no controller, service, client, configuration, property,
  *       repository or mapper), and a {@code *ExceptionStatus} in {@code constant}.
+ *   <li>Mapping, in a service only: a service never touches JSON (a mapper in {@code mapper} maps
+ *       a response), a controller passes the request to a service and returns its result (no
+ *       client, mapper or JSON), and a mapper only maps (no service or controller).
  *   <li>No {@code Map<String, Object>} as a field, a parameter or a return type: a body or a
  *       structure is a DTO.
  * </ul>
@@ -165,6 +168,34 @@ public final class ArchitectureRules {
   /** A service's packages, as in the Humo and Uzcard adapters; a library is one flat package. */
   private static final List<ArchRule> SERVICE_RULES =
       List.of(
+          noClasses()
+              .that()
+              .resideInAPackage("..service..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAnyPackage("tools.jackson.databind..", "com.fasterxml.jackson.databind..")
+              .because("a service returns its result; a mapper in mapper maps a response")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideInAPackage("..controller..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAnyPackage(
+                  "..client..",
+                  "..mapper..",
+                  "tools.jackson.databind..",
+                  "com.fasterxml.jackson.databind..")
+              .because("a controller passes the request to a service and returns its result")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideInAPackage("..mapper..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAnyPackage("..service..", "..controller..")
+              .because("a mapper only maps")
+              .allowEmptyShould(true),
           classes()
               .that()
               .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")

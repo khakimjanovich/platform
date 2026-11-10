@@ -1,5 +1,7 @@
 package uz.khakimjanovich.platform.vault;
 
+import static uz.khakimjanovich.platform.vault.VaultConstants.CLIENT_ID;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -7,7 +9,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 
 /**
  * Each API client's request-signing key, put into Vault under the app's configured path and field
@@ -20,9 +21,6 @@ import java.util.regex.Pattern;
  * failure never falls back to an old key.
  */
 public class SigningKeys {
-
-  /** A client id as Keycloak makes them: never a path of its own ({@code ..}, {@code /}). */
-  private static final Pattern CLIENT_ID = Pattern.compile("[A-Za-z0-9_-][A-Za-z0-9._-]*");
 
   private final VaultSecrets vault;
   private final String path;

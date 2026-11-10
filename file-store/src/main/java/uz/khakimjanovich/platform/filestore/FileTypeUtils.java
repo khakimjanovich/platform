@@ -1,8 +1,13 @@
 package uz.khakimjanovich.platform.filestore;
 
+import static uz.khakimjanovich.platform.filestore.FileStoreConstants.JPEG_SIGNATURE;
+import static uz.khakimjanovich.platform.filestore.FileStoreConstants.PDF_END;
+import static uz.khakimjanovich.platform.filestore.FileStoreConstants.PDF_SIGNATURE;
+import static uz.khakimjanovich.platform.filestore.FileStoreConstants.PNG_SIGNATURE;
+import static uz.khakimjanovich.platform.filestore.FileStoreConstants.ZIP_END;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
 import javax.imageio.ImageIO;
@@ -16,12 +21,6 @@ import org.jspecify.annotations.Nullable;
  */
 @UtilityClass
 public class FileTypeUtils {
-
-  private static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
-  private static final byte[] PDF_END = "%%EOF".getBytes(StandardCharsets.US_ASCII);
-  private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
-  private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
-  private static final byte[] ZIP_END = {'P', 'K', 5, 6};
 
   public static Optional<String> detect(byte[] bytes) {
     if (indexOf(bytes, ZIP_END, 0) >= 0) return Optional.empty();

@@ -23,6 +23,7 @@ publishing {
 dependencies {
     implementation libs.spotless.gradle
     implementation libs.errorprone.gradle
+    implementation libs.archunit // verifyArchitecture runs the shared rules on every project's classes
 
     // The plugins tested on real builds (Gradle TestKit).
     testImplementation platform(libs.spring.boot.bom)

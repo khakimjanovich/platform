@@ -84,7 +84,7 @@ class HttpClientLoggingTest {
         client
             .post()
             .uri("/clients/c-1/client-secret")
-            .attribute(HttpClientLogging.NO_BODIES, true)
+            .attribute(ObservabilityConstants.NO_BODIES, true)
             .body("{\"name\":\"xyz\"}")
             .retrieve()
             .body(String.class);

@@ -1,5 +1,10 @@
 package uz.khakimjanovich.platform.security;
 
+import static uz.khakimjanovich.platform.security.SecurityConstants.HTTP;
+import static uz.khakimjanovich.platform.security.SecurityConstants.HTTPS;
+import static uz.khakimjanovich.platform.security.SecurityConstants.HTTPS_PORT;
+import static uz.khakimjanovich.platform.security.SecurityConstants.HTTP_PORT;
+
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
@@ -44,10 +49,6 @@ public class PublicAddresses {
           Range.of("240.0.0.0/4"));
 
   private static final Range GLOBAL_V6 = Range.of("2000::/3");
-  private static final String HTTPS = "https";
-  private static final String HTTP = "http";
-  private static final int HTTPS_PORT = 443;
-  private static final int HTTP_PORT = 80;
 
   private static final List<Range> REFUSED_V6 =
       List.of(

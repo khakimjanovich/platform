@@ -1,5 +1,13 @@
 package uz.khakimjanovich.platform.masking;
 
+import static uz.khakimjanovich.platform.masking.MaskingConstants.DIGITS;
+import static uz.khakimjanovich.platform.masking.MaskingConstants.HIDDEN;
+import static uz.khakimjanovich.platform.masking.MaskingConstants.KEY_COLON;
+import static uz.khakimjanovich.platform.masking.MaskingConstants.KEY_EQUALS;
+import static uz.khakimjanovich.platform.masking.MaskingConstants.MAX_LENGTH;
+import static uz.khakimjanovich.platform.masking.MaskingConstants.XML_ELEMENT;
+import static uz.khakimjanovich.platform.masking.MaskingConstants.XML_ITEM;
+
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -22,27 +30,6 @@ import tools.jackson.databind.node.ObjectNode;
  * other type is shown only by its size.
  */
 public final class Masking {
-
-  public static final String HIDDEN = "***";
-  private static final int MAX_LENGTH = 4_000;
-
-  private static final Pattern DIGITS = Pattern.compile("(?<!\\d)\\d{13,19}(?!\\d)");
-  private static final Pattern XML_ITEM =
-      Pattern.compile("(<name>\\s*([\\w:]+)\\s*</name>\\s*<value>)([^<]*)(</value>)");
-  private static final Pattern XML_ELEMENT =
-      Pattern.compile("(<(?:[\\w-]+:)?([\\w-]+)(?:\\s[^>]*)?>)([^<]*)(</)");
-
-  /** {@code name=value} and {@code name="value"}. */
-  private static final Pattern KEY_EQUALS =
-      Pattern.compile("(?<![\\w.-])([A-Za-z_][\\w.-]*)(=)(\"?)([^\\s&,;\"']*)\\3");
-
-  /**
-   * {@code name: value} and JSON's {@code "name":"value"}, after {@link #KEY_EQUALS}: a value never
-   * holds a colon, so {@code failed: password: x} still finds {@code password}.
-   */
-  private static final Pattern KEY_COLON =
-      Pattern.compile(
-          "(?<![\\w.-])([A-Za-z_][\\w.-]*)(\"?\\s*:\\s*)(\"?)([^\\s&,;\"':]*+)\\3(?!:)");
 
   private final MaskingRules rules;
 

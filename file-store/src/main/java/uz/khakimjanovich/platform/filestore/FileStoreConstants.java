@@ -1,5 +1,6 @@
 package uz.khakimjanovich.platform.filestore;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import lombok.experimental.UtilityClass;
 
@@ -39,4 +40,14 @@ public class FileStoreConstants {
   public static final Duration HEALTH_CALL_TIMEOUT = Duration.ofSeconds(3);
 
   public static final String HEALTH_INDICATOR_BEAN = "fileStoreHealthIndicator";
+
+  static final byte[] PDF_SIGNATURE = "%PDF-".getBytes(StandardCharsets.US_ASCII);
+
+  static final byte[] PDF_END = "%%EOF".getBytes(StandardCharsets.US_ASCII);
+
+  static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+
+  static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+
+  static final byte[] ZIP_END = {'P', 'K', 5, 6};
 }

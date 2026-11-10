@@ -16,7 +16,7 @@ dependencies {
     compileOnly libs.spring.boot.health // the health indicator, when the app has the actuator
     implementation libs.spring.boot.http.client // timeouts on the admin and token calls
     implementation libs.starter.validation // the properties are checked at startup
-    runtimeOnly libs.jackson3.databind // Keycloak's JSON, read into maps
+    implementation libs.jackson3.databind // Keycloak's JSON: typed representations, and the user tree
 
     testImplementation libs.spring.boot.health
     integrationTestImplementation libs.spring.boot.health

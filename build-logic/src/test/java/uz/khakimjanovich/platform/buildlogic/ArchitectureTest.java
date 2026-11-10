@@ -302,6 +302,151 @@ class ArchitectureTest {
   }
 
   @Test
+  void aServiceThatThrowsAGenericExceptionFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        public class DemoService {
+          public String hash(String text) {
+            if (text.isEmpty()) {
+              throw new IllegalStateException("no text");
+            }
+            return text;
+          }
+        }
+        """);
+    write(
+        "src/main/java/demo/service/DemoFailure.java",
+        """
+        package demo.service;
+
+        public class DemoFailure extends RuntimeException {
+          private static final long serialVersionUID = 1L;
+
+          public DemoFailure(String message) {
+            super(message);
+          }
+
+          public static DemoFailure of(String message) {
+            return new DemoFailure(message);
+          }
+        }
+        """);
+
+    write(
+        "src/main/java/demo/service/DemoTexts.java",
+        """
+        package demo.service;
+
+        public final class DemoTexts {
+          private DemoTexts() {
+            throw new UnsupportedOperationException("a private constructor's guard passes");
+          }
+
+          public enum Kind { ONE, TWO }
+
+          public static String name(Kind kind) {
+            return switch (kind) {
+              case ONE -> "one";
+              case TWO -> "two";
+            };
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a service throws GeneralException"), output);
+    assertTrue(output.contains("java.lang.IllegalStateException"), output);
+    assertTrue(output.contains("demo.service.DemoFailure.<init>"), output);
+    assertFalse(output.contains("UnsupportedOperationException"), output);
+    assertFalse(output.contains("MatchException"), output);
+  }
+
+  @Test
+  void aServiceMayThrowItsOwnGeneralException() throws IOException {
+    // A stand-in for the error library's class, with the same name.
+    write(
+        "src/main/java/uz/khakimjanovich/platform/error/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage uz.khakimjanovich.platform.error;\n");
+    write(
+        "src/main/java/uz/khakimjanovich/platform/error/GeneralException.java",
+        """
+        package uz.khakimjanovich.platform.error;
+
+        public class GeneralException extends RuntimeException {
+          private static final long serialVersionUID = 1L;
+
+          public GeneralException(String code) {
+            super(code);
+          }
+        }
+        """);
+    write(
+        "src/main/java/demo/service/EmailTaken.java",
+        """
+        package demo.service;
+
+        import uz.khakimjanovich.platform.error.GeneralException;
+
+        public class EmailTaken extends GeneralException {
+          private static final long serialVersionUID = 1L;
+
+          public EmailTaken() {
+            super("PARTNER_EMAIL_TAKEN");
+          }
+        }
+        """);
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import uz.khakimjanovich.platform.error.GeneralException;
+
+        public class DemoService {
+          public void register(boolean taken, boolean down) {
+            if (taken) {
+              throw new EmailTaken();
+            }
+            if (down) {
+              throw new GeneralException("SERVICE_UNAVAILABLE");
+            }
+          }
+        }
+        """);
+
+    var output = runner().build().getOutput();
+
+    assertFalse(output.contains("The architecture is broken"), output);
+  }
+
+  @Test
+  void configurationMayStopStartupWithAnyException() throws IOException {
+    write(
+        "src/main/java/demo/config/DemoChecks.java",
+        """
+        package demo.config;
+
+        public final class DemoChecks {
+          private DemoChecks() {}
+
+          public static void host(String host) {
+            if (host.isBlank()) {
+              throw new IllegalStateException("demo.host is not set");
+            }
+          }
+        }
+        """);
+
+    var output = runner().build().getOutput();
+
+    assertFalse(output.contains("The architecture is broken"), output);
+  }
+
+  @Test
   void aLibraryKeepsItsFlatPackage() throws IOException {
     write(
         "settings.gradle",

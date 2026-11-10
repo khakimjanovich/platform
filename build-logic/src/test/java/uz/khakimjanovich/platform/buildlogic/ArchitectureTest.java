@@ -214,6 +214,94 @@ class ArchitectureTest {
   }
 
   @Test
+  void aFormBuiltAsAMapFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/utils/Forms.java",
+        """
+        package demo.utils;
+
+        import org.springframework.util.LinkedMultiValueMap;
+
+        public final class Forms {
+          private Forms() {}
+
+          public static LinkedMultiValueMap<String, String> token(String clientId) {
+            var form = new LinkedMultiValueMap<String, String>();
+            form.add("client_id", clientId);
+            return form;
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-core' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("never a map of name, value pairs"), output);
+    assertTrue(output.contains("demo.utils.Forms"), output);
+  }
+
+  @Test
+  void aBodyBuiltFromNameValuePairsFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/utils/Bodies.java",
+        """
+        package demo.utils;
+
+        import java.util.ArrayList;
+        import java.util.List;
+
+        public final class Bodies {
+          private Bodies() {}
+
+          public static List<String> pairs(String... pairs) {
+            return new ArrayList<>(List.of(pairs));
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("never built from name, value pairs"), output);
+    assertTrue(output.contains("Bodies.pairs([Ljava.lang.String;)"), output);
+  }
+
+  @Test
+  void aJsonTreeBuiltOutsideAMapperFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/utils/Trees.java",
+        """
+        package demo.utils;
+
+        import tools.jackson.databind.node.JsonNodeFactory;
+        import tools.jackson.databind.node.ObjectNode;
+
+        public final class Trees {
+          private Trees() {}
+
+          public static ObjectNode body(String jobId) {
+            return JsonNodeFactory.instance.objectNode().put("job_id", jobId);
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'tools.jackson.core:jackson-databind' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("only a mapper reshapes a JSON tree"), output);
+    assertTrue(output.contains("demo.utils.Trees"), output);
+  }
+
+  @Test
   void aLibraryKeepsItsFlatPackage() throws IOException {
     write(
         "settings.gradle",

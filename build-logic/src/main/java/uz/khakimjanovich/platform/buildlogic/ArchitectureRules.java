@@ -54,8 +54,11 @@ import java.util.Set;
  *   <li>Outgoing calls, in a service only: an {@code @HttpExchange} interface in {@code client}
  *       holds the paths; a service never builds a request with RestClient, RestTemplate or
  *       WebClient.
- *   <li>No {@code Map<String, Object>} as a field, a parameter or a return type: a body or a
- *       structure is a DTO.
+ *   <li>No {@code Map<String, Object>} as a field, a parameter or a return type, and no {@code
+ *       MultiValueMap}: a body or a structure is a DTO (a form is typed {@code @RequestParam}s).
+ *   <li>Name, value pairs, in a service only: no method takes a {@code String...} or {@code
+ *       Object...} (pairs to build a body from), and nothing outside {@code mapper} builds a JSON
+ *       tree ({@code ObjectNode}, {@code ArrayNode}, {@code JsonNodeFactory}).
  * </ul>
  *
  * A rule whose classes a project does not have (a library with no controller) passes.
@@ -166,7 +169,27 @@ public final class ArchitectureRules {
           noMethods()
               .should(takeOrReturnUntypedMap())
               .because("a body or a structure is a DTO in model, never a Map<String, Object>")
+              .allowEmptyShould(true),
+          noClasses()
+              .should()
+              .dependOnClassesThat()
+              .haveFullyQualifiedName("org.springframework.util.MultiValueMap")
+              .orShould()
+              .dependOnClassesThat()
+              .haveFullyQualifiedName("org.springframework.util.LinkedMultiValueMap")
+              .because(
+                  "a body is a DTO, a form is typed @RequestParams: never a map of name, value pairs")
               .allowEmptyShould(true));
+
+  /** Jackson's JSON tree builders, in both Jackson packages. */
+  private static final Set<String> JSON_TREE_BUILDERS =
+      Set.of(
+          "tools.jackson.databind.node.ObjectNode",
+          "tools.jackson.databind.node.ArrayNode",
+          "tools.jackson.databind.node.JsonNodeFactory",
+          "com.fasterxml.jackson.databind.node.ObjectNode",
+          "com.fasterxml.jackson.databind.node.ArrayNode",
+          "com.fasterxml.jackson.databind.node.JsonNodeFactory");
 
   /** A service's packages, as in the Humo and Uzcard adapters; a library is one flat package. */
   private static final List<ArchRule> SERVICE_RULES =
@@ -269,6 +292,20 @@ public final class ArchitectureRules {
                   "..mapper..")
               .because("a DTO is data only")
               .allowEmptyShould(true),
+          noMethods()
+              .should(takeNameValuePairs())
+              .because("a body is a DTO or typed parameters, never built from name, value pairs")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideOutsideOfPackage("..mapper..")
+              .should()
+              .dependOnClassesThat(
+                  describe(
+                      "a JSON tree builder (ObjectNode, ArrayNode, JsonNodeFactory)",
+                      (JavaClass c) -> JSON_TREE_BUILDERS.contains(c.getName())))
+              .because("a body is a DTO; only a mapper reshapes a JSON tree")
+              .allowEmptyShould(true),
           classes()
               .that()
               .haveSimpleNameEndingWith("ExceptionStatus")
@@ -351,6 +388,33 @@ public final class ArchitectureRules {
         if (isUntypedMap(method.getReturnType())
             || method.getParameterTypes().stream().anyMatch(ArchitectureRules::isUntypedMap)) {
           events.add(SimpleConditionEvent.satisfied(method, method.getFullName() + " uses a Map<String, Object>"));
+        }
+      }
+    };
+  }
+
+  /**
+   * A last parameter of {@code String[]} or {@code Object[]} (a {@code String...} or {@code
+   * Object...}): name, value pairs to build a body from. {@code main(String[])} and code the
+   * compiler made are left out.
+   */
+  private static ArchCondition<JavaMethod> takeNameValuePairs() {
+    return new ArchCondition<>("take a String... or Object...") {
+      @Override
+      public void check(JavaMethod method, ConditionEvents events) {
+        var parameters = method.getRawParameterTypes();
+        if (parameters.isEmpty()
+            || method.getName().equals("main")
+            || method.getModifiers().contains(JavaModifier.SYNTHETIC)) {
+          return;
+        }
+        var last = parameters.get(parameters.size() - 1);
+        if (last.isArray()
+            && Set.of("java.lang.String", "java.lang.Object")
+                .contains(last.getComponentType().getName())) {
+          events.add(
+              SimpleConditionEvent.satisfied(
+                  method, method.getFullName() + " takes name, value pairs"));
         }
       }
     };

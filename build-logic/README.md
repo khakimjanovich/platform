@@ -65,4 +65,8 @@ And it maps in one place:
   answer into that result;
 - a mapper only maps: no service, no controller.
 
+And it calls out in one place: an outgoing call is an `@HttpExchange` interface in `client`, with its
+paths, built in `config` (as the Humo and Uzcard adapters do); a service never builds a request with
+`RestClient`, `RestTemplate` or `WebClient`.
+
 A project without a layer (a library with no controller) passes the rules about it.

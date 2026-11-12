@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
-/** The completeness check catches each way a definition can be wrong. */
 class ErrorDefinitionsTest {
 
   private static void check(String fixture) {

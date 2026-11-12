@@ -12,10 +12,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-/**
- * Keycloak puts realm roles under {@code realm_access.roles}; they become {@code ROLE_*}
- * authorities, and the person is named by their username.
- */
 public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
   @Override
@@ -39,9 +35,6 @@ public class KeycloakJwtConverter implements Converter<Jwt, AbstractAuthenticati
         .toList();
   }
 
-  /**
-   * The authority a realm role becomes, e.g. {@code merchant-admin} → {@code ROLE_MERCHANT-ADMIN}.
-   */
   static String authority(String realmRole) {
     return SecurityConstants.ROLE_PREFIX + realmRole.toUpperCase(Locale.ROOT);
   }

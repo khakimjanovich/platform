@@ -5,11 +5,6 @@ import org.springframework.boot.context.event.ApplicationPreparedEvent;
 import org.springframework.boot.env.OriginTrackedMapPropertySource;
 import org.springframework.context.ApplicationListener;
 
-/**
- * No setting has a default: a {@code ${VAR}} in any configuration file that nothing resolves stops
- * startup, naming every missing one. Spring's binder would otherwise bind the literal text. Runs
- * once the context is prepared, so values a test registers (DynamicPropertySource) count.
- */
 public class RequiredSettings implements ApplicationListener<ApplicationPreparedEvent> {
 
   @Override

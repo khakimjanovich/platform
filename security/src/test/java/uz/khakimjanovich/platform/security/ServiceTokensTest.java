@@ -28,10 +28,6 @@ import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-/**
- * Service tokens wait for a registration, arm with one, give way to the app's own bean and manager,
- * and retry only a refused token.
- */
 class ServiceTokensTest {
 
   private final ApplicationContextRunner runner =

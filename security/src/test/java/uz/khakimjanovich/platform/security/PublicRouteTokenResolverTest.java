@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
-/** A public route reads no token; any other route reads the bearer token. */
 class PublicRouteTokenResolverTest {
 
   private final PublicRouteTokenResolver resolver =

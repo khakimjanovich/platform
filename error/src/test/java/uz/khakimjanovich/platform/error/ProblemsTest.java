@@ -15,7 +15,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-/** Another service's error read as it came: a problem, or nothing anyone decided. */
 class ProblemsTest {
 
   private final RestClient.Builder builder = RestClient.builder();

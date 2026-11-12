@@ -25,7 +25,6 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/** The store's own rules, with the S3 client mocked. */
 @ExtendWith(OutputCaptureExtension.class)
 class FileStoreTest {
 
@@ -116,7 +115,6 @@ class FileStoreTest {
                     .isEqualTo(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT));
   }
 
-  /** An object the store didn't write (no name, no checksum) is not one of its files. */
   @Test
   @SuppressWarnings("unchecked")
   void anObjectWithoutTheStoresMetadataIsCorrupt() {

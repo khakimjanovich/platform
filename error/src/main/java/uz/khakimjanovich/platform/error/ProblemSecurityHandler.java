@@ -10,11 +10,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
-/**
- * 401 and 403 from Spring Security become the same problem details as every other error. They are
- * handed to Spring MVC's exception resolver, so they are written exactly like a {@link
- * GeneralException} from a controller.
- */
 @RequiredArgsConstructor
 public class ProblemSecurityHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 

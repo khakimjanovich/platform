@@ -15,10 +15,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.MountableFile;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * Keycloak going away mid-life is KEYCLOAK_UNAVAILABLE, never a raw client exception, and the
- * health turns DOWN.
- */
 class KeycloakStoppedIT {
 
   @Test

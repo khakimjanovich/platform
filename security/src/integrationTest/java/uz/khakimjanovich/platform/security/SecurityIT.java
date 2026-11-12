@@ -39,11 +39,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
 import uz.khakimjanovich.platform.error.ProblemSecurityHandler;
 
-/**
- * The library against a real Keycloak, with real password and client-credentials tokens: roles per
- * route, everything else refused, tokens that must name our API, and public routes that ignore
- * whatever token comes with them.
- */
 @SpringBootTest(
     classes = SecurityIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -83,10 +78,6 @@ class SecurityIT {
   @EnableAutoConfiguration
   static class App {
 
-    /**
-     * A module's own check after the token's, as the payment module's request signatures will be:
-     * it refuses through the library's handler, so the refusal is a problem detail too.
-     */
     @Bean
     Customizer<HttpSecurity> signatureCheck(ProblemSecurityHandler problems) {
       return http ->
@@ -185,7 +176,6 @@ class SecurityIT {
         .exchange();
   }
 
-  /** The same token with one claim changed: its signature no longer matches. */
   private static String tampered(String token) {
     var parts = token.split("\\.");
     var payload = claims(token).replace("\"aziz\"", "\"malik\"");

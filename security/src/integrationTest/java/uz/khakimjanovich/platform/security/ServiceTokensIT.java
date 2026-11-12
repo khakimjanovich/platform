@@ -41,11 +41,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
 
-/**
- * A service calls another through an HTTP service group with a client-credentials token from a real
- * Keycloak; the callee (this app, secured by the library) checks its role. A refused token is
- * dropped and the call tried once more, and a rotated secret works once the property has it.
- */
 @SpringBootTest(
     classes = ServiceTokensIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
@@ -121,7 +116,6 @@ class ServiceTokensIT {
   @ImportHttpServices(group = "stranger", types = StrangerClient.class)
   @ImportHttpServices(group = "flaky", types = FlakyClient.class)
   static class App {
-    /** The callee: what an adapter serves, for callers with role ADAPTER_CLIENT only. */
     @RestController
     static class Adapter {
       @GetMapping("/adapter/ping")
@@ -131,7 +125,6 @@ class ServiceTokensIT {
     }
   }
 
-  /** A caller only: the rotated secret's own registration, started on its own. */
   @Configuration(proxyBeanMethods = false)
   @EnableAutoConfiguration
   @ImportHttpServices(group = "adapter", types = AdapterClient.class)
@@ -170,7 +163,6 @@ class ServiceTokensIT {
     assertThat(ping(rotated)).isEqualTo("pong");
   }
 
-  /** A fresh caller with this secret for client "rotating", as after a redeploy. */
   private static String ping(String secret) {
     var prefix = "spring.security.oauth2.client.registration.rotating.";
     try (var context =
@@ -189,7 +181,6 @@ class ServiceTokensIT {
     }
   }
 
-  /** As the bank's Keycloak admin does it: a new secret, the old one stops working at once. */
   private static String rotateSecret(String clientId) {
     var form = new LinkedMultiValueMap<String, String>();
     form.add("grant_type", "password");

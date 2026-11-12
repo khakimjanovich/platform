@@ -20,12 +20,6 @@ import org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxy
 import org.springframework.boot.logging.structured.StructuredLoggingJsonMembersCustomizer;
 import uz.khakimjanovich.platform.masking.Masking;
 
-/**
- * The guard on every log line, wherever it goes: the readable console, ECS JSON and OTLP all print
- * the message and its stack trace masked (card numbers, {@code key=value} secrets). Logging is
- * static, so the masking in use is too: the defaults until the app's own names are bound, and
- * nothing logged before the context starts (the banner, Vault's bootstrap) is masked.
- */
 public final class LogMasking {
 
   private static volatile Masking masking = Masking.defaults();
@@ -36,10 +30,6 @@ public final class LogMasking {
     return masking;
   }
 
-  /**
-   * Masks with these rules from now on, and makes the readable console print masked messages and
-   * stack traces.
-   */
   static void install(LoggerContext context, Masking rules) {
     masking = rules;
     for (var appenders = context.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders();
@@ -56,7 +46,6 @@ public final class LogMasking {
     }
   }
 
-  /** The message as {@code %m} prints it, masked. */
   public static class Message extends MessageConverter {
     @Override
     public String convert(ILoggingEvent event) {
@@ -65,7 +54,6 @@ public final class LogMasking {
     }
   }
 
-  /** The stack trace as {@code %wEx} prints it, masked. */
   public static class Trace extends ExtendedWhitespaceThrowableProxyConverter {
     @Override
     protected String throwableProxyToString(IThrowableProxy proxy) {
@@ -74,7 +62,6 @@ public final class LogMasking {
     }
   }
 
-  /** ECS JSON: {@code logging.structured.json.customizer} names this class (the defaults do). */
   public static class Json implements StructuredLoggingJsonMembersCustomizer<ILoggingEvent> {
     @Override
     public void customize(JsonWriter.Members<ILoggingEvent> members) {
@@ -86,10 +73,6 @@ public final class LogMasking {
     }
   }
 
-  /**
-   * The same event with its message masked, for appenders that read it themselves (OTLP). Its stack
-   * trace travels masked inside the message, and the event has no throwable of its own.
-   */
   static ILoggingEvent masked(ILoggingEvent event) {
     var trace = event.getThrowableProxy();
     // ponytail: exception.type/stacktrace attributes dropped for OTLP; add a masked IThrowableProxy

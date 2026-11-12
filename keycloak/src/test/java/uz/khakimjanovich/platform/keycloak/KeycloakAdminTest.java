@@ -27,10 +27,6 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * No raw HTTP failure escapes: a conflict, refused input, or Keycloak unavailable with its own
- * message; a refused token is replaced once.
- */
 class KeycloakAdminTest {
 
   private final RestClient.Builder builder = RestClient.builder().baseUrl("http://keycloak");
@@ -64,7 +60,6 @@ class KeycloakAdminTest {
     server.verify();
   }
 
-  /** The user and the e-mail both carry the password and every action asked. */
   @Test
   void anInviteSetsAndEmailsAPasswordAndTheRequiredActionsAsked() {
     var actions = "[\"UPDATE_PASSWORD\",\"CONFIGURE_TOTP\"]";
@@ -126,7 +121,6 @@ class KeycloakAdminTest {
     server.verify();
   }
 
-  /** Only the field that changes is sent: Keycloak leaves the rest of the user alone. */
   @Test
   void disablingSendsOnlyEnabledThenEndsTheSessions() {
     server
@@ -201,7 +195,6 @@ class KeycloakAdminTest {
             });
   }
 
-  /** Keycloak restarted: the stored token is refused once, so a new one is fetched and used. */
   @Test
   void aRefusedTokenIsDroppedAndTheCallTriedOnceMore() throws IOException {
     var tokens = new AtomicInteger();
@@ -256,7 +249,6 @@ class KeycloakAdminTest {
     }
   }
 
-  /** A Keycloak that accepts the connection and never answers: the read timeout ends the wait. */
   @Test
   void theReadTimeoutIsApplied() throws IOException {
     try (var silent = new ServerSocket(0)) {

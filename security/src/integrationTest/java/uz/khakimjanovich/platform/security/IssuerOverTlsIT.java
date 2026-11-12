@@ -22,11 +22,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.MountableFile;
 
-/**
- * A Keycloak that speaks HTTPS only, with a certificate from the app's own CA (tls/, which the JVM
- * doesn't trust): the service token is fetched and the issuer's keys are read over the bundle that
- * trusts that CA, so a call with the token gets through.
- */
 @SpringBootTest(
     classes = IssuerOverTlsIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
@@ -110,7 +105,6 @@ class IssuerOverTlsIT {
     assertThat(adapter.ping()).isEqualTo("pong");
   }
 
-  /** localhost, the name on Keycloak's certificate. */
   private static String realm() {
     return "https://localhost:" + KEYCLOAK.getMappedPort(8443) + "/realms/demo";
   }

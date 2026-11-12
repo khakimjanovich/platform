@@ -26,14 +26,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.web.client.RestClient;
 
-/**
- * Adding the library and setting {@code platform.keycloak.url} gives every module a {@link
- * KeycloakAdmin}. It logs in as its own client with client credentials and refreshes the token when
- * it expires; a token Keycloak refuses (a restart, a rotated secret) is dropped and the call tried
- * once more with a new one. Every call, the token request included, gives up after the configured
- * timeouts, over Boot's HTTP client settings ({@code spring.http.clients.*}: SSL bundle,
- * redirects).
- */
 @AutoConfiguration(
     after = {HttpClientAutoConfiguration.class, ImperativeHttpClientAutoConfiguration.class})
 @ConditionalOnProperty(prefix = KeycloakConstants.PROPERTIES_PREFIX, name = "url")
@@ -80,7 +72,6 @@ public class KeycloakAutoConfiguration {
             .build());
   }
 
-  /** With the actuator: no token from Keycloak, or an admin API that refuses it, is DOWN. */
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
   @ConditionalOnMissingBean(name = KeycloakConstants.HEALTH_INDICATOR_BEAN)
@@ -88,7 +79,6 @@ public class KeycloakAutoConfiguration {
     return new KeycloakHealthIndicator(admin);
   }
 
-  /** Client credentials as Spring Security requests them, over the same timeouts. */
   private static ClientCredentialsOAuth2AuthorizedClientProvider tokens(
       ClientHttpRequestFactory http) {
     var tokenClient = new RestClientClientCredentialsTokenResponseClient();

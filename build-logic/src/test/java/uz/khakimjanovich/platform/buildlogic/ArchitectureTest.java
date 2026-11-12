@@ -364,6 +364,34 @@ class ArchitectureTest {
   }
 
   @Test
+  void aModuleThatBuildsItsOwnPoolFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/config/DemoPersistenceConfig.java",
+        """
+        package demo.config;
+
+        import com.zaxxer.hikari.HikariDataSource;
+
+        public class DemoPersistenceConfig {
+          public HikariDataSource pool() {
+            return new HikariDataSource();
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'com.zaxxer:HikariCP' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("@EnableModulePersistence builds them from the platform"), output);
+    assertTrue(output.contains("demo.config.DemoPersistenceConfig"), output);
+  }
+
+  @Test
   void aServiceThatThrowsAGenericExceptionFailsTheBuild() throws IOException {
     write(
         "src/main/java/demo/service/DemoService.java",

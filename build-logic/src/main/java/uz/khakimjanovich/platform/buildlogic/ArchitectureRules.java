@@ -147,6 +147,13 @@ public final class ArchitectureRules {
                   "a body is a DTO, a form is typed @RequestParams: never a map of name, value pairs")
               .allowEmptyShould(true));
 
+  // What @EnableModulePersistence builds for a module.
+  private static final Set<String> MODULE_PERSISTENCE =
+      Set.of(
+          "com.zaxxer.hikari.HikariDataSource",
+          "liquibase.integration.spring.SpringLiquibase",
+          "org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean");
+
   private static final Set<String> JSON_TREE_BUILDERS =
       Set.of(
           "tools.jackson.databind.node.ObjectNode",
@@ -322,6 +329,15 @@ public final class ArchitectureRules {
               .because(
                   "a service throws GeneralException, a problem detail with a stable code; only"
                       + " config and property, which fail at startup, throw others")
+              .allowEmptyShould(true),
+          noClasses()
+              .should()
+              .dependOnClassesThat(
+                  describe(
+                      "a module's pool, migrations or entity manager (HikariDataSource,"
+                          + " SpringLiquibase, LocalContainerEntityManagerFactoryBean)",
+                      (JavaClass c) -> MODULE_PERSISTENCE.contains(c.getName())))
+              .because("@EnableModulePersistence builds them from the platform")
               .allowEmptyShould(true));
 
   private ArchitectureRules() {}

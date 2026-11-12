@@ -164,3 +164,52 @@ def verifyArchitecture = tasks.register('verifyArchitecture') {
     }
 }
 tasks.named('check') { dependsOn verifyArchitecture }
+
+// Platform first: what the platform wraps, a service takes from the platform, never declared again.
+// `check` fails on a main dependency (api, implementation, compileOnly, runtimeOnly) the platform
+// already provides, naming the library to use; dependencies the platform brings with it are fine.
+// A platform library declares them itself: platform.library turns this off.
+def verifyPlatformFirst = tasks.register('verifyPlatformFirst') {
+    ext.platformLibrary = objects.property(Boolean).convention(false)
+    ext.declared = objects.listProperty(String)
+    def library = ext.platformLibrary
+    def declared = ext.declared
+    def name = project.name
+    def passed = layout.buildDirectory.file('verifyPlatformFirst/passed')
+    inputs.property('platformLibrary', library)
+    inputs.property('declared', declared)
+    outputs.file(passed)
+    onlyIf { !library.get() }
+    doLast {
+        // group:name, or group: for every artifact of the group, and the platform library that has it.
+        def platformHas = [
+            'org.springframework.boot:spring-boot-starter-data-redis'         : 'libs.platform.valkey (ValkeyKeys)',
+            'org.springframework.boot:spring-boot-starter-data-redis-reactive': 'libs.platform.valkey (ValkeyKeys)',
+            'org.springframework.data:spring-data-redis'                      : 'libs.platform.valkey (ValkeyKeys)',
+            'io.lettuce:'                                                     : 'libs.platform.valkey (ValkeyKeys)',
+            'redis.clients:'                                                  : 'libs.platform.valkey (ValkeyKeys)',
+            'org.redisson:'                                                   : 'libs.platform.valkey (ValkeyKeys)',
+            'org.springframework.vault:'                                      : 'libs.platform.vault (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-starter-vault-config'     : 'libs.platform.vault (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-vault-config'             : 'libs.platform.vault (VaultSecrets, VaultTransit)',
+            'org.keycloak:keycloak-admin-client'                              : 'libs.platform.keycloak (KeycloakAdmin)',
+            'com.zaxxer:HikariCP'                                             : 'libs.platform.persistence (@EnableModulePersistence)',
+            'org.liquibase:liquibase-core'                                    : 'libs.platform.persistence (@EnableModulePersistence)',
+        ]
+        def found = declared.get().collect { dependency ->
+            def use = platformHas.find { key, provider -> key.endsWith(':') ? dependency.startsWith(key) : dependency == key }?.value
+            use ? "${dependency}: use ${use}" : null
+        }.findAll()
+        if (found) throw new GradleException("Declared in ${name}, but the platform provides it:\n  ${found.join('\n  ')}")
+        passed.get().asFile.text = ''
+    }
+}
+afterEvaluate {
+    verifyPlatformFirst.configure {
+        declared.set(['api', 'implementation', 'compileOnly', 'runtimeOnly'].collectMany { configuration ->
+            configurations.findByName(configuration)?.dependencies?.withType(ExternalModuleDependency)
+                ?.collect { "${it.group}:${it.name}".toString() } ?: []
+        })
+    }
+}
+tasks.named('check') { dependsOn verifyPlatformFirst }

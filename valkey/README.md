@@ -36,8 +36,14 @@ seconds.
 The commands are GET, DEL, INCR, EXPIRE and TTL, so the ACL user needs no script:
 `-@all +get +set +del +incr +expire +ttl +ping +info +hello +client|setinfo`. A count whose EXPIRE
 was lost (the app stopped between INCR and EXPIRE) gets its expiry on the next count
-(`EXPIRE … NX`). A Valkey that can't be reached throws Spring's `DataAccessException`: the module
-fails closed with its own error.
+(`EXPIRE … NX`).
+
+## Errors
+
+| Code | Status | When |
+|---|---|---|
+| `VALKEY_UNAVAILABLE` | 503 | Valkey can't be reached or refuses (the ACL): nothing is counted or allowed |
+| `VALKEY_INVALID_ARGUMENT` | 500 | a kind, id, window or limit that can't work: a bug in the module |
 
 ## Properties
 
@@ -55,8 +61,8 @@ Where Valkey is and how to sign in are Spring Boot's `spring.data.redis.*`.
 
 ## Tests
 
-- `./gradlew -p platform :valkey:test`: key names, refused kinds, ids, windows and limits, and a
-  missing or unworkable service that stops startup.
-- `./gradlew -p platform :valkey:integrationTest`: a real Valkey with an ACL user like
-  heeyid-infra's: counts under the prefix, the window from the first count, a lost expiry healed,
+- `./gradlew -p platform :valkey:test`: key names, refused kinds, ids, windows and limits, every
+  error defined in every language.
+- `./gradlew -p platform :valkey:integrationTest`: a missing or unworkable service that stops
+  startup; a real Valkey with an ACL user like heeyid-infra's: counts under the prefix, the window from the first count, a lost expiry healed,
   a limit with its Retry-After and a reset, another prefix refused, and Valkey down.

@@ -62,15 +62,21 @@ every index. The library names no key: the infra creates them (`vault secrets en
 | `platform.vault.signing-keys.cache-ttl` | none, required with `path` | how long a key read is used; a missing key is never kept, and a Vault failure never answers with an old key |
 | `platform.vault.clients.path` | none | the client registry's KV entry; unset, there is no registry |
 | `platform.vault.clients.cache-ttl` | none, required with `path` | how long one read of the registry is used |
-| `platform.vault.transit.mount` | none | the Transit engine's mount; unset, there is no `VaultTransit` |
+| `platform.vault.transit.mount` | none | the Transit engine's mount; unset, there is no `VaultTransit`; blank stops startup |
 
 Where Vault is and how to sign in are Spring Cloud Vault's `spring.cloud.vault.*`.
 
 ## Errors
 
-`VaultUnavailableException`: callers fail closed (the payment module refuses the request). From
-`VaultTransit` it also means a refused key or a ciphertext that does not open with its context; the
-log names Vault's status and path, never a value.
+`VaultUnavailableException` (from `VaultSecrets`, `SigningKeys`, `ClientRegistry`): callers fail
+closed (a module refuses the request).
+
+`VaultTransit` throws `GeneralException`; the log names Vault's status and path, never a value:
+
+| Code | Status | When |
+|---|---|---|
+| `VAULT_TRANSIT_UNAVAILABLE` | 503 | Vault didn't answer, failed, or refused the app's token: a later call may work |
+| `VAULT_TRANSIT_REFUSED` | 500 | Vault answered that the call can't work: a ciphertext that doesn't open with its context, a tampered one, a key that doesn't exist |
 
 ## Health
 
@@ -83,10 +89,12 @@ Cloud Vault's own `vault` checks that Vault is up and unsealed.
 
 ## Tests
 
-- `./gradlew -p platform :vault:test`: the signing-key cache (one read per TTL, misses, failures),
+- `./gradlew -p platform :vault:test`: every Transit error defined in every language; the
+  signing-key cache (one read per TTL, misses, failures),
   ids that aren't client ids, the path check, and that a path without its field or cache time
   stops startup.
 - `./gradlew -p platform :vault:integrationTest`: a real Vault: token and AppRole sign-in, latest
   version, missing path, wrong token, rotation after the TTL, and Vault as a configuration source;
-  Transit: a value opens only with its own context, rewrap after a rotation, a stable HMAC, a
-  refused token, and no `VaultTransit` without a mount.
+  Transit: a value opens only with its own context and not tampered, rewrap after a rotation, a
+  stable HMAC, a refused token (unavailable), a missing key (refused), a blank mount that stops
+  startup, and no `VaultTransit` without a mount.

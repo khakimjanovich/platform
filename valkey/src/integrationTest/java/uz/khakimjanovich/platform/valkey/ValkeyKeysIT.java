@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import uz.khakimjanovich.platform.error.GeneralException;
 
 /**
  * Counters and limits against a real Valkey, signed in as an ACL user like heeyid-infra's: it
@@ -61,6 +61,13 @@ class ValkeyKeysIT {
           .withExposedPorts(6379);
 
   private StringRedisTemplate admin;
+
+  private static void unavailable(Throwable e) {
+    assertThat(e)
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            g -> assertThat(g.getStatus()).isEqualTo(ValkeyExceptionStatus.VALKEY_UNAVAILABLE));
+  }
 
   private ApplicationContextRunner app(String service) {
     return new ApplicationContextRunner()
@@ -153,7 +160,7 @@ class ValkeyKeysIT {
   }
 
   @Test
-  void theAclRefusesAServiceThatIsNotTheUsersOwn() {
+  void anotherServicesPrefixIsRefusedByTheAclAndNothingIsWritten() {
     app("admin-gw")
         .run(
             context ->
@@ -162,13 +169,12 @@ class ValkeyKeysIT {
                             context
                                 .getBean(ValkeyKeys.class)
                                 .increment("sends", "n1", Duration.ofMinutes(1)))
-                    .isInstanceOf(DataAccessException.class)
-                    .rootCause()
-                    .hasMessageContaining("NOPERM"));
+                    .satisfies(ValkeyKeysIT::unavailable));
+    assertThat(admin.keys("*")).isEmpty();
   }
 
   @Test
-  void aValkeyThatCannotBeReachedThrows() {
+  void aValkeyThatCannotBeReachedIsUnavailable() {
     new ApplicationContextRunner()
         .withConfiguration(
             AutoConfigurations.of(DataRedisAutoConfiguration.class, ValkeyAutoConfiguration.class))
@@ -181,6 +187,6 @@ class ValkeyKeysIT {
         .run(
             context ->
                 assertThatThrownBy(() -> context.getBean(ValkeyKeys.class).count("sends", "n1"))
-                    .isInstanceOf(DataAccessException.class));
+                    .satisfies(ValkeyKeysIT::unavailable));
   }
 }

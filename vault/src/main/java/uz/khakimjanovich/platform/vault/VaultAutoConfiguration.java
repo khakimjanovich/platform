@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.vault.core.VaultTemplate;
 
 /**
@@ -23,8 +24,7 @@ import org.springframework.vault.core.VaultTemplate;
 @EnableConfigurationProperties({
   VaultProperties.class,
   VaultSigningKeysProperties.class,
-  VaultClientsProperties.class,
-  VaultTransitProperties.class
+  VaultClientsProperties.class
 })
 public class VaultAutoConfiguration {
 
@@ -57,11 +57,20 @@ public class VaultAutoConfiguration {
         vaultSecrets, Objects.requireNonNull(properties.path()), ttl, Clock.systemUTC());
   }
 
-  @Bean
-  @ConditionalOnMissingBean
+  /**
+   * Transit only for an app that names its mount: its properties are bound only then, so an app
+   * without Transit needs no setting, and a blank mount stops startup.
+   */
+  @Configuration(proxyBeanMethods = false)
   @ConditionalOnProperty(prefix = VaultConstants.TRANSIT_PREFIX, name = "mount")
-  VaultTransit vaultTransit(VaultTemplate vaultTemplate, VaultTransitProperties properties) {
-    return new VaultTransit(vaultTemplate, Objects.requireNonNull(properties.mount()));
+  @EnableConfigurationProperties(VaultTransitProperties.class)
+  static class Transit {
+
+    @Bean
+    @ConditionalOnMissingBean
+    VaultTransit vaultTransit(VaultTemplate vaultTemplate, VaultTransitProperties properties) {
+      return new VaultTransit(vaultTemplate, properties.mount());
+    }
   }
 
   /** With the actuator: a token Vault refuses turns the app's health DOWN. */

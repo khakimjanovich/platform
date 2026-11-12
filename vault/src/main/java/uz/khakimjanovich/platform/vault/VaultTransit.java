@@ -1,9 +1,9 @@
 package uz.khakimjanovich.platform.vault;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.vault.VaultException;
 import org.springframework.vault.core.VaultOperations;
 import org.springframework.vault.core.VaultTransitOperations;
@@ -11,14 +11,18 @@ import org.springframework.vault.support.Ciphertext;
 import org.springframework.vault.support.Plaintext;
 import org.springframework.vault.support.VaultHmacRequest;
 import org.springframework.vault.support.VaultTransitContext;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
+import uz.khakimjanovich.platform.error.GeneralException;
 
 /**
  * Values sealed with Vault Transit: the keys never leave Vault. The module names the key and gives
  * a context that says where the value lives (for example {@code <table>.<column>:<row id>}); with a
  * derived key ({@code derived=true}) a ciphertext copied to another row or column does not open.
- * Vault down or refusing is never a guess: every call throws {@link VaultUnavailableException}, so
- * callers fail closed.
+ * Every failure fails closed with a {@link GeneralException}: {@code VAULT_TRANSIT_UNAVAILABLE}
+ * when Vault didn't answer, failed or refused the app's token (a later call may work), {@code
+ * VAULT_TRANSIT_REFUSED} when Vault answered that this call can't work (a ciphertext that doesn't
+ * open with its context, a tampered one, a key that doesn't exist).
  */
 @Slf4j
 public class VaultTransit {
@@ -57,8 +61,12 @@ public class VaultTransit {
 
   /** {@code vault:v<newest version>:}, the start of every value sealed with the newest version. */
   public String latestPrefix(String key) {
-    return VaultConstants.TRANSIT_PREFIX_FORMAT.formatted(
-        vault(() -> Objects.requireNonNull(transit.getKey(key)).getLatestVersion()));
+    var found = vault(() -> transit.getKey(key));
+    if (found == null) {
+      log.warn(VaultConstants.TRANSIT_KEY_MISSING, key);
+      throw new GeneralException(VaultExceptionStatus.VAULT_TRANSIT_REFUSED);
+    }
+    return VaultConstants.TRANSIT_PREFIX_FORMAT.formatted(found.getLatestVersion());
   }
 
   /**
@@ -83,14 +91,27 @@ public class VaultTransit {
     return VaultTransitContext.builder().context(context.getBytes(StandardCharsets.UTF_8)).build();
   }
 
-  private static <T> T vault(Supplier<T> call) {
+  private static <T extends @Nullable Object> T vault(Supplier<T> call) {
     try {
       return call.get();
     } catch (VaultException | RestClientException e) { // Vault refused, or didn't answer at all
-      // Vault's answer names the status and the path, never a value: a tampered ciphertext or a
-      // denied policy shows here, not only as an outage.
+      // Vault's answer names the status and the path, never a value.
       log.warn(VaultConstants.TRANSIT_FAILED, e.getClass().getSimpleName(), e.getMessage());
-      throw new VaultUnavailableException(e);
+      throw new GeneralException(
+          refused(e)
+              ? VaultExceptionStatus.VAULT_TRANSIT_REFUSED
+              : VaultExceptionStatus.VAULT_TRANSIT_UNAVAILABLE);
     }
+  }
+
+  /**
+   * Vault answers 400 to a ciphertext that doesn't open (wrong context, tampered, unknown key) and
+   * 404 to a missing key: the call can't work. Anything else (no answer, 5xx, a refused token) may
+   * pass later.
+   */
+  private static boolean refused(Exception e) {
+    var cause = e instanceof HttpClientErrorException ? e : e.getCause();
+    return cause instanceof HttpClientErrorException client
+        && VaultConstants.TRANSIT_REFUSED_STATUSES.contains(client.getStatusCode().value());
   }
 }

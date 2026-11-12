@@ -7,9 +7,13 @@ plugins {
 
 dependencies {
     api platform(libs.spring.boot.bom)
+    runtimeOnly project(':config') // loads the files in META-INF/spring/…LibraryDefaults.imports
+    api project(':error')
     api libs.starter.data.redis
     implementation libs.spring.boot.autoconfigure
     implementation libs.starter.validation // the properties are checked at startup
+
+    testImplementation testFixtures(project(':error'))
 
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit

@@ -16,8 +16,5 @@ public class ValkeyConstants {
 
   static final Pattern NAME = Pattern.compile(NAME_REGEX);
 
-  public static final String KIND_INVALID = "A key kind is lower case words joined by -: ";
-  public static final String ID_BLANK = "A key id is not blank";
-  public static final String WINDOW_INVALID = "A window is whole seconds, at least one: ";
-  public static final String MAX_INVALID = "A limit is at least one: ";
+  public static final String LOG_UNAVAILABLE = "Valkey unavailable: {}";
 }

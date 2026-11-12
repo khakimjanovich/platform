@@ -4,9 +4,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.connection.ExpirationOptions;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import uz.khakimjanovich.platform.error.GeneralException;
 
 /**
  * Key names and counters in Valkey. Every key is {@code <service>:<kind>:<id>}: the service is the
@@ -15,9 +20,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  *
  * <p>The commands are only GET, DEL, INCR, EXPIRE and TTL, so the ACL user needs no script. An INCR
  * whose EXPIRE was lost (the app stopped between the two) gets its expiry on the next count. A
- * Valkey that can't be reached throws Spring's {@code DataAccessException}: the module fails
- * closed.
+ * Valkey that can't be reached or refuses is {@code VALKEY_UNAVAILABLE}, so the module fails
+ * closed; a kind, id, window or limit that can't work is {@code VALKEY_INVALID_ARGUMENT}.
  */
+@Slf4j
 public class ValkeyKeys {
 
   private final StringRedisTemplate valkey;
@@ -33,11 +39,8 @@ public class ValkeyKeys {
    * phone number) is the module's to hash first.
    */
   public String key(String kind, String id) {
-    if (!ValkeyConstants.NAME.matcher(kind).matches()) {
-      throw new IllegalArgumentException(ValkeyConstants.KIND_INVALID + kind);
-    }
-    if (id.isBlank()) {
-      throw new IllegalArgumentException(ValkeyConstants.ID_BLANK);
+    if (!ValkeyConstants.NAME.matcher(kind).matches() || id.isBlank()) {
+      throw invalid();
     }
     return ValkeyConstants.KEY_FORMAT.formatted(service, kind, id);
   }
@@ -46,14 +49,17 @@ public class ValkeyKeys {
   public long increment(String kind, String id, Duration window) {
     var seconds = seconds(window);
     var name = key(kind, id).getBytes(StandardCharsets.UTF_8);
-    return Objects.requireNonNull(
-        valkey.execute(
-            (RedisCallback<Long>)
-                connection -> {
-                  var count = connection.stringCommands().incr(name);
-                  connection.keyCommands().expire(name, seconds, ExpirationOptions.Condition.NX);
-                  return count;
-                }));
+    return run(
+        () ->
+            valkey.execute(
+                (RedisCallback<Long>)
+                    connection -> {
+                      var count = connection.stringCommands().incr(name);
+                      connection
+                          .keyCommands()
+                          .expire(name, seconds, ExpirationOptions.Condition.NX);
+                      return count;
+                    }));
   }
 
   /**
@@ -62,7 +68,7 @@ public class ValkeyKeys {
    */
   public Optional<Duration> hit(String kind, String id, long max, Duration window) {
     if (max < 1) {
-      throw new IllegalArgumentException(ValkeyConstants.MAX_INVALID + max);
+      throw invalid();
     }
     if (increment(kind, id, window) <= max) {
       return Optional.empty();
@@ -72,27 +78,42 @@ public class ValkeyKeys {
 
   /** The count in the current window; 0 when there is none. */
   public long count(String kind, String id) {
-    var value = valkey.opsForValue().get(key(kind, id));
-    return value == null ? 0 : Long.parseLong(value);
+    var name = key(kind, id);
+    var value = run(() -> Optional.ofNullable(valkey.opsForValue().get(name)));
+    return value.map(Long::parseLong).orElse(0L);
   }
 
   /** How long until the key ends; empty when there is no key or it never ends. */
   public Optional<Duration> expiresIn(String kind, String id) {
-    var seconds = valkey.getExpire(key(kind, id));
-    return seconds == null || seconds < 0
-        ? Optional.empty()
-        : Optional.of(Duration.ofSeconds(Math.max(1, seconds)));
+    var name = key(kind, id);
+    var seconds = run(() -> valkey.getExpire(name));
+    return seconds < 0 ? Optional.empty() : Optional.of(Duration.ofSeconds(Math.max(1, seconds)));
   }
 
   /** Removes the key: a counter starts again from zero. */
   public void reset(String kind, String id) {
-    valkey.delete(key(kind, id));
+    var name = key(kind, id);
+    run(() -> valkey.delete(name));
   }
 
   private static long seconds(Duration window) {
     if (window.toSeconds() < 1 || window.toNanosPart() != 0) {
-      throw new IllegalArgumentException(ValkeyConstants.WINDOW_INVALID + window);
+      throw invalid();
     }
     return window.toSeconds();
+  }
+
+  private static GeneralException invalid() {
+    return new GeneralException(ValkeyExceptionStatus.VALKEY_INVALID_ARGUMENT);
+  }
+
+  /** Fail closed: without Valkey nothing is counted or allowed; the log says why. */
+  private static <T> T run(Supplier<@Nullable T> call) {
+    try {
+      return Objects.requireNonNull(call.get());
+    } catch (DataAccessException e) {
+      log.warn(ValkeyConstants.LOG_UNAVAILABLE, e.getMessage(), e);
+      throw new GeneralException(ValkeyExceptionStatus.VALKEY_UNAVAILABLE);
+    }
   }
 }

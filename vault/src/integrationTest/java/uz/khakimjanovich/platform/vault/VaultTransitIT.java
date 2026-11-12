@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.vault.VaultContainer;
+import uz.khakimjanovich.platform.error.GeneralException;
 
 /**
  * Transit against a real Vault: a derived key that seals and a key for the blind index, as an infra
@@ -45,6 +46,12 @@ class VaultTransitIT {
         .withPropertyValues(properties);
   }
 
+  private static void fails(Throwable e, VaultExceptionStatus status) {
+    assertThat(e)
+        .isInstanceOfSatisfying(
+            GeneralException.class, g -> assertThat(g.getStatus()).isEqualTo(status));
+  }
+
   private static ApplicationContextRunner app() {
     return app("test", "platform.vault.transit.mount=transit");
   }
@@ -59,7 +66,10 @@ class VaultTransitIT {
               assertThat(sealed).startsWith("vault:v1:").doesNotContain("secret value");
               assertThat(transit.decrypt(DATA, ROW_A, sealed)).isEqualTo("secret value");
               assertThatThrownBy(() -> transit.decrypt(DATA, ROW_B, sealed))
-                  .isInstanceOf(VaultUnavailableException.class);
+                  .satisfies(e -> fails(e, VaultExceptionStatus.VAULT_TRANSIT_REFUSED));
+              var tampered = sealed.substring(0, sealed.length() - 4) + "AAA=";
+              assertThatThrownBy(() -> transit.decrypt(DATA, ROW_A, tampered))
+                  .satisfies(e -> fails(e, VaultExceptionStatus.VAULT_TRANSIT_REFUSED));
             });
   }
 
@@ -95,13 +105,38 @@ class VaultTransitIT {
   }
 
   @Test
-  void aTokenVaultRefusesFailsClosed() {
+  void aTokenVaultRefusesIsUnavailable() {
     app("wrong-token", "platform.vault.transit.mount=transit")
         .run(
             context ->
                 assertThatThrownBy(
                         () -> context.getBean(VaultTransit.class).encrypt(DATA, ROW_A, "x"))
-                    .isInstanceOf(VaultUnavailableException.class));
+                    .satisfies(e -> fails(e, VaultExceptionStatus.VAULT_TRANSIT_UNAVAILABLE)));
+  }
+
+  @Test
+  void aKeyThatDoesNotExistIsRefused() {
+    app()
+        .run(
+            context -> {
+              var transit = context.getBean(VaultTransit.class);
+              assertThatThrownBy(() -> transit.latestPrefix("no-such-key"))
+                  .satisfies(e -> fails(e, VaultExceptionStatus.VAULT_TRANSIT_REFUSED));
+              assertThatThrownBy(() -> transit.decrypt("no-such-key", ROW_A, "vault:v1:AAAA"))
+                  .satisfies(e -> fails(e, VaultExceptionStatus.VAULT_TRANSIT_REFUSED));
+            });
+  }
+
+  @Test
+  void aBlankMountStopsStartup() {
+    app("test", "platform.vault.transit.mount=")
+        .run(
+            context ->
+                assertThat(context)
+                    .getFailure()
+                    .rootCause()
+                    .hasMessageContaining("platform.vault.transit")
+                    .hasMessageContaining("mount"));
   }
 
   @Test

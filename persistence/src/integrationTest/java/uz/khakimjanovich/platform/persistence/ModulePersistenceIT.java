@@ -25,9 +25,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -39,7 +41,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  */
 @SpringBootTest(
     classes = {ModulePersistenceIT.ModuleA.class, ModulePersistenceIT.ModuleB.class},
-    properties = "app.db.a.hikari.maximum-pool-size=3")
+    properties = {"app.db.a.hikari.maximum-pool-size=3", "app.db.b.hikari.maximum-pool-size=4"})
 @Testcontainers
 class ModulePersistenceIT {
 
@@ -93,33 +95,14 @@ class ModulePersistenceIT {
     }
   }
 
+  /** Module "b", declared with the annotation. */
   @Configuration(proxyBeanMethods = false)
-  static class ModuleB {
-    @Bean
-    @ConfigurationProperties("app.db.b")
-    DataSourceProperties bDataSourceProperties() {
-      return new DataSourceProperties();
-    }
-
-    @Bean
-    @ConfigurationProperties("app.db.b.hikari")
-    HikariDataSource bDataSource(DataSourceProperties bDataSourceProperties) {
-      return ModulePersistence.dataSource("b", bDataSourceProperties);
-    }
-
-    @Bean
-    SpringLiquibase bLiquibase(@Qualifier("bDataSource") DataSource dataSource) {
-      return ModulePersistence.liquibase("b", "db/b/changelog.yaml", dataSource);
-    }
-
-    @Bean
-    LocalContainerEntityManagerFactoryBean bEntityManagerFactory(
-        @Qualifier("bDataSource") DataSource dataSource,
-        @Qualifier("bLiquibase") SpringLiquibase migrationsFirst) {
-      return ModulePersistence.entityManagerFactory(
-          "b", uz.khakimjanovich.platform.persistence.b.Note.class, dataSource);
-    }
-  }
+  @EnableModulePersistence(
+      schema = "b",
+      prefix = "app.db.b",
+      changelog = "db/b/changelog.yaml",
+      entities = uz.khakimjanovich.platform.persistence.b.Note.class)
+  static class ModuleB {}
 
   /** Module "c": its entity has a column its migrations never created. */
   @Configuration(proxyBeanMethods = false)
@@ -160,6 +143,14 @@ class ModulePersistenceIT {
   HikariDataSource b;
 
   @Autowired CountingDataSource aCounting;
+
+  @Autowired
+  @Qualifier("bTransactionManager")
+  PlatformTransactionManager bTransactions;
+
+  @Autowired
+  @Qualifier("bEntityManagerFactory")
+  EntityManagerFactory bEntities;
 
   @Autowired
   @Qualifier("aEntityManagerFactory")
@@ -215,6 +206,12 @@ class ModulePersistenceIT {
   }
 
   @Test
+  void anAnnotatedModulesTransactionsUseItsOwnEntityManager() {
+    assertThat(((JpaTransactionManager) bTransactions).getEntityManagerFactory())
+        .isSameAs(bEntities);
+  }
+
+  @Test
   void theLibraryDefaultsLoadWithoutAnImport() {
     assertThat(environment.getProperty("spring.jpa.open-in-view")).isEqualTo("false");
   }
@@ -222,7 +219,7 @@ class ModulePersistenceIT {
   @Test
   void eachPoolTakesItsOwnSettings() {
     assertThat(a.getMaximumPoolSize()).isEqualTo(3);
-    assertThat(b.getMaximumPoolSize()).as("Hikari's own default").isEqualTo(10);
+    assertThat(b.getMaximumPoolSize()).isEqualTo(4);
     assertThat(a.getPoolName()).isEqualTo("a");
   }
 

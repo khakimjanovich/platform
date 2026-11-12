@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-/** Keycloak without a realm, a client or its secret stops startup, naming the property. */
 class KeycloakPropertiesTest {
 
   private final ApplicationContextRunner runner =

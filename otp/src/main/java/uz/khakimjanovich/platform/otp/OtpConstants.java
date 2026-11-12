@@ -7,13 +7,8 @@ public class OtpConstants {
 
   public static final String PROPERTIES_PREFIX = "platform.otp";
 
-  /**
-   * Redis key: {prefix}:{flow}:{keyed hash of the subject}:{part}. The hash is a Redis Cluster hash
-   * tag ({@code {…}}), so one subject's keys share a slot and each script may touch them all.
-   */
   public static final String KEY_FORMAT = "%s:%s:{%s}:%s";
 
-  /** Domain separation: a code's hash can never equal a subject's. */
   public static final String HASH_CODE = "code:";
 
   public static final String HASH_SUBJECT = "subject:";

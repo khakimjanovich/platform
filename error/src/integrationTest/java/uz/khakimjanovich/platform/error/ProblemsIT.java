@@ -12,7 +12,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-/** Problems read off a real HTTP exchange, the way a module reads an adapter's answer. */
 class ProblemsIT {
 
   @RegisterExtension

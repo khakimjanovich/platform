@@ -1,0 +1,18 @@
+# Errors the valkey library returns: HTTP status, title and message in English, Russian and Uzbek.
+platform:
+  error:
+    codes:
+      VALKEY_UNAVAILABLE:
+        http-code: 503
+        title: valkey-unavailable
+        is-loggable: true
+        message-en: "The service can't do this right now. Please try again later."
+        message-ru: "Сервис сейчас не может это выполнить. Попробуйте позже."
+        message-uz: "Xizmat hozir buni bajara olmaydi. Keyinroq urinib koʻring."
+      VALKEY_INVALID_ARGUMENT:
+        http-code: 500
+        title: valkey-invalid-argument
+        is-loggable: true
+        message-en: "Something went wrong on our side. Please try again later."
+        message-ru: "Что-то пошло не так на нашей стороне. Попробуйте позже."
+        message-uz: "Bizning tomonda xatolik yuz berdi. Keyinroq urinib koʻring."

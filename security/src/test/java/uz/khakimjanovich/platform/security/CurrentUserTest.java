@@ -10,7 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-/** Without an authentication there is no caller: null, never a NullPointerException. */
 class CurrentUserTest {
 
   @AfterEach

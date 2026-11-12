@@ -1,0 +1,10 @@
+// A circuit breaker for one outside system: open after failures in a row, then one probe at a time.
+// Plain Java besides the error library: no beans, no properties, so any service can use it.
+plugins {
+    id 'platform.library'
+}
+
+dependencies {
+    api platform(libs.spring.boot.bom)
+    api project(":error") // a breaker built with bad settings is a GeneralException
+}

@@ -11,11 +11,6 @@ import org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfigurat
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/**
- * Adding the library to an app with Redis is enough: any module can inject {@link OtpService}. Its
- * counters go to the app's meter registry ({@code platform.otp.issued}, {@code
- * platform.otp.verified}, {@code platform.otp.rejected} by reason).
- */
 @AutoConfiguration(after = DataRedisAutoConfiguration.class)
 @ConditionalOnBean(StringRedisTemplate.class)
 @EnableConfigurationProperties(OtpProperties.class)

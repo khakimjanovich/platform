@@ -19,17 +19,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * Issues and checks one-time codes. Redis keeps only a keyed hash (HMAC-SHA256 with a configured
- * secret) of each code, so a copy of Redis alone can't be brute-forced; the subject in each key is
- * hashed the same way. Issuing and checking each run as one Lua script, so limits hold and a code
- * works once even under concurrent requests.
- *
- * <p>Wrong codes count for the whole send window, across codes, so a lockout holds until the window
- * ends; a new code waits {@code resend-after} after the last one. Every refusal that lifts by
- * itself says when ({@code Retry-After}). Without Redis nothing is issued or accepted: {@code
- * OTP_UNAVAILABLE}.
- */
 @Slf4j
 public class OtpService {
 
@@ -55,9 +44,6 @@ public class OtpService {
             properties.secret().getBytes(StandardCharsets.UTF_8), OtpConstants.HASH_ALGORITHM);
   }
 
-  /**
-   * A new code for this flow and subject (e.g. "registration", an email). The caller delivers it.
-   */
   public String issue(String flow, String subject) {
     var code = randomDigits(properties.length());
     var result =
@@ -87,7 +73,6 @@ public class OtpService {
     return code;
   }
 
-  /** Returns normally if the code is right; the code can then never be used again. */
   public void verify(String flow, String subject, String code) {
     var result =
         run(
@@ -119,7 +104,6 @@ public class OtpService {
     return e;
   }
 
-  /** A refusal that lifts by itself: Retry-After is the Redis key's remaining lifetime. */
   private static GeneralException refused(OtpExceptionStatus status, List<Long> result) {
     var wait = Math.max(1, result.get(1));
     return new GeneralException(status).retryAfter(Duration.ofMillis(wait));
@@ -129,7 +113,6 @@ public class OtpService {
     return result == null || result.isEmpty() ? 0 : result.getFirst().intValue();
   }
 
-  /** Fail closed: without Redis, no code is issued or accepted; the log says why. */
   private static List<Long> run(Supplier<List<Long>> script) {
     try {
       return script.get();
@@ -139,18 +122,12 @@ public class OtpService {
     }
   }
 
-  /**
-   * Each script answers a Lua table of integers ({status, milliseconds}), which Spring Data Redis
-   * reads as a list of Longs. Its {@code RedisScript.of} takes only a {@code Class}, and no class
-   * literal can say {@code List<Long>}, so this is the one place the type is stated.
-   */
   // The cast changes only the static type: Spring uses the class to choose a multi-bulk reply.
   @SuppressWarnings("unchecked")
   private static RedisScript<List<Long>> script(String path) {
     return RedisScript.of(new ClassPathResource(path), (Class<List<Long>>) (Class<?>) List.class);
   }
 
-  /** The Redis key for each part; the subject (often an email) is stored only as a keyed hash. */
   private List<String> keys(String flow, String subject, String... parts) {
     var hashedSubject = hash(OtpConstants.HASH_SUBJECT + subject);
     return Arrays.stream(parts)

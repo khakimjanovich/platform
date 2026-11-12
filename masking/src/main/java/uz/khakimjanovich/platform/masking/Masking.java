@@ -22,13 +22,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
-/**
- * Text as it may be logged. Card numbers keep their first 6 and last 4 digits (PCI DSS 3.4.1),
- * tokens their last 4 characters, and secrets are hidden, by field name ({@link MaskingRules}): in
- * JSON, XML (also {@code <name>}/{@code <value>} pairs), forms, URI queries and {@code key=value}
- * text. As a last guard, any run of 13 to 19 digits is treated as a card number. A body of any
- * other type is shown only by its size.
- */
 public final class Masking {
 
   private final MaskingRules rules;
@@ -37,12 +30,10 @@ public final class Masking {
     this.rules = rules;
   }
 
-  /** The default rules: what every service hides. */
   public static Masking defaults() {
     return new Masking(MaskingRules.defaults());
   }
 
-  /** An HTTP body of the given content type (e.g. {@code application/json}), or null. */
   public String body(byte @Nullable [] body, @Nullable String contentType) {
     if (body == null || body.length == 0) return "";
     var text = new String(body, StandardCharsets.UTF_8);
@@ -56,13 +47,11 @@ public final class Masking {
     return cut(cards(masked));
   }
 
-  /** A log message or an exception's: {@code key=value} pairs by name, and any card number. */
   public @Nullable String text(@Nullable String text) {
     if (text == null || text.isEmpty()) return text;
     return cards(pairs(KEY_COLON, pairs(KEY_EQUALS, text)));
   }
 
-  /** A URI with its query values masked by name, and any card number in it. */
   public String uri(URI uri) {
     var query = uri.getRawQuery();
     var whole = uri.toString();
@@ -102,9 +91,6 @@ public final class Masking {
     }
   }
 
-  /**
-   * A field secret only beside, or under, one of its names in {@link MaskingRules#secretsBeside}.
-   */
   private boolean secretHere(String key, List<String> siblings, String parent) {
     var context = rules.secretsBeside().get(key);
     if (context == null) return false;
@@ -151,7 +137,6 @@ public final class Masking {
     return replace(DIGITS, text, match -> card(match.group()));
   }
 
-  /** Like {@link Matcher#replaceAll(Function)}, but the replacement is literal text. */
   private static String replace(
       Pattern pattern, String text, Function<java.util.regex.MatchResult, String> replacement) {
     return pattern
@@ -176,7 +161,6 @@ public final class Masking {
     return masked.length() > MAX_LENGTH ? masked.substring(0, MAX_LENGTH) + "…" : masked;
   }
 
-  /** "json" for "application/problem+json; charset=UTF-8"; "" for none. */
   private static String subtype(@Nullable String contentType) {
     if (contentType == null) return "";
     var type = contentType.split(";", 2)[0].trim().toLowerCase(Locale.ROOT);

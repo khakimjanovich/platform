@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/** A limit that can't work stops startup, naming the property. */
 class OtpPropertiesTest {
 
   private final ApplicationContextRunner runner =

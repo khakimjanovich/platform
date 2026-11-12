@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** platform.java's verifyArchitecture on a real build: a broken layer or constant fails `check`. */
 class ArchitectureTest {
 
   @TempDir Path build;

@@ -30,12 +30,6 @@ import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Trusted issuers against a real Keycloak with four realms: three trusted, each with the roles it
- * may grant, and one not. A token is accepted only from a trusted issuer and for this audience; any
- * client the issuer gave the token to counts, only the roles that issuer may grant count, and the
- * route's role is checked after that.
- */
 @SpringBootTest(
     classes = TrustedIssuersIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -141,7 +135,6 @@ class TrustedIssuersIT {
         .exchange();
   }
 
-  /** The same token naming another issuer: its signature, from the rogue realm, no longer fits. */
   private static String withIssuer(String token, String issuer) {
     var parts = token.split("\\.");
     var claims = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
@@ -156,7 +149,6 @@ class TrustedIssuersIT {
         + parts[2];
   }
 
-  /** The demo realm under another name: the same clients and secrets, its own keys. */
   private static Transferable realm(String name) {
     try {
       var demo =

@@ -17,17 +17,6 @@ import java.util.Locale;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Whether a merchant's URL may be called. It must be https on the default port, and its host must
- * resolve, only to public addresses: a merchant must not point the bank at its own network (SSRF).
- * IPv4 must be outside every private, shared, loopback, link-local, reserved, documentation and
- * multicast range; IPv6 must be global unicast (2000::/3) and none of the forms that carry an IPv4
- * address inside (6to4, Teredo, NAT64) or are for documentation.
- *
- * <p>Checking the URL is not enough on its own: DNS can answer differently when the client connects
- * (rebinding). A client calling merchants resolves through {@link #resolvePublic}, so it connects
- * only to the addresses that were checked, and never follows redirects, which could point anywhere.
- */
 @UtilityClass
 public class PublicAddresses {
 
@@ -57,11 +46,6 @@ public class PublicAddresses {
           Range.of("2002::/16"), // 6to4
           Range.of("64:ff9b::/96")); // NAT64
 
-  /**
-   * The URL is https on port 443 and its host resolves only to public addresses; or it is a listed
-   * local stand-in: {@code testHosts} are exact {@code host:port} entries, over http or https. A
-   * malformed URL is not allowed.
-   */
   public static boolean allowed(String url, Collection<String> testHosts) {
     var uri = parse(url);
     if (uri == null) return false;
@@ -69,7 +53,6 @@ public class PublicAddresses {
     return HTTPS.equals(scheme(uri)) && port(uri) == HTTPS_PORT && resolvesPublic(uri.getHost());
   }
 
-  /** The URL is http or https to one of {@code testHosts}, exact {@code host:port} entries. */
   public static boolean allowedTestHost(String url, Collection<String> testHosts) {
     var uri = parse(url);
     if (uri == null) return false;
@@ -77,13 +60,11 @@ public class PublicAddresses {
     return testHosts.stream().anyMatch(test -> test.toLowerCase(Locale.ROOT).equals(entry));
   }
 
-  /** Whether some {@code testHosts} entry names this host, on any of its ports. */
   public static boolean isTestHost(String host, Collection<String> testHosts) {
     var prefix = host.toLowerCase(Locale.ROOT) + ":";
     return testHosts.stream().anyMatch(test -> test.toLowerCase(Locale.ROOT).startsWith(prefix));
   }
 
-  /** An absolute http or https URL with a host, or null. */
   private static @Nullable URI parse(String url) {
     try {
       var uri = new URI(url);
@@ -103,12 +84,6 @@ public class PublicAddresses {
     return HTTPS.equals(scheme(uri)) ? HTTPS_PORT : HTTP_PORT;
   }
 
-  /**
-   * The host's addresses, when every one is public; for a client's DNS resolver, so the connection
-   * goes only to addresses that were checked.
-   *
-   * @throws UnknownHostException when the host does not resolve or any address is not public
-   */
   public static InetAddress[] resolvePublic(String host) throws UnknownHostException {
     var addresses = InetAddress.getAllByName(host);
     if (!Arrays.stream(addresses).allMatch(PublicAddresses::isPublic)) {
@@ -118,7 +93,6 @@ public class PublicAddresses {
     return addresses;
   }
 
-  /** False when the host does not resolve, or any of its addresses is not public. */
   public static boolean resolvesPublic(String host) {
     try {
       resolvePublic(host);
@@ -135,7 +109,6 @@ public class PublicAddresses {
         && REFUSED_V6.stream().noneMatch(range -> range.contains(bytes));
   }
 
-  /** A CIDR block. */
   private static final class Range {
     private final byte[] network;
     private final int prefix;

@@ -7,7 +7,6 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Configuration;
 
-/** A library's defaults load without an import, below every way an app configures itself. */
 class LibraryDefaultsTest {
 
   @Configuration(proxyBeanMethods = false)

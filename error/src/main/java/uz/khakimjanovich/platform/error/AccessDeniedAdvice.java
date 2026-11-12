@@ -10,11 +10,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/**
- * Method security ({@code @PreAuthorize}) refusing a call inside a controller is a 403 like the
- * security chain's, not an unexpected 500. Checked before {@link ProblemDetailsAdvice}'s catch-all.
- * Its condition also holds when an app scans this package: without Spring Security it is skipped.
- */
 @RestControllerAdvice
 @ConditionalOnClass(name = ErrorConstants.ACCESS_DENIED)
 @Order(Ordered.HIGHEST_PRECEDENCE)

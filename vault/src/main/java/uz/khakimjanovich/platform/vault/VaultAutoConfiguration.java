@@ -10,13 +10,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.vault.core.VaultTemplate;
 
-/**
- * Where Spring Cloud Vault gives the app a {@link VaultTemplate} ({@code spring.cloud.vault.*}),
- * this library gives it {@link VaultSecrets}; with {@code platform.vault.signing-keys.path}, {@link
- * SigningKeys}; and with {@code platform.vault.clients.path}, a {@link ClientRegistry}.
- */
 @AutoConfiguration(afterName = VaultConstants.SPRING_CLOUD_VAULT)
 @ConditionalOnBean(VaultTemplate.class)
 @EnableConfigurationProperties({
@@ -55,7 +51,18 @@ public class VaultAutoConfiguration {
         vaultSecrets, Objects.requireNonNull(properties.path()), ttl, Clock.systemUTC());
   }
 
-  /** With the actuator: a token Vault refuses turns the app's health DOWN. */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnProperty(prefix = VaultConstants.TRANSIT_PREFIX, name = "mount")
+  @EnableConfigurationProperties(VaultTransitProperties.class)
+  static class Transit {
+
+    @Bean
+    @ConditionalOnMissingBean
+    VaultTransit vaultTransit(VaultTemplate vaultTemplate, VaultTransitProperties properties) {
+      return new VaultTransit(vaultTemplate, properties.mount());
+    }
+  }
+
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
   @ConditionalOnMissingBean(name = VaultConstants.HEALTH_INDICATOR_BEAN)

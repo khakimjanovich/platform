@@ -32,11 +32,6 @@ import org.testcontainers.grafana.LgtmStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * One request against Grafana's LGTM stack: its trace reaches Tempo and its log lines Loki under
- * the same trace id, which the response names in X-Request-Id; a card number in a log line and a
- * token in a client call's query arrive masked.
- */
 @SpringBootTest(
     classes = ObservabilityIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,

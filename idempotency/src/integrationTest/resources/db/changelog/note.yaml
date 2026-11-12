@@ -1,0 +1,14 @@
+# A module's changelog: its own table, then the platform's idempotency table in its schema.
+databaseChangeLog:
+  - property: { name: idempotency.schema, value: note }
+  - property: { name: idempotency.table, value: note_idempotency }
+  - changeSet:
+      id: 001-create-note
+      author: test
+      changes:
+        - createTable:
+            schemaName: note
+            tableName: note
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+  - include: { file: db/changelog/platform-idempotency.yaml }

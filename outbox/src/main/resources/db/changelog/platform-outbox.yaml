@@ -1,0 +1,28 @@
+# The outbox table of one module, in its own schema. The module's changelog sets outbox.schema and outbox.table, then includes this file.
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-outbox
+      author: platform
+      changes:
+        # Events written in the module's transactions, published by the relay and then marked published.
+        - createTable:
+            schemaName: ${outbox.schema}
+            tableName: ${outbox.table}
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+              # The order events were written in, from the database, whatever the instances' clocks say.
+              - column: { name: seq, type: bigint, autoIncrement: true, constraints: { nullable: false, unique: true } }
+              - column: { name: topic, type: varchar(249), constraints: { nullable: false } }
+              # The Kafka key: events with one key keep their order.
+              - column: { name: event_key, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: type, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: payload, type: text, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+              - column: { name: published_at, type: timestamptz }
+              # The W3C trace context of the request that wrote it, so the publish joins that trace.
+              - column: { name: traceparent, type: varchar(55) }
+        # The relay reads only what is still unpublished, in the order written.
+        - sql:
+            sql: >-
+              CREATE INDEX ix_${outbox.table}_unpublished ON ${outbox.schema}.${outbox.table} (seq)
+              WHERE published_at IS NULL

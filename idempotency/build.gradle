@@ -1,0 +1,19 @@
+// Idempotency for any module: the first answer to a client's key, kept in the module's own schema and
+// in the transaction that made it, so a retry gets the same answer and a different request is refused.
+plugins {
+    id 'platform.library'
+    id 'platform.integration-test'
+}
+
+dependencies {
+    api platform(libs.spring.boot.bom)
+    runtimeOnly project(':config') // loads the files in META-INF/spring/…LibraryDefaults.imports
+    api project(':error')
+    api libs.spring.jdbc
+    api libs.jackson3.databind // the kept answer, as JSON
+
+    integrationTestImplementation project(':persistence') // the module's own beans, as a module builds them
+    integrationTestImplementation libs.testcontainers.postgresql
+    integrationTestImplementation libs.testcontainers.junit
+    integrationTestRuntimeOnly libs.postgresql
+}

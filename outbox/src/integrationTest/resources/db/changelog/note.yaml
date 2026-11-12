@@ -1,0 +1,14 @@
+# A module's changelog: its own table, then the platform's outbox in its schema.
+databaseChangeLog:
+  - property: { name: outbox.schema, value: note }
+  - property: { name: outbox.table, value: note_outbox }
+  - changeSet:
+      id: 001-create-note
+      author: test
+      changes:
+        - createTable:
+            schemaName: note
+            tableName: note
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true } }
+  - include: { file: db/changelog/platform-outbox.yaml }

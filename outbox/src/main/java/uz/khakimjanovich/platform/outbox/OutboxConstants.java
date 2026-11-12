@@ -1,0 +1,44 @@
+package uz.khakimjanovich.platform.outbox;
+
+import java.util.regex.Pattern;
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
+public class OutboxConstants {
+
+  /** A schema or table name the queries may hold: lower-case SQL identifiers only. */
+  public static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_]{0,62}");
+
+  public static final String NAME_INVALID = "Not a lower-case SQL name: '%s'";
+  public static final String BATCH_INVALID = "The relay batch must be positive, not %d";
+
+  public static final String INSERT =
+      """
+      INSERT INTO %s (id, topic, event_key, type, payload, created_at, traceparent)
+      VALUES (:id, :topic, :key, :type, :payload, now(), :traceparent)
+      """;
+
+  /**
+   * The oldest unpublished events, locked; rows another instance holds are skipped, so relays never
+   * wait on each other or publish the same row at once.
+   */
+  public static final String LOCK_UNPUBLISHED =
+      """
+      SELECT id, topic, event_key, type, payload, traceparent FROM %s
+      WHERE published_at IS NULL
+      ORDER BY seq
+      LIMIT :limit
+      FOR UPDATE SKIP LOCKED
+      """;
+
+  public static final String MARK_PUBLISHED =
+      "UPDATE %s SET published_at = now() WHERE id IN (:ids)";
+
+  /** Kafka headers on every record: the event's id and type, which the payload need not carry. */
+  public static final String HEADER_EVENT_ID = "event-id";
+
+  public static final String HEADER_EVENT_TYPE = "event-type";
+
+  public static final String TRACEPARENT = "traceparent";
+  public static final String RELAY_SPAN = "outbox relay";
+}

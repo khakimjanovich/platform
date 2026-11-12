@@ -1,0 +1,11 @@
+# Errors the idempotency library returns: HTTP status, title and message in English, Russian and Uzbek.
+platform:
+  error:
+    codes:
+      IDEMPOTENCY_KEY_REUSED:
+        http-code: 422
+        title: idempotency-key-reused
+        is-loggable: false
+        message-en: "This Idempotency-Key was used for a different request."
+        message-ru: "Этот Idempotency-Key уже использован для другого запроса."
+        message-uz: "Bu Idempotency-Key boshqa soʻrov uchun ishlatilgan."

@@ -13,11 +13,21 @@ public class IdempotencyConstants {
   public static final String FIND =
       "SELECT request_hash, response FROM %s WHERE client_id = :client AND idempotency_key = :key";
 
-  public static final String INSERT =
+  public static final String CLAIM =
       """
-      INSERT INTO %s (client_id, idempotency_key, request_hash, response, created_at)
-      VALUES (:client, :key, :hash, :response, now())
+      INSERT INTO %s (client_id, idempotency_key, request_hash, created_at)
+      VALUES (:client, :key, :hash, now())
+      ON CONFLICT DO NOTHING
       """;
+
+  public static final String ANSWER =
+      "UPDATE %s SET response = :response WHERE client_id = :client AND idempotency_key = :key";
+
+  public static final String RELEASE =
+      "DELETE FROM %s WHERE client_id = :client AND idempotency_key = :key";
+
+  public static final String EXPIRE =
+      "DELETE FROM %s WHERE client_id = :client AND idempotency_key = :key AND created_at < :before";
 
   public static final String PURGE = "DELETE FROM %s WHERE created_at < :before";
 }

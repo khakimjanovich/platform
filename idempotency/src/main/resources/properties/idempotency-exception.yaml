@@ -9,3 +9,10 @@ platform:
         message-en: "This Idempotency-Key was used for a different request."
         message-ru: "Этот Idempotency-Key уже использован для другого запроса."
         message-uz: "Bu Idempotency-Key boshqa soʻrov uchun ishlatilgan."
+      IDEMPOTENCY_IN_PROGRESS:
+        http-code: 409
+        title: idempotency-in-progress
+        is-loggable: false
+        message-en: "A request with this Idempotency-Key is still running or ended without an answer; ask for its status."
+        message-ru: "Запрос с этим Idempotency-Key ещё выполняется или завершился без ответа; запросите его статус."
+        message-uz: "Bu Idempotency-Key bilan soʻrov hali bajarilmoqda yoki javobsiz tugadi; uning holatini soʻrang."

@@ -180,6 +180,37 @@ class ArchitectureTest {
   }
 
   @Test
+  void settingsReadFieldByFieldFromJsonFailTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/property/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage demo.property;\n");
+    write(
+        "src/main/java/demo/property/Callers.java",
+        """
+        package demo.property;
+
+        import tools.jackson.databind.JsonNode;
+
+        public class Callers {
+          public String origin(JsonNode record) {
+            return record.path("origin").asString();
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'tools.jackson.core:jackson-databind' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("JSON is read into a DTO in model"), output);
+    assertTrue(output.contains("demo.property.Callers"), output);
+  }
+
+  @Test
   void aServiceThatBuildsItsOwnRequestFailsTheBuild() throws IOException {
     write(
         "src/main/java/demo/service/DemoService.java",

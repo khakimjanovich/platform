@@ -6,7 +6,6 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class IdempotencyConstants {
 
-  /** A schema or table name the queries may hold: lower-case SQL identifiers only. */
   public static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_]{0,62}");
 
   public static final String NAME_INVALID = "Not a lower-case SQL name: '%s'";

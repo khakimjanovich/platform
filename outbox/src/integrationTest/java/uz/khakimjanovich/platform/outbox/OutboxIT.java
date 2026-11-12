@@ -37,10 +37,6 @@ import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import uz.khakimjanovich.platform.persistence.ModulePersistence;
 
-/**
- * A module's outbox on a real Postgres and Kafka, wired as a module wires it: its changelog
- * includes the platform's, and its JPA transaction manager carries the outbox writes.
- */
 @Testcontainers
 class OutboxIT {
 
@@ -127,6 +123,24 @@ class OutboxIT {
         .extracting(ConsumerRecord::value)
         .containsExactly("e0", "e1", "e2", "e3", "e4");
     assertThat(unpublished()).isZero();
+  }
+
+  @Test
+  void aSecondRelayWaitsItsTurnSoOneKeysOrderHoldsAcrossReplicas() throws Exception {
+    for (int i = 0; i < 3; i++) outbox.append(event("k4", "r" + i));
+    try (var replica = dataSource.getConnection()) {
+      replica.setAutoCommit(false);
+      try (var relaying =
+          replica.prepareStatement("SELECT pg_advisory_xact_lock(hashtext('note.note_outbox'))")) {
+        relaying.execute();
+      }
+      outbox.relay();
+      assertThat(unpublished()).isEqualTo(3);
+      replica.rollback();
+    }
+    outbox.relay();
+
+    assertThat(poll(3)).extracting(ConsumerRecord::value).containsExactly("r0", "r1", "r2");
   }
 
   @Test

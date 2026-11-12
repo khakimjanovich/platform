@@ -28,10 +28,6 @@ import tools.jackson.databind.json.JsonMapper;
 import uz.khakimjanovich.platform.error.GeneralException;
 import uz.khakimjanovich.platform.persistence.ModulePersistence;
 
-/**
- * A module's idempotency table on a real Postgres, wired as a module wires it: its changelog
- * includes the platform's, and its JPA transaction manager carries the work and the record.
- */
 @Testcontainers
 class IdempotencyIT {
 
@@ -169,7 +165,6 @@ class IdempotencyIT {
         .isFalse();
   }
 
-  /** The module's own write, in the same transaction as the record. */
   private Answer note() {
     runs.incrementAndGet();
     var id = UUID.randomUUID();

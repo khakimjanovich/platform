@@ -19,16 +19,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * One module's outbox: a table in its own schema (the changelog {@code
- * db/changelog/platform-outbox.yaml}), written in the module's transaction, so a change and its
- * event commit together or not at all; and the relay that moves it to Kafka.
- *
- * <p>A row is marked published only after Kafka has it; a crash in between publishes it again, so
- * consumers see each event at least once and drop repeats by its id. Events with one key keep the
- * order they were written in. The module builds one per outbox table and calls {@link #relay()} on
- * its own schedule, in the apps that should publish.
- */
 public class Outbox {
 
   private final JdbcClient jdbc;
@@ -37,19 +27,11 @@ public class Outbox {
   private final int batch;
   private final Tracer tracer;
   private final Propagator propagator;
+  private final String target;
   private final String insert;
   private final String lockUnpublished;
   private final String markPublished;
 
-  /**
-   * @param schema the module's schema
-   * @param table the outbox table, as the module named it in its changelog
-   * @param dataSource the module's pool, the one its transaction manager runs on
-   * @param transactionManager the module's, for the relay's batches
-   * @param batch how many events the relay takes in one transaction
-   * @param tracer the app's, or {@link Tracer#NOOP}
-   * @param propagator the app's, or {@link Propagator#NOOP}
-   */
   public Outbox(
       String schema,
       String table,
@@ -68,16 +50,12 @@ public class Outbox {
     this.batch = batch;
     this.tracer = tracer;
     this.propagator = propagator;
-    var target = name(schema) + "." + name(table);
+    this.target = name(schema) + "." + name(table);
     this.insert = OutboxConstants.INSERT.formatted(target);
     this.lockUnpublished = OutboxConstants.LOCK_UNPUBLISHED.formatted(target);
     this.markPublished = OutboxConstants.MARK_PUBLISHED.formatted(target);
   }
 
-  /**
-   * Writes the event in the caller's transaction, with the current trace, so the relay publishes it
-   * inside the trace of the request that wrote it. Without a transaction it commits on its own.
-   */
   public void append(OutboxEvent event) {
     jdbc.sql(insert)
         .param("id", event.id())
@@ -89,7 +67,6 @@ public class Outbox {
         .update();
   }
 
-  /** Publishes every unpublished event, a batch per transaction, oldest first. */
   public void relay() {
     Integer published;
     do {
@@ -98,6 +75,14 @@ public class Outbox {
   }
 
   private int publishBatch() {
+    // One relay at a time per outbox, across replicas: two would publish one key's events out of
+    // order. The lock goes with the transaction.
+    var mine =
+        jdbc.sql(OutboxConstants.TRY_RELAY_LOCK)
+            .param("outbox", target)
+            .query(Boolean.class)
+            .single();
+    if (!Boolean.TRUE.equals(mine)) return 0;
     var rows =
         jdbc.sql(lockUnpublished)
             .param("limit", batch)
@@ -149,7 +134,6 @@ public class Outbox {
     return builder.name(OutboxConstants.RELAY_SPAN).start();
   }
 
-  /** The current trace as a W3C traceparent, or null when nothing is traced. */
   private @Nullable String traceparent() {
     var context = tracer.currentTraceContext().context();
     if (context == null) return null;

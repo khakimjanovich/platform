@@ -5,7 +5,7 @@ build file says only what is particular to it.
 
 | Plugin | For | What it gives |
 |---|---|---|
-| `platform.java` | every Java project | Java from the catalog, the Spring Boot BOM, Lombok, JUnit, `-parameters`, google-java-format checked by `check`, every javac warning an error (`-Xlint:all -Werror`), Error Prone's default checks, JSpecify and NullAway (an error), every `src/main` package `@NullMarked` (`verifyNullMarked`), no workaround markers (`verifyNoWorkarounds`), one architecture (`verifyArchitecture`, see below) |
+| `platform.java` | every Java project | Java from the catalog, the Spring Boot BOM, Lombok, JUnit, `-parameters`, google-java-format checked by `check`, every javac warning an error (`-Xlint:all -Werror`), Error Prone's default checks, JSpecify and NullAway (an error), every `src/main` package `@NullMarked` (`verifyNullMarked`), no workaround markers (`verifyNoWorkarounds`), one architecture (`verifyArchitecture`, see below), platform first (`verifyPlatformFirst`, see below) |
 | `platform.library` | platform libraries | `platform.java`, the platform's group and version, sources, configuration metadata |
 | `platform.module` | the app and its modules | `platform.java`, the Spring Modulith BOM, integration tests |
 | `platform.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
@@ -83,3 +83,19 @@ detail with a stable code. A case that cannot happen (no SHA-256, a cipher that 
 exceptions; the service maps them.
 
 A project without a layer (a library with no controller) passes the rules about it.
+
+## Platform first
+
+`check` runs `verifyPlatformFirst` (in `platform.java`, off in `platform.library`): a service that
+declares a library the platform already wraps fails, with the platform library to use instead.
+
+| Declared directly | Use |
+|---|---|
+| `spring-boot-starter-data-redis`, `spring-data-redis`, Lettuce, Jedis, Redisson | `libs.platform.valkey` (`ValkeyKeys`) |
+| Spring Vault, `spring-cloud-starter-vault-config` | `libs.platform.vault` (`VaultSecrets`, `VaultTransit`) |
+| `keycloak-admin-client` | `libs.platform.keycloak` (`KeycloakAdmin`) |
+| `HikariCP`, `liquibase-core` | `libs.platform.persistence` (`@EnableModulePersistence`) |
+
+Only what the build declares counts: what a platform library brings with it is fine. In the code,
+`verifyArchitecture` refuses a module's own `HikariDataSource`, `SpringLiquibase` or
+`LocalContainerEntityManagerFactoryBean`: `@EnableModulePersistence` builds them.

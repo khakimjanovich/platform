@@ -15,6 +15,9 @@ java { withSourcesJar() }
 // A library is one flat package, its public API: verifyArchitecture leaves out a service's package rules.
 tasks.named('verifyArchitecture') { serviceLayout.set(false) }
 
+// A library is where the platform declares what it wraps (Redis, Vault, Hikari…): verifyPlatformFirst is for its users.
+tasks.named('verifyPlatformFirst') { platformLibrary.set(true) }
+
 // Never incremental: the configuration processor writes the metadata only from the sources it
 // compiles, so recompiling one class dropped every other property's description, and the build
 // cache then served that metadata to clean builds too.

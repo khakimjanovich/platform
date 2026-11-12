@@ -9,18 +9,28 @@ them. A module can move out to its own service unchanged.
 implementation libs.platform.persistence
 ```
 
-Each module declares its beans with `ModulePersistence` (see any `modules/*/config/*PersistenceConfig`):
+Each module declares its persistence in one class:
 
 ```java
-@Bean @ConfigurationProperties("app.db.card")
-DataSourceProperties cardDataSourceProperties() { return new DataSourceProperties(); }
-
-@Bean @ConfigurationProperties("app.db.card.hikari")
-HikariDataSource cardDataSource(DataSourceProperties cardDataSourceProperties) {
-  return ModulePersistence.dataSource("card", cardDataSourceProperties);
-}
-// + ModulePersistence.liquibase(...), entityManagerFactory(...), transactionManager(...)
+@Configuration(proxyBeanMethods = false)
+@EnableTransactionManagement
+@EnableModulePersistence(
+    schema = "card",
+    prefix = "app.db.card",
+    changelog = "db/changelog/card.yaml",
+    entities = Card.class)
+@EnableJpaRepositories(
+    basePackageClasses = CardRepository.class,
+    entityManagerFactoryRef = "cardEntityManagerFactory",
+    transactionManagerRef = "cardTransactionManager")
+public class CardPersistenceConfig {}
 ```
+
+It registers `cardDataSource`, `cardLiquibase`, `cardEntityManagerFactory` and
+`cardTransactionManager` (the schema + `PersistenceConstants.DATA_SOURCE`, …).
+`@EnableTransactionManagement` stays on the class: as a meta-annotation it does not turn on
+`@Transactional`. A module that needs to wrap one of them (e.g. its pool) declares the beans itself
+with `ModulePersistence.dataSource / liquibase / entityManagerFactory / transactionManager`.
 
 ## Properties
 

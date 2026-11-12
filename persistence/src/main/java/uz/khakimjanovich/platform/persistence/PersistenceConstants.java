@@ -10,6 +10,15 @@ public class PersistenceConstants {
   /** A module's pool settings: {@code app.db.<module>} + this. */
   public static final String HIKARI_SUFFIX = ".hikari";
 
+  /** Bean names under {@code @EnableModulePersistence}: the schema + each of these. */
+  public static final String DATA_SOURCE = "DataSource";
+
+  public static final String LIQUIBASE = "Liquibase";
+  public static final String ENTITY_MANAGER_FACTORY = "EntityManagerFactory";
+  public static final String TRANSACTION_MANAGER = "TransactionManager";
+
+  static final String ENVIRONMENT_BEAN = "environment";
+
   public static final String UTC = "UTC";
   public static final String BATCH_SIZE = "20";
 

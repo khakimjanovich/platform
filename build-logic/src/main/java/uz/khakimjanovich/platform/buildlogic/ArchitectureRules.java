@@ -49,7 +49,7 @@ import java.util.Set;
  *       class in {@code property}, a {@code *Request}, {@code *Response} or {@code *Params} DTO in
  *       {@code model}, data only (no controller, service, client, configuration, property,
  *       repository or mapper), and a {@code *ExceptionStatus} in {@code constant}.
- *   <li>Mapping, in a service only: a service never touches JSON (a mapper in {@code mapper} maps
+ *   <li>Mapping, in a service only: only {@code mapper} (and {@code config}, {@code model}) touches JSON (a mapper in {@code mapper} maps
  *       a response), a controller passes the request to a service and returns its result (no
  *       client, mapper or JSON), and a mapper only maps (no service or controller).
  *   <li>Outgoing calls, in a service only: an {@code @HttpExchange} interface in {@code client}
@@ -249,7 +249,8 @@ public final class ArchitectureRules {
                   describe(
                       "an HTTP client of its own (RestClient, RestTemplate, WebClient)",
                       (JavaClass c) ->
-                          c.getName().startsWith("org.springframework.web.client.RestClient")
+                          c.getName().equals("org.springframework.web.client.RestClient")
+                              || c.getName().startsWith("org.springframework.web.client.RestClient$")
                               || c.getName().equals("org.springframework.web.client.RestTemplate")
                               || c.getName()
                                   .startsWith(
@@ -265,11 +266,13 @@ public final class ArchitectureRules {
               .allowEmptyShould(true),
           noClasses()
               .that()
-              .resideInAPackage("..service..")
+              .resideOutsideOfPackages("..mapper..", "..config..", "..model..")
               .should()
               .dependOnClassesThat()
               .resideInAnyPackage("tools.jackson.databind..", "com.fasterxml.jackson.databind..")
-              .because("a service returns its result; a mapper in mapper maps a response")
+              .because(
+                  "JSON is read into a DTO in model by a mapper in mapper; a mapper in mapper maps a"
+                      + " response")
               .allowEmptyShould(true),
           noClasses()
               .that()

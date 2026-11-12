@@ -9,12 +9,6 @@ import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.health.registry.HealthContributorRegistry;
 
-/**
- * {@code platform.health.up{component}}: 1 while a health indicator says UP, 0 otherwise (also when
- * it throws), read each time metrics are exported. Registered once every bean exists, so every
- * indicator is known. This is how an alert sees a dependency go DOWN without anyone polling {@code
- * /actuator/health}.
- */
 @RequiredArgsConstructor
 class HealthMetrics implements SmartInitializingSingleton {
 

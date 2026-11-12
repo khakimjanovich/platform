@@ -5,10 +5,6 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * UP when the app can log in to Keycloak's admin API and read from it. DOWN names only the kind of
- * failure, never a URL or the client secret.
- */
 @RequiredArgsConstructor
 class KeycloakHealthIndicator implements HealthIndicator {
 

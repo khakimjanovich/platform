@@ -27,7 +27,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/** The one-time code rules, checked against a real Redis, with the library auto-configured. */
 @SpringBootTest(
     classes = OtpServiceIT.App.class,
     properties = {
@@ -46,7 +45,6 @@ class OtpServiceIT {
   private static final String FLOW = "registration";
   private static final String EMAIL = "aziza@example.uz";
 
-  /** Every limit, for the contexts this test starts itself; a later value overrides one here. */
   private static final String[] LIMITS = {
     "platform.otp.length=6",
     "platform.otp.ttl=5m",

@@ -14,19 +14,9 @@ import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
-/**
- * Builds one module's persistence beans. The module names them and wires them; this keeps the four
- * of them identical across modules.
- */
 @UtilityClass
 public class ModulePersistence {
 
-  /**
-   * A pool that connects as the module's own user (Boot's {@link DataSourceProperties}, bound to
-   * the module's prefix, e.g. {@code app.db.card}), with the module's schema as default. The
-   * module's bean method binds {@code <prefix>.hikari.*} onto it, so every Hikari setting (pool
-   * size, timeouts, keepalive) is set per environment; unset ones are Hikari's own defaults.
-   */
   public static HikariDataSource dataSource(String schema, DataSourceProperties db) {
     var pool = db.initializeDataSourceBuilder().type(HikariDataSource.class).build();
     pool.setPoolName(schema);
@@ -34,10 +24,6 @@ public class ModulePersistence {
     return pool;
   }
 
-  /**
-   * Hikari quietly drops a keepalive that isn't shorter than the connections' lifetime; a pool set
-   * up that way is a mistake, so it stops startup instead.
-   */
   public static void checkKeepalive(HikariDataSource pool) {
     var keepalive = pool.getKeepaliveTime();
     var lifetime = pool.getMaxLifetime();
@@ -48,7 +34,6 @@ public class ModulePersistence {
     }
   }
 
-  /** The module's migrations; Liquibase keeps its own bookkeeping tables inside the schema too. */
   public static SpringLiquibase liquibase(String schema, String changelog, DataSource dataSource) {
     var liquibase = new SpringLiquibase();
     liquibase.setDataSource(dataSource);
@@ -58,12 +43,6 @@ public class ModulePersistence {
     return liquibase;
   }
 
-  /**
-   * Hibernate for the module's entities only. It validates the tables against the entities and
-   * never changes them: Liquibase owns the schema. Times are written as UTC, and inserts and
-   * updates go in ordered batches; {@code platform.persistence.jpa.properties} adds to or overrides
-   * these for every module.
-   */
   public static LocalContainerEntityManagerFactoryBean entityManagerFactory(
       String schema, Class<?> anyEntity, DataSource dataSource) {
     var factory = new LocalContainerEntityManagerFactoryBean();

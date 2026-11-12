@@ -35,10 +35,6 @@ import org.testcontainers.utility.MountableFile;
 import uz.khakimjanovich.platform.error.GeneralException;
 import uz.khakimjanovich.platform.observability.ObservabilityAutoConfiguration;
 
-/**
- * The admin client against a real Keycloak: users, roles, and client secrets that rotate and never
- * reach the log.
- */
 @Testcontainers
 @ExtendWith(OutputCaptureExtension.class)
 class KeycloakAdminIT {
@@ -46,7 +42,6 @@ class KeycloakAdminIT {
   private static final ParameterizedTypeReference<Map<String, Object>> JSON =
       new ParameterizedTypeReference<>() {};
 
-  /** Keycloak sends its e-mails to "mailpit", as in the local stack's compose. */
   static final Network NETWORK = Network.newNetwork();
 
   @Container
@@ -73,7 +68,6 @@ class KeycloakAdminIT {
   static ConfigurableApplicationContext context;
   static KeycloakAdmin admin;
 
-  /** The library as an app gets it: auto-configured from platform.keycloak.*, every call logged. */
   @BeforeAll
   static void client() {
     context =
@@ -230,7 +224,6 @@ class KeycloakAdminIT {
     return new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]));
   }
 
-  /** Keycloak's admin API, as the realm's bootstrap admin. */
   private static Map<String, Object> adminGet(String path) {
     return adminApi(path).body(JSON);
   }

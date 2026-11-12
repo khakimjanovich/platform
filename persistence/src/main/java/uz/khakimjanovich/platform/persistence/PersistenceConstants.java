@@ -7,10 +7,8 @@ public class PersistenceConstants {
 
   public static final String PROPERTIES_PREFIX = "platform.persistence";
 
-  /** A module's pool settings: {@code app.db.<module>} + this. */
   public static final String HIKARI_SUFFIX = ".hikari";
 
-  /** Bean names under {@code @EnableModulePersistence}: the schema + each of these. */
   public static final String DATA_SOURCE = "DataSource";
 
   public static final String LIQUIBASE = "Liquibase";

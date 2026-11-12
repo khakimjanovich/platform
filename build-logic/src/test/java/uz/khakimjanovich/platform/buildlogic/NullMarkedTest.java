@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** platform.java's verifyNullMarked on a real build: a main package without @NullMarked fails. */
 class NullMarkedTest {
 
   @TempDir Path build;

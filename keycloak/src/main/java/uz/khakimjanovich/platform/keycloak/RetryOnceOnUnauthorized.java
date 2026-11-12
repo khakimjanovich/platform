@@ -8,12 +8,6 @@ import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 
-/**
- * A 401 for a refused token (no challenge, or {@code error="invalid_token"}): the login interceptor
- * has dropped it, so the call is tried once more with a new one. Any other 401 ({@code
- * insufficient_scope}) is the answer. The security library's service tokens do the same; this
- * library doesn't depend on it.
- */
 class RetryOnceOnUnauthorized implements ClientHttpRequestInterceptor {
 
   @Override

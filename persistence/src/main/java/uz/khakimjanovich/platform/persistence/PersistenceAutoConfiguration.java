@@ -10,21 +10,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 
-/**
- * What every module's persistence beans get without a change to their configuration: each pool is
- * checked once its settings are bound, each entity manager factory gets {@code
- * platform.persistence.jpa.properties} on top of the library's defaults before it starts, and each
- * module's Liquibase follows {@code platform.persistence.liquibase.enabled}.
- */
 @AutoConfiguration
 @EnableConfigurationProperties(PersistenceProperties.class)
 public class PersistenceAutoConfiguration {
 
-  /**
-   * A post-processor is made before any other bean, so it can't take the {@code
-   * PersistenceProperties} bean (registered above for the metadata): it binds the same prefix from
-   * the environment, once.
-   */
   @Bean
   static BeanPostProcessor modulePersistenceSettings(Environment environment) {
     var properties =

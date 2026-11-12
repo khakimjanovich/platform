@@ -18,7 +18,6 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
-/** One module's beans, built the same way for every module. */
 class ModulePersistenceTest {
 
   private static DataSourceProperties database() {
@@ -54,9 +53,6 @@ class ModulePersistenceTest {
         .run(context -> assertThat(context).hasFailed());
   }
 
-  /**
-   * A module's pool settings as the local stack passes them: an environment variable per setting.
-   */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties
   static class CardPool {

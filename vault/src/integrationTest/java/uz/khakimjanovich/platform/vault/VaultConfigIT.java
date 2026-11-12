@@ -12,11 +12,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.vault.VaultContainer;
 
-/**
- * Vault as a configuration source: an app imports vault://secret/<name> and its secrets bind like
- * any property. With fail-fast, a Vault that can't be read stops startup unless the import is
- * optional.
- */
 @Testcontainers
 class VaultConfigIT {
 
@@ -52,7 +47,6 @@ class VaultConfigIT {
     }
   }
 
-  /** Spring Cloud Vault reads a missing path as no secrets: the library needing one refuses. */
   @Test
   void aMissingPathLeavesItsPropertiesUnset() {
     try (var context = app("vault://secret/missing").run()) {
@@ -70,7 +64,6 @@ class VaultConfigIT {
         .isNotNull();
   }
 
-  /** As locally: no fail-fast, an optional import, and the app starts without Vault. */
   @Test
   void anUnreachableVaultIsSkippedWhenOptionalAndNotFailFast() {
     try (var context =

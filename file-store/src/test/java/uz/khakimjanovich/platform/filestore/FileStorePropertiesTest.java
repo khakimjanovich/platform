@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import software.amazon.awssdk.services.s3.S3Client;
 
-/** A bucket whose rules can't work, or a missing secret, stops startup, naming the property. */
 class FileStorePropertiesTest {
 
   private final ApplicationContextRunner runner =

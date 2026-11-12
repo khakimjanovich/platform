@@ -8,13 +8,11 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-/** What must never reach a log, in every format the services send. */
 class MaskingTest {
 
   private static final String JSON = "application/json";
   private static final Masking MASKING = Masking.defaults();
 
-  /** A service whose one-time codes sit beside a card number or under "otp". */
   private static final Masking SERVICE =
       new Masking(
           MaskingRules.defaults()

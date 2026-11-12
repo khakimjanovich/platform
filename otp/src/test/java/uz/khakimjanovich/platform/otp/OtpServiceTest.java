@@ -20,7 +20,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/** How the scripts' answers become codes and errors, without Redis. */
 @ExtendWith(OutputCaptureExtension.class)
 class OtpServiceTest {
 

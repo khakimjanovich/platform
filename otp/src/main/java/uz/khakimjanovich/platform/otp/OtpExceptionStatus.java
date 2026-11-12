@@ -2,7 +2,6 @@ package uz.khakimjanovich.platform.otp;
 
 import uz.khakimjanovich.platform.error.StatusThrowable;
 
-/** Stable error codes for one-time code failures. */
 public enum OtpExceptionStatus implements StatusThrowable {
   OTP_EXPIRED,
   OTP_INVALID,

@@ -9,12 +9,14 @@ adapter include it (`includeBuild`), so Gradle builds these projects in place of
 | [error](error/README.md) | one error format: RFC 9457 problem details with a stable code, in three languages |
 | [config](config/README.md) | every library's own defaults and error definitions, loaded below the app's configuration |
 | [masking](masking/README.md) | what must never reach a log, hidden the same way everywhere |
+| [breaker](breaker/README.md) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |
 | [observability](observability/README.md) | logs, traces and metrics, masked, with a request id on every response |
 | [security](security/README.md) | Keycloak tokens, route rules, public routes, service-to-service tokens |
 | [keycloak](keycloak/README.md) | Keycloak's admin API: users, roles, machine clients |
 | [otp](otp/README.md) | one-time codes in Redis |
 | [persistence](persistence/README.md) | each module's own pool, schema, migrations and entity manager |
-| [vault](vault/README.md) | secrets from Vault, and Vault as the source of every secret |
+| [vault](vault/README.md) | secrets from Vault, Vault as the source of every secret, and values sealed with Vault Transit |
+| [valkey](valkey/README.md) | Valkey key names inside the app's ACL prefix, counters and limits with expiry |
 | [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |
 | [build-logic](build-logic/README.md) | the build conventions |
 
@@ -37,7 +39,7 @@ released as jars and built with this catalog.
 ```
 
 Unit tests (`src/test`, `*Test`) need nothing; integration tests (`src/integrationTest`, `*IT`) start
-real Postgres, Redis, Keycloak, Vault, SeaweedFS or Grafana LGTM with Testcontainers, on the same
+real Postgres, Redis, Valkey, Keycloak, Vault, SeaweedFS or Grafana LGTM with Testcontainers, on the same
 image tags as the local stack (each library's `src/integrationTest/resources/images.properties`).
 
 ## Versions

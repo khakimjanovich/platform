@@ -21,15 +21,6 @@ import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.ClientHttpResponse;
 import uz.khakimjanovich.platform.masking.Masking;
 
-/**
- * Every call this service makes, in three readable lines at most: what went out ({@code →}), what
- * came back ({@code ←}) with its status and time, or why it failed ({@code ✗}). The URI and bodies
- * are masked ({@link Masking}); headers are never logged. A 4xx or 5xx answer is a warning. Only a
- * JSON, XML or form answer of up to {@value #MAX_LOGGED_BYTES} bytes is read for the log; anything
- * else is logged by its size and streams through untouched. Every RestClient gets it; a client
- * built on a ClientHttpRequestFactory (a SOAP one) adds it itself. A request with the {@value
- * #NO_BODIES} attribute (one that sends or receives a secret) is logged without its bodies.
- */
 public class HttpClientLogging implements ClientHttpRequestInterceptor {
 
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
@@ -84,7 +75,6 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     return answer;
   }
 
-  /** Bodies the masking can read: JSON, XML and forms. */
   private static boolean loggable(@Nullable MediaType type) {
     if (type == null) return false;
     var subtype = type.getSubtype().toLowerCase(Locale.ROOT);
@@ -107,7 +97,6 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     return (System.nanoTime() - started) / 1_000_000;
   }
 
-  /** The response, with the part already read for the log put back in front of its body. */
   private record Read(ClientHttpResponse response, InputStream body) implements ClientHttpResponse {
 
     @Override

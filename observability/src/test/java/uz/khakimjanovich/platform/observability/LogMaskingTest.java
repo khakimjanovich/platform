@@ -14,7 +14,6 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Configuration;
 
-/** A card number or a secret in an ordinary log line never reaches the console as written. */
 @ExtendWith(OutputCaptureExtension.class)
 class LogMaskingTest {
 

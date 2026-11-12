@@ -30,47 +30,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-/**
- * The architecture every service on the platform shares, checked by platform.java's {@code
- * verifyArchitecture} on the classes of {@code src/main/java} (generated code is left out):
- *
- * <ul>
- *   <li>Layers: a controller calls services, never repositories, service implementations,
- *       entities, mappers, workflows or configuration; only a service implementation, a workflow
- *       or configuration reaches a repository; nothing calls a controller; a controller serves its
- *       contract and is never the contract's client.
- *   <li>Constants: a constant (a static final field of a value type: a primitive, a string, a
- *       number, a duration, a pattern, a date format, or a set, list or map of values) lives in a {@code
- *       ConstantUtils} or {@code *Constants} class, apart from the code that uses it; such a class
- *       holds only static final fields.
- *   <li>Packages, in a service only (a library is one flat package), as in the Humo and Uzcard
- *       adapters: a {@code @RestController} in {@code
- *       controller}, a {@code @Configuration} in {@code config}, a {@code @ConfigurationProperties}
- *       class in {@code property}, a {@code *Request}, {@code *Response} or {@code *Params} DTO in
- *       {@code model}, data only (no controller, service, client, configuration, property,
- *       repository or mapper), and a {@code *ExceptionStatus} in {@code constant}.
- *   <li>Mapping, in a service only: only {@code mapper} (and {@code config}, {@code model}) touches JSON (a mapper in {@code mapper} maps
- *       a response), a controller passes the request to a service and returns its result (no
- *       client, mapper or JSON), and a mapper only maps (no service or controller).
- *   <li>Outgoing calls, in a service only: an {@code @HttpExchange} interface in {@code client}
- *       holds the paths; a service never builds a request with RestClient, RestTemplate or
- *       WebClient.
- *   <li>No {@code Map<String, Object>} as a field, a parameter or a return type, and no {@code
- *       MultiValueMap}: a body or a structure is a DTO (a form is typed {@code @RequestParam}s).
- *   <li>Name, value pairs, in a service only: no method takes a {@code String...} or {@code
- *       Object...} (pairs to build a body from), and nothing outside {@code mapper} builds a JSON
- *       tree ({@code ObjectNode}, {@code ArrayNode}, {@code JsonNodeFactory}).
- *   <li>Errors, in a service only: outside {@code config} and {@code property} (which fail at
- *       startup, before any request) the only throwable a class creates is the error library's
- *       {@code GeneralException} or a subclass of it: a problem detail with a stable code. A case that cannot happen is
- *       {@code GeneralException(INTERNAL_ERROR)}.
- * </ul>
- *
- * A rule whose classes a project does not have (a library with no controller) passes.
- */
 public final class ArchitectureRules {
 
-  /** Types whose static final fields are values: what a constant is. */
   private static final Set<String> VALUE_TYPES =
       Set.of(
           "java.lang.String",
@@ -193,7 +154,6 @@ public final class ArchitectureRules {
           "liquibase.integration.spring.SpringLiquibase",
           "org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean");
 
-  /** Jackson's JSON tree builders, in both Jackson packages. */
   private static final Set<String> JSON_TREE_BUILDERS =
       Set.of(
           "tools.jackson.databind.node.ObjectNode",
@@ -203,19 +163,11 @@ public final class ArchitectureRules {
           "com.fasterxml.jackson.databind.node.ArrayNode",
           "com.fasterxml.jackson.databind.node.JsonNodeFactory");
 
-  /** The error library's exception: a problem detail with a stable code. */
   private static final String GENERAL_EXCEPTION = "uz.khakimjanovich.platform.error.GeneralException";
 
-  /** The throwables the compiler puts in an exhaustive switch: not ours. */
   private static final Set<String> COMPILER_THROWABLES =
       Set.of("java.lang.MatchException", "java.lang.IncompatibleClassChangeError");
 
-  /**
-   * A new throwable other than GeneralException. A class the build cannot see the hierarchy of (a
-   * library's) counts when its name says it is an exception or an error. A private constructor's
-   * guard (Lombok's @UtilityClass: "this class is never made") is not an error path and passes, nor
-   * is what the compiler puts in an exhaustive switch. A subclass of GeneralException is one.
-   */
   private static final DescribedPredicate<JavaConstructorCall> NEW_OTHER_THROWABLE =
       describe(
           "a throwable other than GeneralException",
@@ -245,7 +197,6 @@ public final class ArchitectureRules {
                 || name.endsWith("Error");
           });
 
-  /** A service's packages, as in the Humo and Uzcard adapters; a library is one flat package. */
   private static final List<ArchRule> SERVICE_RULES =
       List.of(
           noClasses()
@@ -391,11 +342,6 @@ public final class ArchitectureRules {
 
   private ArchitectureRules() {}
 
-  /**
-   * The violations in the compiled classes of {@code classDirs} whose source is in {@code sources},
-   * with a service's package rules when {@code service}; empty when the project keeps the
-   * architecture.
-   */
   public static List<String> violations(
       Collection<File> classDirs, File sources, boolean service) {
     var all =
@@ -416,7 +362,6 @@ public final class ArchitectureRules {
     return found;
   }
 
-  /** A value: a primitive (or an array of them), a listed type, or a collection of values. */
   private static boolean isValue(JavaType type) {
     var raw = type.toErasure();
     if (raw.isPrimitive() || (raw.isArray() && raw.getBaseComponentType().isPrimitive())) {
@@ -429,7 +374,6 @@ public final class ArchitectureRules {
         || parameterized.getActualTypeArguments().stream().allMatch(ArchitectureRules::isValue);
   }
 
-  /** {@code Map<String, Object>} (or {@code Map<String, ?>}): a hand-built structure. */
   private static boolean isUntypedMap(JavaType type) {
     if (!(type instanceof JavaParameterizedType map)
         || !map.toErasure().isAssignableTo("java.util.Map")
@@ -443,7 +387,6 @@ public final class ArchitectureRules {
         && (!(value instanceof JavaWildcardType wildcard)
             || wildcard.getLowerBounds().isEmpty());
   }
-
 
   private static ArchCondition<JavaField> haveUntypedMapType() {
     return new ArchCondition<>("have the type Map<String, Object>") {
@@ -468,11 +411,6 @@ public final class ArchitectureRules {
     };
   }
 
-  /**
-   * A last parameter of {@code String[]} or {@code Object[]} (a {@code String...} or {@code
-   * Object...}): name, value pairs to build a body from. {@code main(String[])} and code the
-   * compiler made are left out.
-   */
   private static ArchCondition<JavaMethod> takeNameValuePairs() {
     return new ArchCondition<>("take a String... or Object...") {
       @Override
@@ -495,7 +433,6 @@ public final class ArchitectureRules {
     };
   }
 
-  /** A class whose .java is in src/main/java: generated code (build/generated) is not ours. */
   private static DescribedPredicate<JavaClass> fromSources(Path sources) {
     return describe(
         "compiled from src/main/java",

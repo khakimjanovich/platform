@@ -1,0 +1,18 @@
+# Errors the vault library returns: HTTP status, title and message in English, Russian and Uzbek.
+platform:
+  error:
+    codes:
+      VAULT_TRANSIT_UNAVAILABLE:
+        http-code: 503
+        title: vault-transit-unavailable
+        is-loggable: true
+        message-en: "The service can't do this right now. Please try again later."
+        message-ru: "Сервис сейчас не может это выполнить. Попробуйте позже."
+        message-uz: "Xizmat hozir buni bajara olmaydi. Keyinroq urinib koʻring."
+      VAULT_TRANSIT_REFUSED:
+        http-code: 500
+        title: vault-transit-refused
+        is-loggable: true
+        message-en: "Something went wrong on our side. Please try again later."
+        message-ru: "Что-то пошло не так на нашей стороне. Попробуйте позже."
+        message-uz: "Bizning tomonda xatolik yuz berdi. Keyinroq urinib koʻring."

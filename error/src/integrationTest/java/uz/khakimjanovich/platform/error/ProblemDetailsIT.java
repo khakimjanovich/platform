@@ -29,10 +29,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Every failure a client can meet on a real server, Spring Security's included, is one of our
- * problem details, even with Spring Boot's own problem-details handler switched on.
- */
 @SpringBootTest(
     classes = ProblemDetailsIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -71,7 +67,6 @@ class ProblemDetailsIT {
       }
     }
 
-    /** As an app wires it: our problems answer 401 and 403. */
     @Bean
     SecurityFilterChain chain(HttpSecurity http, ProblemSecurityHandler problems) {
       return http.csrf(AbstractHttpConfigurer::disable)
@@ -162,7 +157,6 @@ class ProblemDetailsIT {
     assertThat(body.toString()).doesNotContain("hunter2", "IllegalStateException");
   }
 
-  /** The status, the problem media type, and a body with a code and the request as instance. */
   private static Map<String, Object> problem(
       RestTestClient.ResponseSpec response, HttpStatus status, String path) {
     response.expectStatus().isEqualTo(status);

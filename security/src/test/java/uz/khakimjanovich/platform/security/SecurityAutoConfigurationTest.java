@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 
-/** The route rules come from configuration, and everything not listed is refused. */
 @SpringBootTest(
     classes = SecurityAutoConfigurationTest.App.class,
     properties = {
@@ -46,7 +45,6 @@ class SecurityAutoConfigurationTest {
   @EnableAutoConfiguration
   static class App {
 
-    /** "admin" and "partner" are tokens with that realm role; anything else is invalid. */
     @Bean
     JwtDecoder jwtDecoder() {
       return token -> {

@@ -13,7 +13,6 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uz.khakimjanovich.platform.masking.Masking;
 
-/** Client calls are logged masked, and only small readable answers are buffered for the log. */
 @ExtendWith(OutputCaptureExtension.class)
 class HttpClientLoggingTest {
 

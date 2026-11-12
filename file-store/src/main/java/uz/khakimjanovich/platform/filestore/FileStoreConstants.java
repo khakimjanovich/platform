@@ -9,7 +9,6 @@ public class FileStoreConstants {
 
   public static final String PROPERTIES_PREFIX = "platform.file-store";
 
-  /** Stored with each object, so the store alone knows what a file is. */
   public static final String FILE_NAME_METADATA = "file-name";
 
   public static final String SHA256_METADATA = "sha256";
@@ -19,7 +18,6 @@ public class FileStoreConstants {
   public static final String PNG = "image/png";
   public static final String JPEG = "image/jpeg";
 
-  /** Only the name's last part, without anything that could be a path or a header trick. */
   public static final String UNSAFE_NAME_CHARACTERS = "[^\\p{L}\\p{N} ._()-]";
 
   public static final int MAX_NAME_LENGTH = 200;
@@ -36,7 +34,6 @@ public class FileStoreConstants {
   public static final String DEFAULT_CREDENTIALS = "keys";
   public static final String DEFAULT_API_CALL_ATTEMPT_TIMEOUT = "10s";
 
-  /** A health check is cheap: a slow store is a down store, not a health call that hangs. */
   public static final Duration HEALTH_CALL_TIMEOUT = Duration.ofSeconds(3);
 
   public static final String HEALTH_INDICATOR_BEAN = "fileStoreHealthIndicator";

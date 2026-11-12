@@ -28,19 +28,6 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import org.springframework.web.util.UriComponentsBuilder;
 import uz.khakimjanovich.platform.masking.Masking;
 
-/**
- * Every error leaves as a problem detail with a stable {@code code}: a {@link GeneralException}
- * from its definition (status, title, message in the caller's language), Spring's own errors with a
- * code named after their status. Invalid input lists the failing fields, whether a controller or a
- * {@code @Validated} service refused it. Anything unexpected becomes a plain 500 with a code, never
- * a stack trace. Every problem names the request it answers ({@code instance}) and, when the
- * request is traced, its {@code requestId}; a limit that lifts by itself sends {@code Retry-After}.
- *
- * <p>Every error response is logged once, with its request: a 5xx as an error, one whose definition
- * says {@code is-loggable} as a warning, anything else (a caller's mistake) as info. The line holds
- * the English message without its parameters (for Spring's own errors, the exception's class name),
- * masked as a whole, so no caller's data reaches the log.
- */
 @RestControllerAdvice
 class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
 
@@ -49,7 +36,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   private final ErrorStarterProperties errors;
   private final Masking masking = Masking.defaults();
 
-  /** Needs only the definitions, so an app that scans this package gets a working one too. */
   ProblemDetailsAdvice(ErrorStarterProperties errors) {
     this.errors = errors;
   }
@@ -72,7 +58,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     return response.body(problem);
   }
 
-  /** Method validation on a {@code @Validated} bean: the same 400 as a controller's. */
   @ExceptionHandler(ConstraintViolationException.class)
   ResponseEntity<ProblemDetail> constraintViolation(ConstraintViolationException ex) {
     var problem = problem(ErrorExceptionStatus.VALIDATION_FAILED);
@@ -151,10 +136,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     return invalid(ex, ex.getBody(), errors, headers, status, request);
   }
 
-  /**
-   * Every problem leaves with a code: its own, or one named after its HTTP status (e.g.
-   * METHOD_NOT_ALLOWED).
-   */
   @Override
   protected @Nullable ResponseEntity<Object> handleExceptionInternal(
       Exception ex,
@@ -215,7 +196,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     return definition != null && definition.isLoggable();
   }
 
-  /** RFC 9457 §3.1.5: the request this problem answers, and its trace id when it is traced. */
   private static void identify(ProblemDetail problem) {
     if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes current) {
       var path = current.getRequest().getRequestURI();
@@ -232,7 +212,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     }
   }
 
-  /** One line per error response: status, code, request and the English reason, all masked. */
   private void log(ProblemDetail problem, @Nullable String reason, boolean loggable) {
     var properties = problem.getProperties() == null ? Map.of() : problem.getProperties();
     var line =
@@ -247,7 +226,6 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     else log.info(line);
   }
 
-  /** "GET /api/v1/…" for the request being answered, or "-" outside one. */
   private static String request() {
     return RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes current
         ? current.getRequest().getMethod() + " " + current.getRequest().getRequestURI()

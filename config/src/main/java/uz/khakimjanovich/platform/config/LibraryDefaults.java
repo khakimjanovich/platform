@@ -11,13 +11,6 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.ClassPathResource;
 
-/**
- * Every library's own settings come with its jar: no app imports them. Each jar lists its YAML
- * files in {@code META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports}, one
- * per line, read the way Boot reads {@code AutoConfiguration.imports}. They are added after the
- * app's own configuration, so any app file, profile, environment variable or argument overrides
- * them.
- */
 public class LibraryDefaults implements EnvironmentPostProcessor, Ordered {
 
   @Override
@@ -37,7 +30,6 @@ public class LibraryDefaults implements EnvironmentPostProcessor, Ordered {
     }
   }
 
-  /** After the app's configuration files are loaded, so these come last. */
   @Override
   public int getOrder() {
     return ConfigDataEnvironmentPostProcessor.ORDER + 1;

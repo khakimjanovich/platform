@@ -186,7 +186,7 @@ public final class ArchitectureRules {
                   "a body is a DTO, a form is typed @RequestParams: never a map of name, value pairs")
               .allowEmptyShould(true));
 
-  /** What @EnableModulePersistence builds for a module. */
+  // What @EnableModulePersistence builds for a module.
   private static final Set<String> MODULE_PERSISTENCE =
       Set.of(
           "com.zaxxer.hikari.HikariDataSource",

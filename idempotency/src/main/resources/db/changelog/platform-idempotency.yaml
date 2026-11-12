@@ -21,3 +21,26 @@ databaseChangeLog:
             tableName: ${idempotency.table}
             columnNames: client_id, idempotency_key
             constraintName: pk_${idempotency.table}
+  - changeSet:
+      id: 002-claim-before-work
+      author: platform
+      changes:
+        # A key is claimed before the work runs and answered after it: no response while in progress.
+        - dropNotNullConstraint:
+            schemaName: ${idempotency.schema}
+            tableName: ${idempotency.table}
+            columnName: response
+            columnDataType: text
+        # A client id as long as the identity provider allows.
+        - modifyDataType:
+            schemaName: ${idempotency.schema}
+            tableName: ${idempotency.table}
+            columnName: client_id
+            newDataType: varchar(255)
+        # The purge reads by age.
+        - createIndex:
+            schemaName: ${idempotency.schema}
+            tableName: ${idempotency.table}
+            indexName: ix_${idempotency.table}_created_at
+            columns:
+              - column: { name: created_at }

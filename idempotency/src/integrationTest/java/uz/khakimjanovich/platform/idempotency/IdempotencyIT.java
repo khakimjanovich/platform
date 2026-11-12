@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,6 +27,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.json.JsonMapper;
 import uz.khakimjanovich.platform.error.GeneralException;
+import uz.khakimjanovich.platform.error.StatusThrowable;
 import uz.khakimjanovich.platform.persistence.ModulePersistence;
 
 @Testcontainers
@@ -111,7 +113,8 @@ class IdempotencyIT {
   }
 
   @Test
-  void failedWorkKeepsNoRecordSoTheRetryRunsIt() {
+  void aRefusalFreesTheKeySoTheRetryRunsIt() {
+    StatusThrowable refused = () -> "REFUSED";
     assertThatThrownBy(
             () ->
                 idempotency.execute(
@@ -120,18 +123,42 @@ class IdempotencyIT {
                     "h1",
                     Answer.class,
                     () -> {
-                      note();
-                      throw new IllegalStateException("refused");
+                      runs.incrementAndGet();
+                      throw new GeneralException(refused);
                     }))
-        .isInstanceOf(IllegalStateException.class);
-    assertThat(count("note.note")).isZero();
+        .isInstanceOf(GeneralException.class);
 
     assertThat(idempotency.execute(CLIENT, "k4", "h1", Answer.class, this::note).replayed())
         .isFalse();
+    assertThat(runs).hasValue(2);
   }
 
   @Test
-  void concurrentRetriesRunTheWorkOnceAndReplayIt() throws Exception {
+  void workThatEndsWithoutAnAnswerIsNeverRunAgain() {
+    assertThatThrownBy(
+            () ->
+                idempotency.execute(
+                    CLIENT,
+                    "k7",
+                    "h1",
+                    Answer.class,
+                    () -> {
+                      runs.incrementAndGet();
+                      throw new IllegalStateException("no answer in time");
+                    }))
+        .isInstanceOf(IllegalStateException.class);
+
+    assertThatThrownBy(() -> idempotency.execute(CLIENT, "k7", "h1", Answer.class, this::note))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e ->
+                assertThat(e.getStatus())
+                    .isEqualTo(IdempotencyExceptionStatus.IDEMPOTENCY_IN_PROGRESS));
+    assertThat(runs).hasValue(1);
+  }
+
+  @Test
+  void concurrentRequestsWithOneKeyRunTheWorkOnce() throws Exception {
     var replies = new ArrayList<Future<Idempotency.Result<Answer>>>();
     try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
       var start = new CountDownLatch(1);
@@ -140,20 +167,46 @@ class IdempotencyIT {
             pool.submit(
                 () -> {
                   start.await();
-                  return idempotency.execute(CLIENT, "k5", "h1", Answer.class, this::note);
+                  return idempotency.execute(CLIENT, "k5", "h1", Answer.class, this::slowNote);
                 }));
       }
       start.countDown();
     }
-    var first = new ArrayList<Idempotency.Result<Answer>>();
+    var answered = new ArrayList<Idempotency.Result<Answer>>();
+    var inProgress = 0;
     for (var reply : replies) {
-      if (!reply.get().replayed()) first.add(reply.get());
+      try {
+        answered.add(reply.get());
+      } catch (ExecutionException e) {
+        assertThat(e.getCause())
+            .isInstanceOfSatisfying(
+                GeneralException.class,
+                g ->
+                    assertThat(g.getStatus())
+                        .isEqualTo(IdempotencyExceptionStatus.IDEMPOTENCY_IN_PROGRESS));
+        inProgress++;
+      }
     }
-    assertThat(first).hasSize(1);
-    assertThat(count("note.note")).isOne();
-    for (var reply : replies) {
-      assertThat(reply.get().response()).isEqualTo(first.getFirst().response());
-    }
+    assertThat(runs).as("the work itself").hasValue(1);
+    assertThat(answered.stream().filter(r -> !r.replayed())).hasSize(1);
+    assertThat(answered.size() + inProgress).isEqualTo(10);
+  }
+
+  @Test
+  void aKeyOlderThanItsKeepIsFreeAgain() {
+    var kept =
+        new Idempotency(
+            "note",
+            "note_idempotency",
+            dataSource,
+            transactionManager,
+            JsonMapper.shared(),
+            Duration.ofHours(1));
+    kept.execute(CLIENT, "k8", "h1", Answer.class, this::note);
+    jdbc.sql("UPDATE note.note_idempotency SET created_at = now() - interval '2 hours'").update();
+
+    assertThat(kept.execute(CLIENT, "k8", "h2", Answer.class, this::note).replayed()).isFalse();
+    assertThat(runs).hasValue(2);
   }
 
   @Test
@@ -172,7 +225,12 @@ class IdempotencyIT {
     return new Answer(id);
   }
 
-  private static long count(String table) {
-    return jdbc.sql("SELECT count(*) FROM " + table).query(Long.class).single();
+  private Answer slowNote() {
+    try {
+      Thread.sleep(300);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+    return note();
   }
 }

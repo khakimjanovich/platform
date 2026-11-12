@@ -10,6 +10,10 @@ seals values with Vault Transit, whose keys never leave Vault.
 implementation libs.platform.vault
 ```
 
+Spring Vault stays inside the library: a service uses `VaultSecrets`, `SigningKeys`, `ClientRegistry`
+and `VaultTransit`, never `VaultTemplate` itself. A test that points one at a container declares
+Spring Vault for itself (`integrationTestImplementation`).
+
 ```yaml
 spring:
   config:

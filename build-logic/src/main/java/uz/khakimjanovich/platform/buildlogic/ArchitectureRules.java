@@ -249,7 +249,8 @@ public final class ArchitectureRules {
                   describe(
                       "an HTTP client of its own (RestClient, RestTemplate, WebClient)",
                       (JavaClass c) ->
-                          c.getName().startsWith("org.springframework.web.client.RestClient")
+                          c.getName().equals("org.springframework.web.client.RestClient")
+                              || c.getName().startsWith("org.springframework.web.client.RestClient$")
                               || c.getName().equals("org.springframework.web.client.RestTemplate")
                               || c.getName()
                                   .startsWith(

@@ -214,6 +214,38 @@ class ArchitectureTest {
   }
 
   @Test
+  void aServiceThatHandlesAClientsFailurePasses() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import org.springframework.web.client.RestClientException;
+
+        public class DemoService {
+          public boolean answered(Runnable call) {
+            try {
+              call.run();
+              return true;
+            } catch (RestClientException e) {
+              return e.getMessage() == null;
+            }
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-web' }
+        """);
+
+    var output = runner().build().getOutput();
+
+    assertFalse(output.contains("The architecture is broken"), output);
+  }
+
+  @Test
   void aFormBuiltAsAMapFailsTheBuild() throws IOException {
     write(
         "src/main/java/demo/utils/Forms.java",

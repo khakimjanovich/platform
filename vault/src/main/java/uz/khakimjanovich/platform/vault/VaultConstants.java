@@ -17,6 +17,9 @@ public class VaultConstants {
       "platform.vault.signing-keys.field is required with platform.vault.signing-keys.path";
   public static final String SIGNING_KEYS_CACHE_TTL_MISSING =
       "platform.vault.signing-keys.cache-ttl is required with platform.vault.signing-keys.path";
+  public static final String TRANSIT_PREFIX = "platform.vault.transit";
+  public static final String TRANSIT_PREFIX_FORMAT = "vault:v%d:";
+  public static final String TRANSIT_FAILED = "Vault Transit failed: {}: {}";
   public static final String TOKEN_LOOKUP_SELF = "auth/token/lookup-self";
   public static final String HEALTH_INDICATOR_BEAN = "vaultTokenHealthIndicator";
   public static final String HEALTH_ERROR_DETAIL = "error";

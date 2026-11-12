@@ -1,0 +1,16 @@
+// Valkey keys for any module: names <service>:<kind>:<id> inside the app's ACL prefix, and counters
+// and limits that expire with their window.
+plugins {
+    id 'platform.library'
+    id 'platform.integration-test'
+}
+
+dependencies {
+    api platform(libs.spring.boot.bom)
+    api libs.starter.data.redis
+    implementation libs.spring.boot.autoconfigure
+    implementation libs.starter.validation // the properties are checked at startup
+
+    integrationTestImplementation libs.testcontainers.core
+    integrationTestImplementation libs.testcontainers.junit
+}

@@ -16,7 +16,7 @@ spotless = "8.11.0"
 wiremock = "3.13.2"
 aws-sdk = "2.57.11"
 google-java-format = "1.30.0" # newer releases fail inside Spotless 8.10 (missing commonmark extension)
-platform = "2.4.0" # SemVer; see README.md §Versions
+platform = "2.5.0" # SemVer; see README.md §Versions
 errorprone = "2.52.0"
 errorprone-gradle = "5.1.1"
 nullaway = "0.14.3"
@@ -95,6 +95,7 @@ platform-security = { module = "uz.khakimjanovich.platform:security", version.re
 platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform" }
 platform-persistence = { module = "uz.khakimjanovich.platform:persistence", version.ref = "platform" }
 platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "platform" }
+platform-valkey = { module = "uz.khakimjanovich.platform:valkey", version.ref = "platform" }
 platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform" }
 platform-masking = { module = "uz.khakimjanovich.platform:masking", version.ref = "platform" }
 platform-config = { module = "uz.khakimjanovich.platform:config", version.ref = "platform" }

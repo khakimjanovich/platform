@@ -5,7 +5,7 @@ pluginManagement { includeBuild 'build-logic' }
 rootProject.name = 'platform'
 
 include('versioning')
-include('config', 'masking', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault', 'file-store', 'observability')
+include('config', 'masking', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault', 'valkey', 'file-store', 'observability')
 
 // The version catalog is gradle/libs.versions.toml, Gradle's default (read as `libs`), where
 // Dependabot finds it too.

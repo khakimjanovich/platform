@@ -2,8 +2,9 @@
 
 Secrets from HashiCorp Vault (KV version 2) through Spring Cloud Vault: read only and failing
 closed, with Vault's own sign-in (a token locally, AppRole or Kubernetes elsewhere) and token
-renewal. It also makes Vault the app's source of every secret (`spring.config.import`), and keeps
-API clients' request-signing keys a short time so a burst of signed requests reads Vault once.
+renewal. It also makes Vault the app's source of every secret (`spring.config.import`), keeps
+API clients' request-signing keys a short time so a burst of signed requests reads Vault once, and
+seals values with Vault Transit, whose keys never leave Vault.
 
 ```groovy
 implementation libs.platform.vault
@@ -34,6 +35,23 @@ unread (the record's format is the app's, parsed by the app alone). The entry is
 Vault counts without a restart. It holds an app's own per-client data, never permissions: who may
 call what is granted in Keycloak.
 
+`VaultTransit` (with `platform.vault.transit.mount`): the module names the key and gives a context
+that says where the value lives (`<table>.<column>:<row id>`); with a derived key
+(`derived=true`) a ciphertext copied to another row or column does not open.
+
+```java
+var sealed = transit.encrypt(KEY, "item.secret:" + id, plain);
+var plain = transit.decrypt(KEY, "item.secret:" + id, sealed);
+var index = transit.hmac(INDEX_KEY, 1, value); // blind index: the same value, the same hash
+```
+
+After Vault rotates a key, the module's own job moves every value that does not start with
+`latestPrefix(KEY)` (`vault:v<n>:`) with `rewrap(KEY, context, sealed)`: the plaintext never leaves
+Vault. Once no value is left on an old version, the operator may retire it
+(`min_decryption_version`). The HMAC key's version is pinned by the module: a rotation would change
+every index. The library names no key: the infra creates them (`vault secrets enable transit`,
+`vault write -f transit/keys/<key> derived=true`), and the module's settings name them.
+
 ## Properties
 
 | Property | Default | What |
@@ -44,12 +62,15 @@ call what is granted in Keycloak.
 | `platform.vault.signing-keys.cache-ttl` | none, required with `path` | how long a key read is used; a missing key is never kept, and a Vault failure never answers with an old key |
 | `platform.vault.clients.path` | none | the client registry's KV entry; unset, there is no registry |
 | `platform.vault.clients.cache-ttl` | none, required with `path` | how long one read of the registry is used |
+| `platform.vault.transit.mount` | none | the Transit engine's mount; unset, there is no `VaultTransit` |
 
 Where Vault is and how to sign in are Spring Cloud Vault's `spring.cloud.vault.*`.
 
 ## Errors
 
-`VaultUnavailableException`: callers fail closed (the payment module refuses the request).
+`VaultUnavailableException`: callers fail closed (the payment module refuses the request). From
+`VaultTransit` it also means a refused key or a ciphertext that does not open with its context; the
+log names Vault's status and path, never a value.
 
 ## Health
 
@@ -58,7 +79,7 @@ Cloud Vault's own `vault` checks that Vault is up and unsealed.
 
 ## Beans you can replace
 
-`VaultSecrets`, `SigningKeys`.
+`VaultSecrets`, `SigningKeys`, `VaultTransit`.
 
 ## Tests
 
@@ -66,4 +87,6 @@ Cloud Vault's own `vault` checks that Vault is up and unsealed.
   ids that aren't client ids, the path check, and that a path without its field or cache time
   stops startup.
 - `./gradlew -p platform :vault:integrationTest`: a real Vault: token and AppRole sign-in, latest
-  version, missing path, wrong token, rotation after the TTL, and Vault as a configuration source.
+  version, missing path, wrong token, rotation after the TTL, and Vault as a configuration source;
+  Transit: a value opens only with its own context, rewrap after a rotation, a stable HMAC, a
+  refused token, and no `VaultTransit` without a mount.

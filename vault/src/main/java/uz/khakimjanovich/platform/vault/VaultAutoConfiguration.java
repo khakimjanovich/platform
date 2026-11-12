@@ -15,14 +15,16 @@ import org.springframework.vault.core.VaultTemplate;
 /**
  * Where Spring Cloud Vault gives the app a {@link VaultTemplate} ({@code spring.cloud.vault.*}),
  * this library gives it {@link VaultSecrets}; with {@code platform.vault.signing-keys.path}, {@link
- * SigningKeys}; and with {@code platform.vault.clients.path}, a {@link ClientRegistry}.
+ * SigningKeys}; with {@code platform.vault.clients.path}, a {@link ClientRegistry}; and with {@code
+ * platform.vault.transit.mount}, {@link VaultTransit}.
  */
 @AutoConfiguration(afterName = VaultConstants.SPRING_CLOUD_VAULT)
 @ConditionalOnBean(VaultTemplate.class)
 @EnableConfigurationProperties({
   VaultProperties.class,
   VaultSigningKeysProperties.class,
-  VaultClientsProperties.class
+  VaultClientsProperties.class,
+  VaultTransitProperties.class
 })
 public class VaultAutoConfiguration {
 
@@ -53,6 +55,13 @@ public class VaultAutoConfiguration {
         Objects.requireNonNull(properties.cacheTtl(), VaultConstants.CLIENTS_CACHE_TTL_MISSING);
     return new ClientRegistry(
         vaultSecrets, Objects.requireNonNull(properties.path()), ttl, Clock.systemUTC());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean
+  @ConditionalOnProperty(prefix = VaultConstants.TRANSIT_PREFIX, name = "mount")
+  VaultTransit vaultTransit(VaultTemplate vaultTemplate, VaultTransitProperties properties) {
+    return new VaultTransit(vaultTemplate, Objects.requireNonNull(properties.mount()));
   }
 
   /** With the actuator: a token Vault refuses turns the app's health DOWN. */

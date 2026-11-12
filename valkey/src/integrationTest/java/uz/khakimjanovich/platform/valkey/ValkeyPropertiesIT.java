@@ -8,7 +8,6 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-/** The service prefix has no default: missing or unworkable, it stops startup. */
 class ValkeyPropertiesIT {
 
   private final ApplicationContextRunner runner =

@@ -12,10 +12,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.vault.VaultContainer;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * Transit against a real Vault: a derived key that seals and a key for the blind index, as an infra
- * repository creates them.
- */
 @Testcontainers
 class VaultTransitIT {
 

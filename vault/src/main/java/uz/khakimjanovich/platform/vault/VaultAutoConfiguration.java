@@ -13,12 +13,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.vault.core.VaultTemplate;
 
-/**
- * Where Spring Cloud Vault gives the app a {@link VaultTemplate} ({@code spring.cloud.vault.*}),
- * this library gives it {@link VaultSecrets}; with {@code platform.vault.signing-keys.path}, {@link
- * SigningKeys}; with {@code platform.vault.clients.path}, a {@link ClientRegistry}; and with {@code
- * platform.vault.transit.mount}, {@link VaultTransit}.
- */
 @AutoConfiguration(afterName = VaultConstants.SPRING_CLOUD_VAULT)
 @ConditionalOnBean(VaultTemplate.class)
 @EnableConfigurationProperties({
@@ -57,10 +51,6 @@ public class VaultAutoConfiguration {
         vaultSecrets, Objects.requireNonNull(properties.path()), ttl, Clock.systemUTC());
   }
 
-  /**
-   * Transit only for an app that names its mount: its properties are bound only then, so an app
-   * without Transit needs no setting, and a blank mount stops startup.
-   */
   @Configuration(proxyBeanMethods = false)
   @ConditionalOnProperty(prefix = VaultConstants.TRANSIT_PREFIX, name = "mount")
   @EnableConfigurationProperties(VaultTransitProperties.class)
@@ -73,7 +63,6 @@ public class VaultAutoConfiguration {
     }
   }
 
-  /** With the actuator: a token Vault refuses turns the app's health DOWN. */
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
   @ConditionalOnMissingBean(name = VaultConstants.HEALTH_INDICATOR_BEAN)

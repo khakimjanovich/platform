@@ -11,7 +11,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import uz.khakimjanovich.platform.error.ErrorDefinitions;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/** Key names stay inside the service's prefix, and a value that can't work is refused. */
 class ValkeyKeysTest {
 
   private final ValkeyKeys keys = new ValkeyKeys(mock(StringRedisTemplate.class), "customer-gw");

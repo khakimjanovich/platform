@@ -23,7 +23,6 @@ public class VaultConstants {
   public static final String TRANSIT_FAILED = "Vault Transit failed: {}: {}";
   public static final String TRANSIT_KEY_MISSING = "Vault Transit has no key {}";
 
-  /** Vault's answers that mean the call can't work: a bad request (400), no such key (404). */
   public static final Set<Integer> TRANSIT_REFUSED_STATUSES = Set.of(400, 404);
 
   public static final String TOKEN_LOOKUP_SELF = "auth/token/lookup-self";
@@ -31,12 +30,8 @@ public class VaultConstants {
   public static final String HEALTH_ERROR_DETAIL = "error";
   public static final String HEALTH_EMPTY_ANSWER = "empty";
 
-  /**
-   * Spring Cloud Vault's auto-configuration, which makes the VaultTemplate this library reads with.
-   */
   public static final String SPRING_CLOUD_VAULT =
       "org.springframework.cloud.vault.config.VaultAutoConfiguration";
 
-  /** A client id as Keycloak makes them: never a path of its own ({@code ..}, {@code /}). */
   static final Pattern CLIENT_ID = Pattern.compile("[A-Za-z0-9_-][A-Za-z0-9._-]*");
 }

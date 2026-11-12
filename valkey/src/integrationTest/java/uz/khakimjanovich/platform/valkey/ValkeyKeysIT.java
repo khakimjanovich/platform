@@ -18,11 +18,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * Counters and limits against a real Valkey, signed in as an ACL user like heeyid-infra's: it
- * reaches only keys {@code customer-gw:*} and only the commands it sends. The user it-admin reads
- * and clears for the tests.
- */
 @Testcontainers
 class ValkeyKeysIT {
 

@@ -10,6 +10,8 @@ adapter include it (`includeBuild`), so Gradle builds these projects in place of
 | [config](config/README.md) | every library's own defaults and error definitions, loaded below the app's configuration |
 | [masking](masking/README.md) | what must never reach a log, hidden the same way everywhere |
 | [breaker](breaker/README.md) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |
+| [outbox](outbox/README.md) | events written in the module's own transaction, published to Kafka at least once, in order per key |
+| [idempotency](idempotency/README.md) | the first answer to a client's Idempotency-Key, kept with the work so a retry gets it again |
 | [observability](observability/README.md) | logs, traces and metrics, masked, with a request id on every response |
 | [security](security/README.md) | Keycloak tokens, route rules, public routes, service-to-service tokens |
 | [keycloak](keycloak/README.md) | Keycloak's admin API: users, roles, machine clients |

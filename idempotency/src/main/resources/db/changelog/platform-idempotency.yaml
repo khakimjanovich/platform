@@ -1,0 +1,23 @@
+# The idempotency table of one module, in its own schema. The module's changelog sets idempotency.schema and idempotency.table, then includes this file.
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-idempotency
+      author: platform
+      changes:
+        # The first answer to each client's Idempotency-Key, kept to answer retries the same way.
+        - createTable:
+            schemaName: ${idempotency.schema}
+            tableName: ${idempotency.table}
+            columns:
+              - column: { name: client_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: idempotency_key, type: varchar(64), constraints: { nullable: false } }
+              # The request's hash: a different request that reuses the key is refused.
+              - column: { name: request_hash, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: response, type: text, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamptz, constraints: { nullable: false } }
+        # Keys are the client's own, so two clients may use the same one.
+        - addPrimaryKey:
+            schemaName: ${idempotency.schema}
+            tableName: ${idempotency.table}
+            columnNames: client_id, idempotency_key
+            constraintName: pk_${idempotency.table}

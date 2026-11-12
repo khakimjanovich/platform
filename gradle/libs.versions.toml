@@ -99,6 +99,8 @@ platform-valkey = { module = "uz.khakimjanovich.platform:valkey", version.ref = 
 platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform" }
 platform-masking = { module = "uz.khakimjanovich.platform:masking", version.ref = "platform" }
 platform-breaker = { module = "uz.khakimjanovich.platform:breaker", version.ref = "platform" }
+platform-outbox = { module = "uz.khakimjanovich.platform:outbox", version.ref = "platform" }
+platform-idempotency = { module = "uz.khakimjanovich.platform:idempotency", version.ref = "platform" }
 platform-config = { module = "uz.khakimjanovich.platform:config", version.ref = "platform" }
 platform-file-store = { module = "uz.khakimjanovich.platform:file-store", version.ref = "platform" }
 

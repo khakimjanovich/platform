@@ -18,14 +18,9 @@ public class MaskingConstants {
   static final Pattern XML_ELEMENT =
       Pattern.compile("(<(?:[\\w-]+:)?([\\w-]+)(?:\\s[^>]*)?>)([^<]*)(</)");
 
-  /** {@code name=value} and {@code name="value"}. */
   static final Pattern KEY_EQUALS =
       Pattern.compile("(?<![\\w.-])([A-Za-z_][\\w.-]*)(=)(\"?)([^\\s&,;\"']*)\\3");
 
-  /**
-   * {@code name: value} and JSON's {@code "name":"value"}, after {@link #KEY_EQUALS}: a value never
-   * holds a colon, so {@code failed: password: x} still finds {@code password}.
-   */
   static final Pattern KEY_COLON =
       Pattern.compile(
           "(?<![\\w.-])([A-Za-z_][\\w.-]*)(\"?\\s*:\\s*)(\"?)([^\\s&,;\"':]*+)\\3(?!:)");

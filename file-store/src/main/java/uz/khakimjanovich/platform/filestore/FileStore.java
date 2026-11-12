@@ -21,13 +21,6 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 import uz.khakimjanovich.platform.error.GeneralException;
 import uz.khakimjanovich.platform.filestore.FileStoreProperties.Bucket;
 
-/**
- * Files as S3 objects: the key is a random id, and what the file is (name, type, checksum, upload
- * time) travels with the object as its metadata, so no database is needed. The type is read from
- * the file's own bytes, never from what the uploader claims; a file read back must still match its
- * checksum. The buckets are infrastructure's: the store only checks at startup that each configured
- * one exists, so the app needs no admin rights.
- */
 @Slf4j
 @RequiredArgsConstructor
 public class FileStore {
@@ -35,7 +28,6 @@ public class FileStore {
   private final S3Client s3;
   private final FileStoreProperties properties;
 
-  /** What a stored file is. */
   public record StoredFile(
       UUID id,
       String bucket,
@@ -45,9 +37,6 @@ public class FileStore {
       String sha256,
       Instant uploadedAt) {}
 
-  /**
-   * A stored file and its bytes. A class, not a record: a record would compare arrays by identity.
-   */
   public static final class FileContent {
     private final StoredFile file;
     private final byte[] bytes;
@@ -66,7 +55,6 @@ public class FileStore {
     }
   }
 
-  /** At startup: every configured bucket must exist; creating them is infrastructure's job. */
   public void checkBuckets() {
     for (var name : properties.buckets().keySet()) {
       try {
@@ -86,7 +74,6 @@ public class FileStore {
     }
   }
 
-  /** Checks the file against the bucket's rules (not empty, small enough, an allowed type). */
   public StoredFile store(String bucket, MultipartFile file) {
     var rules = bucket(bucket);
     if (file.isEmpty()) throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_EMPTY);
@@ -158,7 +145,6 @@ public class FileStore {
         bytes);
   }
 
-  /** Best effort: a file nobody points to any more is only wasted space. */
   public void delete(String bucket, UUID fileId) {
     bucket(bucket);
     try {
@@ -184,7 +170,6 @@ public class FileStore {
     }
   }
 
-  /** A missing object is the caller's 404; anything else, the store's trouble. */
   private static <T> T storage(Supplier<T> call, UUID fileId) {
     try {
       return call.get();
@@ -200,7 +185,6 @@ public class FileStore {
     }
   }
 
-  /** The store's trouble: the caller gets a 503, the log says why. */
   private static GeneralException unavailable(SdkException e) {
     log.warn(FileStoreConstants.LOG_UNAVAILABLE, e.getMessage(), e);
     return new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);

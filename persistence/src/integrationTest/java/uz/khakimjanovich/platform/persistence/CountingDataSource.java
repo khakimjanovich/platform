@@ -7,7 +7,6 @@ import java.sql.PreparedStatement;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
 
-/** A data source that counts the JDBC batches sent through it. */
 final class CountingDataSource {
 
   final AtomicInteger batches = new AtomicInteger();

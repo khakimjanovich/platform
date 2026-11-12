@@ -2,7 +2,6 @@ package uz.khakimjanovich.platform.keycloak;
 
 import lombok.experimental.UtilityClass;
 
-/** Keycloak admin REST paths and representation fields. */
 @UtilityClass
 public class KeycloakConstants {
 

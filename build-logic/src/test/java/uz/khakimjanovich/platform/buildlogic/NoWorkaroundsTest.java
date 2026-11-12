@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** platform.java's verifyNoWorkarounds on a real build: what marks a workaround fails `check`. */
 class NoWorkaroundsTest {
 
   @TempDir Path build;

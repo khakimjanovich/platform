@@ -33,10 +33,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import uz.khakimjanovich.platform.error.GeneralException;
 
-/**
- * The file store, storing into a real SeaweedFS as an identity that may only read, write and list
- * its two buckets; the buckets are created beforehand, as the local stack does.
- */
 @SpringBootTest(
     classes = FileStoreIT.class,
     properties = {
@@ -72,9 +68,6 @@ class FileStoreIT {
                   .forStatusCode(403)
                   .withStartupTimeout(Duration.ofMinutes(2)));
 
-  /**
-   * As the local stack's seaweedfs/init.sh: the buckets come from infrastructure, not from the app.
-   */
   @BeforeAll
   static void buckets() throws Exception {
     for (var bucket : new String[] {"partner-documents", "sales-point-logos"}) {

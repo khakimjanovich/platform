@@ -8,16 +8,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Which field names {@link Masking} hides, compared ignoring case. A service adds its own names to
- * the defaults; it never repeats them.
- *
- * @param secretFields hidden whole: expiry dates, codes, passwords, secrets, keys, names
- * @param tokenFields cut to their last 4 characters: tokens, phones, accounts
- * @param cardFields card numbers, kept to their first 6 and last 4 digits
- * @param secretsBeside in JSON, a field hidden whole only where its object also has, or sits under,
- *     one of the given names (a {@code value} beside a {@code type}); elsewhere it's shown
- */
 public record MaskingRules(
     Set<String> secretFields,
     Set<String> tokenFields,
@@ -54,12 +44,10 @@ public record MaskingRules(
                     MaskingRules::union));
   }
 
-  /** The generic card, token and secret names; a service adds its own. */
   public static MaskingRules defaults() {
     return DEFAULTS;
   }
 
-  /** These rules plus more names of each kind. */
   public MaskingRules with(
       Collection<String> moreSecretFields,
       Collection<String> moreTokenFields,

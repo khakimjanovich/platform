@@ -2,7 +2,6 @@ package uz.khakimjanovich.platform.error.fixtures.complete;
 
 import uz.khakimjanovich.platform.error.StatusThrowable;
 
-/** Its constant has a body, so the enum compiles to an abstract class: it must still be found. */
 public enum DemoExceptionStatus implements StatusThrowable {
   DEMO_FAILED {
     @Override

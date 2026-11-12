@@ -25,33 +25,17 @@ import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Role;
 import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.Secret;
 import uz.khakimjanovich.platform.keycloak.KeycloakRepresentations.User;
 
-/**
- * Keycloak's admin API, for the few things our modules need. Every failure is a {@link
- * GeneralException}: {@code KEYCLOAK_CONFLICT} when what we create already exists, {@code
- * KEYCLOAK_REJECTED} when Keycloak refuses the input (a 4xx, e.g. its password policy), {@code
- * KEYCLOAK_UNAVAILABLE} for anything else (a 5xx, a refused login, a timeout, no token). Keycloak's
- * own message is the sub-error; a failure without an answer names only its kind, never a URL.
- */
 @RequiredArgsConstructor
 public class KeycloakAdmin {
 
   private final RestClient keycloak;
 
-  /** A machine-to-machine client and its secret. The secret is shown only here. */
   public record IssuedClient(String id, String secret) {}
 
-  /**
-   * Reads one realm role: logging in (a token, replaced if refused) and the admin API both work.
-   * Throws {@code KEYCLOAK_UNAVAILABLE} if not.
-   */
   public void ping() {
     call(() -> keycloak.get().uri(KeycloakConstants.ROLES_ONE).retrieve().toBodilessEntity());
   }
 
-  /**
-   * Creates an enabled user with a password and the given required actions (Keycloak's names, e.g.
-   * {@link KeycloakConstants#CONFIGURE_TOTP}), done at its next login; returns its id.
-   */
   public String createUser(
       String username,
       String email,
@@ -93,12 +77,6 @@ public class KeycloakAdmin {
         .toBodilessEntity();
   }
 
-  /**
-   * Creates an enabled user without a password, with the given realm roles, and has Keycloak e-mail
-   * them a link to set one and do the given required actions (Keycloak's names, e.g. {@link
-   * KeycloakConstants#CONFIGURE_TOTP}); returns its id. If a role or the e-mail fails, the user is
-   * removed again and the call fails.
-   */
   public String inviteUser(
       String email, String firstName, List<String> requiredActions, String... realmRoles) {
     var actions =
@@ -130,16 +108,10 @@ public class KeycloakAdmin {
         });
   }
 
-  /** Removes the user, e.g. an invite whose own record could not be saved. */
   public void deleteUser(String userId) {
     call(() -> keycloak.delete().uri(KeycloakConstants.USER, userId).retrieve().toBodilessEntity());
   }
 
-  /**
-   * Disables the user and ends every session at once; the user and its history stay. If ending the
-   * sessions fails, the user is already disabled (its refresh tokens are refused): calling again is
-   * safe.
-   */
   public void disableUser(String userId) {
     call(
         () -> {
@@ -148,7 +120,6 @@ public class KeycloakAdmin {
         });
   }
 
-  /** Ends every session the user has: its refresh tokens are refused from now on. */
   public void logoutUser(String userId) {
     call(() -> loggedOut(userId));
   }
@@ -157,12 +128,10 @@ public class KeycloakAdmin {
     return keycloak.post().uri(KeycloakConstants.USER_LOGOUT, userId).retrieve().toBodilessEntity();
   }
 
-  /** Lets a disabled user log in again. */
   public void enableUser(String userId) {
     call(() -> enabled(userId, true));
   }
 
-  /** Keycloak's user update changes only the fields it is sent. */
   private ResponseEntity<Void> enabled(String userId, boolean enabled) {
     return keycloak
         .put()
@@ -225,10 +194,6 @@ public class KeycloakAdmin {
         .toBodilessEntity();
   }
 
-  /**
-   * A confidential client that can only use client credentials. Its tokens carry the given realm
-   * roles.
-   */
   public IssuedClient createConfidentialClient(String clientId, String... realmRoles) {
     return call(() -> newClient(clientId, realmRoles));
   }
@@ -261,13 +226,11 @@ public class KeycloakAdmin {
     return new IssuedClient(id, secretOf(keycloak.get().uri(KeycloakConstants.CLIENT_SECRET, id)));
   }
 
-  /** Issues a new secret; the old one stops working at once. */
   public String rotateSecret(String clientInternalId) {
     return call(
         () -> secretOf(keycloak.post().uri(KeycloakConstants.CLIENT_SECRET, clientInternalId)));
   }
 
-  /** The input refused (a 4xx but our own login's), or Keycloak unavailable, its message kept. */
   private static <T> T call(Supplier<T> request) {
     try {
       return request.get();
@@ -289,7 +252,6 @@ public class KeycloakAdmin {
     }
   }
 
-  /** Keycloak's {@code errorMessage} (admin API) or {@code error_description} (token endpoint). */
   private static @Nullable String errorMessage(RestClientResponseException e) {
     try {
       var body = e.getResponseBodyAs(Failure.class);
@@ -306,18 +268,15 @@ public class KeycloakAdmin {
     return required(answer == null ? null : answer.value(), KeycloakConstants.VALUE);
   }
 
-  /** An answer Keycloak never gives when it works: as good as no answer. */
   private static GeneralException broken(String what) {
     return new GeneralException(KeycloakExceptionStatus.KEYCLOAK_UNAVAILABLE).subError(null, what);
   }
 
-  /** A field Keycloak always sends; a body without it is a broken answer. */
   private static String required(@Nullable String value, String name) {
     if (value == null) throw broken(KeycloakConstants.MISSING_FIELD.formatted(name));
     return value;
   }
 
-  /** Keycloak answers a create with the new resource's URL; its last segment is the id. */
   private static String idOf(@Nullable URI location) {
     if (location == null) throw broken(KeycloakConstants.MISSING_LOCATION);
     var path = location.getPath();

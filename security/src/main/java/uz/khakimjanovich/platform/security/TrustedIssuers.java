@@ -25,13 +25,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
 import org.springframework.web.client.RestTemplate;
 
-/**
- * Tokens from several issuers, each with the roles it may grant: the token's issuer picks its keys,
- * and a token from any other issuer or for another audience is refused (401); a role its issuer may
- * not grant doesn't count. Who holds which role is granted in the issuer (Keycloak) alone. Each
- * issuer's keys are fetched with its first token, not at startup, over the given SSL bundle's trust
- * when there is one.
- */
 final class TrustedIssuers {
 
   private TrustedIssuers() {}

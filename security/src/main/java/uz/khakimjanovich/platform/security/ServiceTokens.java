@@ -17,15 +17,6 @@ import org.springframework.security.oauth2.client.web.client.OAuth2ClientHttpReq
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
 
-/**
- * The configured HTTP service groups call with a client-credentials token of their registration:
- * Spring Security's own interceptor gets and refreshes it. A 401 that refuses the token drops it
- * (Spring's authorization-failure handler) and the call is tried once more with a new one.
- *
- * <p>Generated client interfaces can't carry {@code @ClientRegistrationId}, so a group names its
- * registration in {@code platform.security.service-tokens.groups}. The token is the service's own,
- * never the caller's: every call of a group uses one authorized client.
- */
 public class ServiceTokens implements RestClientHttpServiceGroupConfigurer {
 
   private final OAuth2AuthorizedClientManager manager;
@@ -64,7 +55,6 @@ public class ServiceTokens implements RestClientHttpServiceGroupConfigurer {
     return tokens;
   }
 
-  /** Retry once, then the token: a retried call goes through the token interceptor again. */
   private static java.util.function.Consumer<List<ClientHttpRequestInterceptor>> add(
       OAuth2ClientHttpRequestInterceptor tokens) {
     return interceptors -> {
@@ -73,11 +63,6 @@ public class ServiceTokens implements RestClientHttpServiceGroupConfigurer {
     };
   }
 
-  /**
-   * A 401 for a refused token (no challenge, or {@code error="invalid_token"}): the token
-   * interceptor has dropped it, so try once more. Any other 401 ({@code insufficient_scope}) is the
-   * answer.
-   */
   static class RetryOnceOnUnauthorized implements ClientHttpRequestInterceptor {
     @Override
     public ClientHttpResponse intercept(

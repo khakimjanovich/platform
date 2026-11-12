@@ -8,7 +8,6 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Configuration;
 
-/** A setting nothing gives a value stops startup and is named; given one, it starts. */
 class RequiredSettingsTest {
 
   @Configuration(proxyBeanMethods = false)

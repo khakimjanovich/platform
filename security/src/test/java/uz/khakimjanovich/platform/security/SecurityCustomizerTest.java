@@ -30,11 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/**
- * A module adds a filter to the one security chain with a {@code Customizer<HttpSecurity>} bean,
- * which Spring Security applies before the library's rules; the route rules still hold, even
- * against a customizer that tries to open a route.
- */
 @SpringBootTest(
     classes = SecurityCustomizerTest.App.class,
     properties = "platform.security.roles[/admin/**]=ADMIN")
@@ -58,7 +53,6 @@ class SecurityCustomizerTest {
       };
     }
 
-    /** What a module contributes: a filter right after the token check. */
     @Bean
     Customizer<HttpSecurity> moduleFilter() {
       return http ->
@@ -112,7 +106,6 @@ class SecurityCustomizerTest {
         .andExpect(header().string("X-Module", "seen"));
   }
 
-  /** A module trying to open a route itself: the rules live in configuration only. */
   @Configuration
   static class RouteRule {
     @Bean

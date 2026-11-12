@@ -18,7 +18,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.vault.VaultContainer;
 
-/** Secrets against a real Vault, signed in as the app would be: with a token or with AppRole. */
 @Testcontainers
 class VaultSecretsIT {
 
@@ -42,7 +41,6 @@ class VaultSecretsIT {
     return app("spring.cloud.vault.authentication=TOKEN", "spring.cloud.vault.token=" + token);
   }
 
-  /** As the bank does it: straight into Vault, e.g. {@code vault kv put}. */
   private static void put(String path, String key) throws Exception {
     var result = VAULT.execInContainer("vault", "kv", "put", "secret/" + path, "signingKey=" + key);
     assertThat(result.getExitCode()).as(result.getStderr()).isZero();

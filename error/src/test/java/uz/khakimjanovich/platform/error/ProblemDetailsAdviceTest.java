@@ -38,15 +38,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Every error a client can see is a problem detail with a stable code, and nothing internal leaks.
- */
 @ExtendWith(OutputCaptureExtension.class)
 class ProblemDetailsAdviceTest {
 
   record Signup(@Size(min = 2) String name, @Email String email) {}
 
-  /** A service's own errors; EMAIL_TAKEN is defined below, NOT_DEFINED nowhere. */
   enum TestStatus implements StatusThrowable {
     EMAIL_TAKEN,
     NOT_DEFINED;
@@ -84,7 +80,6 @@ class ProblemDetailsAdviceTest {
           .retryAfter(Duration.ofMillis(41_200));
     }
 
-    /** What a @Validated service throws when its arguments break their constraints. */
     @PostMapping("/service")
     void service() {
       var violations =
@@ -94,7 +89,6 @@ class ProblemDetailsAdviceTest {
       throw new ConstraintViolationException(violations);
     }
 
-    /** What method security (@PreAuthorize) throws inside a controller. */
     @GetMapping("/denied")
     void denied() {
       throw new AuthorizationDeniedException("denied", new AuthorizationDecision(false));
@@ -103,7 +97,6 @@ class ProblemDetailsAdviceTest {
     @GetMapping("/bins/{digits}")
     void bins(@PathVariable int digits, @RequestParam(required = false) Integer page) {}
 
-    /** A path Tomcat lets through (relaxedPathChars) but no URI can hold. */
     @GetMapping("/odd{rest}")
     void odd() {
       throw new IllegalStateException("odd");
@@ -282,7 +275,6 @@ class ProblemDetailsAdviceTest {
         .build();
   }
 
-  /** The library's own definitions, as a service imports them, plus one of the service's own. */
   private static ErrorStarterProperties definitions() {
     var yaml = new YamlPropertiesFactoryBean();
     yaml.setResources(new ClassPathResource("properties/error-exception.yaml"));

@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/** One read per TTL; a client added or taken away shows after it; past it, Vault down throws. */
 class ClientRegistryTest {
 
   private static final Duration TTL = Duration.ofSeconds(30);

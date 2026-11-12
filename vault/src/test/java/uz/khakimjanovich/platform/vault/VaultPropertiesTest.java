@@ -8,10 +8,6 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.vault.core.VaultTemplate;
 
-/**
- * Signing keys are where the app says, or not at all: a path without the client id would give every
- * client one key, and a path without its field or cache time stops startup.
- */
 class VaultPropertiesTest {
 
   private final ApplicationContextRunner runner =

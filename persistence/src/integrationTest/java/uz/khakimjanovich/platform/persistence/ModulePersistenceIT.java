@@ -34,11 +34,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/**
- * Two modules on one real Postgres, wired as every module is: each migrates its own schema as its
- * own user, can't read the other's, and its pool takes its own settings; an entity ahead of its
- * migrations stops startup.
- */
 @SpringBootTest(
     classes = {ModulePersistenceIT.ModuleA.class, ModulePersistenceIT.ModuleB.class},
     properties = {"app.db.a.hikari.maximum-pool-size=3", "app.db.b.hikari.maximum-pool-size=4"})
@@ -59,7 +54,6 @@ class ModulePersistenceIT {
     }
   }
 
-  /** What each module's *PersistenceConfig declares, for module "a". */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties
   @ImportAutoConfiguration(PersistenceAutoConfiguration.class)
@@ -81,7 +75,6 @@ class ModulePersistenceIT {
       return ModulePersistence.liquibase("a", "db/a/changelog.yaml", dataSource);
     }
 
-    /** The pool as module a's entity manager sees it, counting the batches it sends. */
     @Bean
     CountingDataSource aCounting(@Qualifier("aDataSource") DataSource dataSource) {
       return new CountingDataSource(dataSource);
@@ -95,7 +88,6 @@ class ModulePersistenceIT {
     }
   }
 
-  /** Module "b", declared with the annotation. */
   @Configuration(proxyBeanMethods = false)
   @EnableModulePersistence(
       schema = "b",
@@ -104,7 +96,6 @@ class ModulePersistenceIT {
       entities = uz.khakimjanovich.platform.persistence.b.Note.class)
   static class ModuleB {}
 
-  /** Module "c": its entity has a column its migrations never created. */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties
   @ImportAutoConfiguration(PersistenceAutoConfiguration.class)
@@ -158,7 +149,6 @@ class ModulePersistenceIT {
 
   @Autowired Environment environment;
 
-  /** Only migrations, for module "d", to see them switched off. */
   @Configuration(proxyBeanMethods = false)
   @EnableConfigurationProperties
   @ImportAutoConfiguration(PersistenceAutoConfiguration.class)

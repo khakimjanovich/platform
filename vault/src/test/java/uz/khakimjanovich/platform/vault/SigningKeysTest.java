@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/** One Vault read per client per TTL; a missing key is asked again; a failure never goes stale. */
 class SigningKeysTest {
 
   private static final Duration TTL = Duration.ofSeconds(30);
@@ -84,7 +83,6 @@ class SigningKeysTest {
     verifyNoInteractions(vault);
   }
 
-  /** A clock the test moves. */
   private static final class TestClock extends Clock {
     private Instant now = Instant.parse("2026-01-01T00:00:00Z");
 

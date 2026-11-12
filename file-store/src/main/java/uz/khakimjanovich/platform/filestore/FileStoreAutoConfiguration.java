@@ -18,11 +18,6 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 
-/**
- * Setting {@code platform.file-store.storage.endpoint} gives the app a {@link FileStore}: any
- * S3-compatible store, SeaweedFS locally (path-style addresses), AWS S3 or MinIO elsewhere. Every
- * call has a time limit, and the configured buckets must already exist.
- */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = FileStoreConstants.PROPERTIES_PREFIX, name = "storage.endpoint")
 @EnableConfigurationProperties(FileStoreProperties.class)
@@ -53,7 +48,6 @@ public class FileStoreAutoConfiguration {
         .build();
   }
 
-  /** Fails startup, naming the bucket, if a configured bucket doesn't exist. */
   @Bean
   @ConditionalOnMissingBean
   FileStore fileStore(S3Client s3, FileStoreProperties properties) {
@@ -62,7 +56,6 @@ public class FileStoreAutoConfiguration {
     return store;
   }
 
-  /** With the actuator: a store that rejects our credentials turns the app's health DOWN. */
   @Bean
   @ConditionalOnClass(HealthIndicator.class)
   @ConditionalOnMissingBean(name = FileStoreConstants.HEALTH_INDICATOR_BEAN)
@@ -70,7 +63,6 @@ public class FileStoreAutoConfiguration {
     return new FileStoreHealthIndicator(s3, properties);
   }
 
-  /** The configured key pair, or AWS's default chain (an instance or container role) if chosen. */
   private static AwsCredentialsProvider credentials(FileStoreProperties.Storage storage) {
     if (storage.credentials() == FileStoreProperties.Storage.Credentials.DEFAULT_CHAIN) {
       return DefaultCredentialsProvider.builder().build();

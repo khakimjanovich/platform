@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Merchant URLs reach only public addresses (FR-CHK-063). */
 class PublicAddressesTest {
 
   @ParameterizedTest

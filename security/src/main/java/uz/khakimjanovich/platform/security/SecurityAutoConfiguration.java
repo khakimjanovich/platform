@@ -22,20 +22,6 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
-/**
- * Adding the library secures the app: every call carries a Keycloak access token except the
- * configured public routes, which ignore any token sent; a signed-in route needs only a valid
- * token, each listed role route needs its role, anything else is refused. 401 and 403 are answered
- * by the app's {@link AuthenticationEntryPoint} and {@link AccessDeniedHandler} beans (the error
- * library's answer with problem details). Boot's {@code
- * spring.security.oauth2.resourceserver.jwt.audiences} makes tokens name our API.
- *
- * <p>A module adds to this one chain with a {@code Customizer<HttpSecurity>} bean, which Spring
- * Security applies to the {@link HttpSecurity} before these rules, e.g. {@code http.addFilterAfter(
- * filter, BearerTokenAuthenticationFilter.class)}; to refuse a request it hands the app's entry
- * point or access-denied handler the reason. Filters only: the route rules stay here. An app that
- * needs a different chain defines its own {@link SecurityFilterChain}.
- */
 @AutoConfiguration(
     beforeName = {
       SecurityConstants.BOOT_WEB_SECURITY,
@@ -128,7 +114,6 @@ public class SecurityAutoConfiguration {
         .build();
   }
 
-  /** "POST /path/**" matches that method only; "/path/**" matches every method. */
   static RequestMatcher route(String route) {
     var parts = route.trim().split(SecurityConstants.METHOD_SEPARATOR, 2);
     var paths = PathPatternRequestMatcher.withDefaults();

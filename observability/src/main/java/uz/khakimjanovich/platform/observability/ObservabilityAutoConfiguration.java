@@ -21,13 +21,6 @@ import org.springframework.context.annotation.Configuration;
 import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
 
-/**
- * Sends every log line over OTLP with its trace, beside the console (Spring Boot's own: readable
- * text, or ECS JSON where logging.structured.format.console=ecs is set), and logs every outgoing
- * call of every client built from Boot's RestClient.Builder. Every log line, on every sink, is
- * masked with the default names plus the service's own ({@code platform.observability.masking.*}).
- * Every web response carries its trace id as {@code X-Request-Id}.
- */
 @AutoConfiguration
 @EnableConfigurationProperties(ObservabilityProperties.class)
 public class ObservabilityAutoConfiguration {
@@ -45,7 +38,6 @@ public class ObservabilityAutoConfiguration {
                 extra.additionalSecretsBeside()));
   }
 
-  /** The console prints masked messages, and OTLP gets every line through a masking appender. */
   @Bean
   InitializingBean maskedLogs(Masking logMasking, ObjectProvider<OpenTelemetry> openTelemetry) {
     return () -> {
@@ -63,7 +55,6 @@ public class ObservabilityAutoConfiguration {
     };
   }
 
-  /** For a client not built from Boot's RestClient.Builder (a SOAP one) to add itself. */
   @Bean
   @ConditionalOnMissingBean
   HttpClientLogging httpClientLogging(Masking logMasking) {
@@ -87,9 +78,6 @@ public class ObservabilityAutoConfiguration {
     }
   }
 
-  /**
-   * With the actuator: every health indicator as a gauge, for alerts on a dependency going DOWN.
-   */
   @Configuration(proxyBeanMethods = false)
   @ConditionalOnClass(HealthContributorRegistry.class)
   static class Health {

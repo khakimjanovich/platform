@@ -12,12 +12,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-/**
- * Adding the library is enough: every web app gets the same error format, security errors included.
- * It runs before Spring Boot's MVC configuration, so with {@code spring.mvc.problemdetails.enabled}
- * Boot's own handler backs off; an app that defines its own {@link ResponseEntityExceptionHandler}
- * replaces this one.
- */
 @AutoConfiguration(beforeName = ErrorConstants.BOOT_WEB_MVC)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(ErrorStarterProperties.class)
@@ -40,7 +34,6 @@ public class ErrorAutoConfiguration {
       return new ProblemSecurityHandler(resolver);
     }
 
-    /** Only beside this library's handler: it answers through it. */
     @Bean
     @ConditionalOnMissingBean({AccessDeniedAdvice.class, ResponseEntityExceptionHandler.class})
     AccessDeniedAdvice accessDeniedAdvice(ProblemDetailsAdvice problems) {

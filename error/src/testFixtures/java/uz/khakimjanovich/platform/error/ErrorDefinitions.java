@@ -19,33 +19,18 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.util.ClassUtils;
 
-/**
- * The check every service runs in a unit test: each error any of its libraries or modules can throw
- * has a definition (an HTTP status, a title, and a message in English, Russian and Uzbek with the
- * same placeholders), and no definition is left over.
- *
- * <pre>{@code
- * @Test
- * void everyErrorIsDefinedInEveryLanguage() {
- *   ErrorDefinitions.assertComplete("uz.khakimjanovich.platform");
- * }
- * }</pre>
- */
 public final class ErrorDefinitions {
 
-  /** Where libraries, modules and adapters keep their definitions. */
   public static final String DEFINITIONS = "classpath*:properties/*-exception.yaml";
 
   private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\d+}");
 
   private ErrorDefinitions() {}
 
-  /** Every {@link StatusThrowable} enum under the package against every definition file. */
   public static void assertComplete(String basePackage) {
     assertComplete(basePackage, DEFINITIONS);
   }
 
-  /** The same, against the definition files matching {@code locationPattern}. */
   public static void assertComplete(String basePackage, String locationPattern) {
     var definitions = definitions(locationPattern).codes();
     var thrown = new TreeSet<String>();
@@ -77,7 +62,6 @@ public final class ErrorDefinitions {
     }
   }
 
-  /** Every constant of every StatusThrowable enum under the package. */
   private static List<StatusThrowable> statuses(String basePackage) {
     // An enum whose constants have bodies compiles to an abstract class, which the default
     // filter (concrete classes only) would skip.

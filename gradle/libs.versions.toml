@@ -95,6 +95,7 @@ platform-security = { module = "uz.khakimjanovich.platform:security", version.re
 platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform" }
 platform-persistence = { module = "uz.khakimjanovich.platform:persistence", version.ref = "platform" }
 platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "platform" }
+platform-valkey = { module = "uz.khakimjanovich.platform:valkey", version.ref = "platform" }
 platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform" }
 platform-masking = { module = "uz.khakimjanovich.platform:masking", version.ref = "platform" }
 platform-breaker = { module = "uz.khakimjanovich.platform:breaker", version.ref = "platform" }

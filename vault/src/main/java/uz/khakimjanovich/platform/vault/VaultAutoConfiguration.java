@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.vault.core.VaultTemplate;
 
 @AutoConfiguration(afterName = VaultConstants.SPRING_CLOUD_VAULT)
@@ -48,6 +49,18 @@ public class VaultAutoConfiguration {
         Objects.requireNonNull(properties.cacheTtl(), VaultConstants.CLIENTS_CACHE_TTL_MISSING);
     return new ClientRegistry(
         vaultSecrets, Objects.requireNonNull(properties.path()), ttl, Clock.systemUTC());
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnProperty(prefix = VaultConstants.TRANSIT_PREFIX, name = "mount")
+  @EnableConfigurationProperties(VaultTransitProperties.class)
+  static class Transit {
+
+    @Bean
+    @ConditionalOnMissingBean
+    VaultTransit vaultTransit(VaultTemplate vaultTemplate, VaultTransitProperties properties) {
+      return new VaultTransit(vaultTemplate, properties.mount());
+    }
   }
 
   @Bean

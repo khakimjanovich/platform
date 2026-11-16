@@ -32,6 +32,7 @@ outbox.append(new OutboxEvent(UUID.randomUUID(), "card-events", cardId, "card.bo
   at once would publish one key's events out of order. Another replica's relay simply finds
   nothing to do that round.
 - Each event is sent inside the trace of the request that wrote it.
+- The module purges old published events on its own schedule: `purgePublishedBefore(Instant)`.
 
 ## Tests
 

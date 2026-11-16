@@ -30,6 +30,9 @@ public class OutboxConstants {
   public static final String MARK_PUBLISHED =
       "UPDATE %s SET published_at = now() WHERE id IN (:ids)";
 
+  public static final String PURGE_PUBLISHED =
+      "DELETE FROM %s WHERE published_at IS NOT NULL AND published_at < :before";
+
   public static final String HEADER_EVENT_ID = "event-id";
 
   public static final String HEADER_EVENT_TYPE = "event-type";

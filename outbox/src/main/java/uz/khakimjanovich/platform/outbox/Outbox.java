@@ -4,6 +4,8 @@ import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.propagation.Propagator;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +33,7 @@ public class Outbox {
   private final String insert;
   private final String lockUnpublished;
   private final String markPublished;
+  private final String purgePublished;
 
   public Outbox(
       String schema,
@@ -54,6 +57,7 @@ public class Outbox {
     this.insert = OutboxConstants.INSERT.formatted(target);
     this.lockUnpublished = OutboxConstants.LOCK_UNPUBLISHED.formatted(target);
     this.markPublished = OutboxConstants.MARK_PUBLISHED.formatted(target);
+    this.purgePublished = OutboxConstants.PURGE_PUBLISHED.formatted(target);
   }
 
   public void append(OutboxEvent event) {
@@ -72,6 +76,10 @@ public class Outbox {
     do {
       published = transaction.execute(status -> publishBatch());
     } while (published != null && published == batch);
+  }
+
+  public int purgePublishedBefore(Instant before) {
+    return jdbc.sql(purgePublished).param("before", Timestamp.from(before)).update();
   }
 
   private int publishBatch() {

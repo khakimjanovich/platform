@@ -79,9 +79,13 @@ public final class Breaker {
 
   public <T> T execute(Supplier<T> action, Predicate<Throwable> isFailure) {
     if (!allows()) {
+      Duration retry = remainingProbeDelay();
+      if (retry.isZero()) {
+        retry = probeAfter;
+      }
       throw new GeneralException(BreakerExceptionStatus.BREAKER_OPEN)
           .subError("breaker", "open")
-          .retryAfter(probeAfter);
+          .retryAfter(retry);
     }
     T result;
     try {
@@ -131,6 +135,14 @@ public final class Breaker {
 
   public synchronized boolean isHalfOpen() {
     return state() == State.HALF_OPEN;
+  }
+
+  public synchronized Duration remainingProbeDelay() {
+    if (openedAt == null) {
+      return Duration.ZERO;
+    }
+    Duration remaining = Duration.between(clock.instant(), openedAt.plus(probeAfter));
+    return remaining.isNegative() ? Duration.ZERO : remaining;
   }
 
   public int failures() {

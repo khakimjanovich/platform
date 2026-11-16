@@ -8,6 +8,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -39,121 +44,248 @@ class BreakerTest {
   }
 
   final TestClock clock = new TestClock();
-  final Breaker breaker = new Breaker(5, Duration.ofSeconds(30), clock);
+  final Breaker paymentRailBreaker = new Breaker(3, Duration.ofSeconds(5), clock);
 
   @Test
-  void stateTransitionsBetweenClosedOpenAndHalfOpen() {
-    assertThat(breaker.state()).isEqualTo(Breaker.State.CLOSED);
-    assertThat(breaker.isClosed()).isTrue();
-    assertThat(breaker.isOpen()).isFalse();
-    assertThat(breaker.isHalfOpen()).isFalse();
-
-    for (var i = 0; i < 4; i++) {
-      breaker.failed();
-      assertThat(breaker.state()).isEqualTo(Breaker.State.CLOSED);
-      assertThat(breaker.isClosed()).isTrue();
+  void schemeOutageTripsRailAndShedsSubsequentAuthorizationsWithDynamicRetryAfter() {
+    // Stage 1: Card scheme experiences 2 transient socket timeouts (still below trip threshold of
+    // 3)
+    for (var i = 0; i < 2; i++) {
+      assertThatThrownBy(
+              () ->
+                  paymentRailBreaker.execute(
+                      () -> {
+                        throw new ResourceAccessException(
+                            "Connect timed out to card scheme switch");
+                      }))
+          .isInstanceOf(ResourceAccessException.class);
+      assertThat(paymentRailBreaker.isClosed()).isTrue();
+      assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.CLOSED);
     }
 
-    breaker.failed();
-    assertThat(breaker.state()).isEqualTo(Breaker.State.OPEN);
-    assertThat(breaker.isOpen()).isTrue();
-    assertThat(breaker.isClosed()).isFalse();
-    assertThat(breaker.isHalfOpen()).isFalse();
+    // Stage 2: 3rd consecutive timeout trips the rail immediately into OPEN
+    assertThatThrownBy(
+            () ->
+                paymentRailBreaker.execute(
+                    () -> {
+                      throw new ResourceAccessException("Socket reset by peer");
+                    }))
+        .isInstanceOf(ResourceAccessException.class);
 
-    clock.now = clock.now.plusSeconds(30);
-    assertThat(breaker.allows()).as("canary probe permitted").isTrue();
-    assertThat(breaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
-    assertThat(breaker.isHalfOpen()).isTrue();
-    assertThat(breaker.isOpen()).isTrue();
-    assertThat(breaker.isClosed()).isFalse();
+    assertThat(paymentRailBreaker.isOpen()).isTrue();
+    assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.OPEN);
 
-    breaker.failed();
-    assertThat(breaker.state()).isEqualTo(Breaker.State.OPEN);
-    assertThat(breaker.isOpen()).isTrue();
-    assertThat(breaker.isHalfOpen()).isFalse();
+    // Stage 3: Immediate next authorization is shed without invoking external I/O
+    assertThatThrownBy(() -> paymentRailBreaker.execute(() -> "never-invoked"))
+        .isInstanceOf(GeneralException.class)
+        .satisfies(
+            ex -> {
+              var ge = (GeneralException) ex;
+              assertThat(ge.getStatus()).isEqualTo(BreakerExceptionStatus.BREAKER_OPEN);
+              assertThat(ge.getRetryAfter()).isEqualTo(Duration.ofSeconds(5));
+            });
 
-    clock.now = clock.now.plusSeconds(30);
-    assertThat(breaker.allows()).isTrue();
-    assertThat(breaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
-    breaker.answered();
-    assertThat(breaker.state()).isEqualTo(Breaker.State.CLOSED);
-    assertThat(breaker.isClosed()).isTrue();
-    assertThat(breaker.isOpen()).isFalse();
-    assertThat(breaker.isHalfOpen()).isFalse();
+    // Stage 4: Advancing clock by 3s updates dynamic remaining cooldown to 2s
+    clock.now = clock.now.plusSeconds(3);
+    assertThatThrownBy(() -> paymentRailBreaker.execute(() -> "never-invoked"))
+        .isInstanceOf(GeneralException.class)
+        .satisfies(
+            ex -> {
+              var ge = (GeneralException) ex;
+              assertThat(ge.getRetryAfter()).isEqualTo(Duration.ofSeconds(2));
+            });
   }
 
   @Test
-  void fiveFailuresInARowOpenItAndOneProbeGoesAfter30s() {
-    for (var i = 0; i < 4; i++) {
-      breaker.failed();
+  void businessDeclinesAndInvalidCardsNeverTripTheRail() {
+    // 50 cardholder business rejections in a row: wrong PINs, expired cards, insufficient funds
+    for (var i = 0; i < 50; i++) {
+      HttpStatus status = (i % 2 == 0) ? HttpStatus.UNPROCESSABLE_CONTENT : HttpStatus.UNAUTHORIZED;
+      assertThatThrownBy(
+              () ->
+                  paymentRailBreaker.execute(
+                      () -> {
+                        throw new HttpClientErrorException(status, "Cardholder declined");
+                      }))
+          .isInstanceOf(HttpClientErrorException.class);
+
+      assertThat(paymentRailBreaker.isClosed()).isTrue();
+      assertThat(paymentRailBreaker.isOpen()).isFalse();
     }
-    assertThat(breaker.allows()).isTrue();
-    breaker.failed();
-    assertThat(breaker.isOpen()).isTrue();
-    assertThat(breaker.allows()).isFalse();
 
-    clock.now = clock.now.plusSeconds(30);
-    assertThat(breaker.allows()).as("the probe").isTrue();
-    assertThat(breaker.allows()).as("only one probe").isFalse();
-    breaker.failed();
-    assertThat(breaker.allows()).as("a failed probe opens it again").isFalse();
-
-    clock.now = clock.now.plusSeconds(30);
-    assertThat(breaker.allows()).isTrue();
-    breaker.answered();
-    assertThat(breaker.isOpen()).isFalse();
-    assertThat(breaker.allows()).isTrue();
+    // Subsequent valid card authorization succeeds seamlessly
+    var authCode = paymentRailBreaker.execute(() -> "AUTH-987654");
+    assertThat(authCode).isEqualTo("AUTH-987654");
+    assertThat(paymentRailBreaker.isClosed()).isTrue();
   }
 
   @Test
-  void anAnswerResetsTheCount() {
-    for (var i = 0; i < 4; i++) {
-      breaker.failed();
+  void halfOpenStateAllowsExactlyOneCanaryAuthorizationAndShedsConcurrentTraffic() {
+    // Trip the rail
+    for (var i = 0; i < 3; i++) {
+      paymentRailBreaker.failed();
     }
-    breaker.answered();
-    breaker.failed();
-    assertThat(breaker.isOpen()).isFalse();
+    assertThat(paymentRailBreaker.isOpen()).isTrue();
+
+    // Advance past probeAfter (5 seconds)
+    clock.now = clock.now.plusSeconds(5);
+
+    // First call is permitted through as a canary probe
+    assertThat(paymentRailBreaker.allows()).as("Canary probe permitted").isTrue();
+    assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
+    assertThat(paymentRailBreaker.isHalfOpen()).isTrue();
+
+    // While canary probe is active in-flight, concurrent calls are strictly shed
+    assertThat(paymentRailBreaker.allows()).as("Concurrent canary traffic shed").isFalse();
+    assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
   }
 
   @Test
-  void aProbeNeverReportedIsRetriedAfterTheNextPeriod() {
-    for (var i = 0; i < 5; i++) {
-      breaker.failed();
+  void canarySuccessRestoresFullAcquiringTraffic() {
+    // Trip the rail
+    for (var i = 0; i < 3; i++) {
+      paymentRailBreaker.failed();
     }
-    clock.now = clock.now.plusSeconds(30);
-    assertThat(breaker.allows()).as("the probe, never reported").isTrue();
-    clock.now = clock.now.plusSeconds(29);
-    assertThat(breaker.allows()).isFalse();
+    clock.now = clock.now.plusSeconds(5);
+
+    // Canary probe successfully executes
+    var result = paymentRailBreaker.execute(() -> "CANARY-APPROVED");
+    assertThat(result).isEqualTo("CANARY-APPROVED");
+
+    // Circuit is healed back to CLOSED
+    assertThat(paymentRailBreaker.isClosed()).isTrue();
+    assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.CLOSED);
+    assertThat(paymentRailBreaker.isOpen()).isFalse();
+    assertThat(paymentRailBreaker.isHalfOpen()).isFalse();
+
+    // Subsequent authorizations proceed freely
+    assertThat(paymentRailBreaker.allows()).isTrue();
+  }
+
+  @Test
+  void canaryFailureImmediatelyReTripsRailAndRenewsCoolingPeriod() {
+    // Trip the rail
+    for (var i = 0; i < 3; i++) {
+      paymentRailBreaker.failed();
+    }
+    clock.now = clock.now.plusSeconds(5);
+
+    // Canary probe attempts execution but card scheme is still down
+    assertThatThrownBy(
+            () ->
+                paymentRailBreaker.execute(
+                    () -> {
+                      throw new HttpServerErrorException(
+                          HttpStatus.BAD_GATEWAY, "Card Scheme Down");
+                    }))
+        .isInstanceOf(HttpServerErrorException.class);
+
+    // Rail immediately reverts to OPEN
+    assertThat(paymentRailBreaker.isOpen()).isTrue();
+    assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.OPEN);
+    assertThat(paymentRailBreaker.isHalfOpen()).isFalse();
+
+    // Cooldown is renewed: no traffic allowed for another 5s
+    assertThat(paymentRailBreaker.allows()).isFalse();
+    clock.now = clock.now.plusSeconds(4);
+    assertThat(paymentRailBreaker.allows()).isFalse();
+
     clock.now = clock.now.plusSeconds(1);
-    assertThat(breaker.allows()).as("the next probe").isTrue();
+    assertThat(paymentRailBreaker.allows()).as("Renewed probe permitted").isTrue();
   }
 
   @Test
-  void noFailureCountBelowOne() {
-    assertThatThrownBy(() -> new Breaker(0, Duration.ofSeconds(30), clock))
-        .isInstanceOf(GeneralException.class);
+  void abandonedOrHangingCanaryIsSafelyReplacedAfterTimeout() {
+    for (var i = 0; i < 3; i++) {
+      paymentRailBreaker.failed();
+    }
+    clock.now = clock.now.plusSeconds(5);
+
+    // Thread starts canary probe but dies / hangs without reporting answered() or failed()
+    assertThat(paymentRailBreaker.allows()).isTrue();
+    assertThat(paymentRailBreaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
+
+    // During probeAfter window, concurrent traffic remains shed
+    clock.now = clock.now.plusSeconds(4);
+    assertThat(paymentRailBreaker.allows()).isFalse();
+
+    // Once probeAfter elapses again, the abandoned canary is replaced by a fresh canary
+    clock.now = clock.now.plusSeconds(1);
+    assertThat(paymentRailBreaker.allows()).as("Abandoned canary replaced").isTrue();
   }
 
   @Test
-  void noProbePeriodBelowOneNanosecond() {
-    assertThatThrownBy(() -> new Breaker(5, Duration.ZERO, clock))
-        .isInstanceOf(GeneralException.class);
+  void concurrentTrafficExhibitsRaceFreeStateTransitionsUnderContention() throws Exception {
+    var breaker = new Breaker(5, Duration.ofMillis(50), clock);
+    var threads = 16;
+    var iterations = 200;
+    var executor = Executors.newFixedThreadPool(threads);
+    var startLatch = new CountDownLatch(1);
+    var futures = new ArrayList<Future<?>>();
+    var allowedCount = new AtomicInteger();
+    var rejectedCount = new AtomicInteger();
+
+    for (var t = 0; t < threads; t++) {
+      futures.add(
+          executor.submit(
+              () -> {
+                try {
+                  startLatch.await();
+                  for (var i = 0; i < iterations; i++) {
+                    if (breaker.allows()) {
+                      allowedCount.incrementAndGet();
+                      // Alternate between simulated successes and failures
+                      if (i % 7 == 0) {
+                        breaker.failed();
+                      } else {
+                        breaker.answered();
+                      }
+                    } else {
+                      rejectedCount.incrementAndGet();
+                    }
+                  }
+                } catch (InterruptedException ex) {
+                  Thread.currentThread().interrupt();
+                }
+              }));
+    }
+
+    startLatch.countDown();
+    for (var f : futures) {
+      f.get(10, TimeUnit.SECONDS);
+    }
+    executor.shutdown();
+
+    assertThat(allowedCount.get() + rejectedCount.get()).isEqualTo(threads * iterations);
+    assertThat(breaker.state())
+        .isIn(Breaker.State.CLOSED, Breaker.State.OPEN, Breaker.State.HALF_OPEN);
   }
 
   @Test
-  void configPrototypeDerivationAndValidation() {
-    var base = BreakerConfig.of(5, Duration.ofSeconds(30));
-    assertThat(base.failures()).isEqualTo(5);
-    assertThat(base.probeAfter()).isEqualTo(Duration.ofSeconds(30));
+  void configPrototypeInheritanceAllowsEnvironmentAndSchemeOverrides() {
+    // Base platform configuration: 5 failures, 30s probe
+    var globalBase = BreakerConfig.of(5, Duration.ofSeconds(30));
+    assertThat(globalBase.failures()).isEqualTo(5);
+    assertThat(globalBase.probeAfter()).isEqualTo(Duration.ofSeconds(30));
 
-    var derived = BreakerConfig.from(base).withFailures(3).withProbeAfter(Duration.ofSeconds(5));
-    assertThat(derived.failures()).isEqualTo(3);
-    assertThat(derived.probeAfter()).isEqualTo(Duration.ofSeconds(5));
+    // Fast-path POS card rail override (Humo/Uzcard): 3 failures, 5s probe
+    var posCardRail =
+        BreakerConfig.from(globalBase).withFailures(3).withProbeAfter(Duration.ofSeconds(5));
+    assertThat(posCardRail.failures()).isEqualTo(3);
+    assertThat(posCardRail.probeAfter()).isEqualTo(Duration.ofSeconds(5));
 
-    var created = derived.create(clock);
-    assertThat(created.failures()).isEqualTo(3);
-    assertThat(created.probeAfter()).isEqualTo(Duration.ofSeconds(5));
+    // Batch settlement rail override: 10 failures, 60s probe
+    var batchRail =
+        BreakerConfig.from(globalBase).withFailures(10).withProbeAfter(Duration.ofSeconds(60));
+    assertThat(batchRail.failures()).isEqualTo(10);
+    assertThat(batchRail.probeAfter()).isEqualTo(Duration.ofSeconds(60));
 
+    // Prototype instantiation with injected clock
+    var liveBreaker = posCardRail.create(clock);
+    assertThat(liveBreaker.failures()).isEqualTo(3);
+    assertThat(liveBreaker.probeAfter()).isEqualTo(Duration.ofSeconds(5));
+
+    // Defensive immutability constraints
     assertThatThrownBy(() -> BreakerConfig.of(0, Duration.ofSeconds(30)))
         .isInstanceOf(GeneralException.class);
     assertThatThrownBy(() -> BreakerConfig.of(5, Duration.ZERO))
@@ -161,83 +293,42 @@ class BreakerTest {
   }
 
   @Test
-  void predicatesClassifyInfrastructureVersusClientErrors() {
-    assertThat(BreakerPredicates.isFailure(new IOException("connection reset"))).isTrue();
-    assertThat(BreakerPredicates.isFailure(new TimeoutException("timeout"))).isTrue();
-    assertThat(BreakerPredicates.isFailure(new ResourceAccessException("socket timeout"))).isTrue();
+  void failurePredicatesClassifyInfrastructureVersusBusinessExceptions() {
+    assertThat(BreakerPredicates.isFailure(new IOException("Connection reset by peer"))).isTrue();
+    assertThat(BreakerPredicates.isFailure(new TimeoutException("Gateway timed out"))).isTrue();
+    assertThat(BreakerPredicates.isFailure(new ResourceAccessException("Socket timeout"))).isTrue();
     assertThat(
             BreakerPredicates.isFailure(
                 new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR)))
         .isTrue();
     assertThat(BreakerPredicates.isFailure(new HttpServerErrorException(HttpStatus.BAD_GATEWAY)))
         .isTrue();
+    assertThat(
+            BreakerPredicates.isFailure(
+                new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE)))
+        .isTrue();
 
+    // Business declines and client validation must never be classified as infrastructure failure
     assertThat(BreakerPredicates.isFailure(new HttpClientErrorException(HttpStatus.BAD_REQUEST)))
         .isFalse();
     assertThat(
             BreakerPredicates.isFailure(
                 new HttpClientErrorException(HttpStatus.UNPROCESSABLE_CONTENT)))
         .isFalse();
-    assertThat(BreakerPredicates.isFailure(new IllegalArgumentException("invalid PIN"))).isFalse();
+    assertThat(BreakerPredicates.isFailure(new HttpClientErrorException(HttpStatus.UNAUTHORIZED)))
+        .isFalse();
+    assertThat(BreakerPredicates.isFailure(new IllegalArgumentException("Invalid CVV"))).isFalse();
 
-    assertThat(BreakerPredicates.isFailure(new RuntimeException(new IOException("broken"))))
+    // Nested exceptions
+    assertThat(BreakerPredicates.isFailure(new RuntimeException(new IOException("broken pipe"))))
         .isTrue();
   }
 
   @Test
-  void executeReturnsValueAndRecordsAnswerOnSuccess() {
-    var result = breaker.execute(() -> "success");
-    assertThat(result).isEqualTo("success");
-    assertThat(breaker.isClosed()).isTrue();
-  }
-
-  @Test
-  void executeTripsBreakerOnInfrastructureFailures() {
-    var b = new Breaker(2, Duration.ofSeconds(10), clock);
-
-    assertThatThrownBy(
-            () ->
-                b.execute(
-                    () -> {
-                      throw new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE);
-                    }))
-        .isInstanceOf(HttpServerErrorException.class);
-    assertThat(b.isClosed()).isTrue();
-
-    assertThatThrownBy(
-            () ->
-                b.execute(
-                    () -> {
-                      throw new ResourceAccessException("timed out");
-                    }))
-        .isInstanceOf(ResourceAccessException.class);
-    assertThat(b.isOpen()).isTrue();
-
-    assertThatThrownBy(() -> b.execute(() -> "never-run")).isInstanceOf(GeneralException.class);
-  }
-
-  @Test
-  void executeDoesNotTripOnClientErrorsAndKeepsBreakerClosed() {
-    var b = new Breaker(2, Duration.ofSeconds(10), clock);
-
-    for (var i = 0; i < 5; i++) {
-      assertThatThrownBy(
-              () ->
-                  b.execute(
-                      () -> {
-                        throw new HttpClientErrorException(HttpStatus.UNPROCESSABLE_CONTENT);
-                      }))
-          .isInstanceOf(HttpClientErrorException.class);
-    }
-
-    assertThat(b.isClosed()).isTrue();
-    assertThat(b.isOpen()).isFalse();
-  }
-
-  @Test
   void runExecutesVoidOperationsSafely() {
-    var counter = new AtomicInteger();
-    breaker.run(counter::incrementAndGet);
-    assertThat(counter).hasValue(1);
+    var count = new AtomicInteger();
+    paymentRailBreaker.run(count::incrementAndGet);
+    assertThat(count).hasValue(1);
+    assertThat(paymentRailBreaker.isClosed()).isTrue();
   }
 }

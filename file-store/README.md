@@ -12,7 +12,17 @@ implementation libs.platform.file.store
 
 ```java
 var stored = files.store("partner-documents", multipartFile);
+
+// In-memory read for small files
 var content = files.read("partner-documents", stored.id());
+
+// Constant-memory streaming pipelines for large documents & PDF exports
+try (var streaming = files.openStream("partner-documents", stored.id())) {
+    streaming.transferTo(httpResponseOutputStream);
+}
+// or directly:
+files.transferTo("partner-documents", stored.id(), httpResponseOutputStream);
+
 files.delete("partner-documents", stored.id());
 ```
 

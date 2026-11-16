@@ -26,6 +26,10 @@ public final class Breaker {
   private @Nullable Instant openedAt;
   private boolean probing;
 
+  public Breaker(int failures, Duration probeAfter) {
+    this(failures, probeAfter, Clock.systemUTC(), BreakerPredicates.defaultPredicate());
+  }
+
   public Breaker(int failures, Duration probeAfter, Clock clock) {
     this(failures, probeAfter, clock, BreakerPredicates.defaultPredicate());
   }
@@ -42,12 +46,12 @@ public final class Breaker {
     }
     this.failures = failures;
     this.probeAfter = probeAfter;
-    this.clock = clock;
+    this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.failurePredicate =
         Objects.requireNonNull(failurePredicate, "failurePredicate must not be null");
   }
 
-  public synchronized boolean allows() {
+  public synchronized boolean tryAcquire() {
     if (openedAt == null) {
       return true;
     }
@@ -59,17 +63,25 @@ public final class Breaker {
     return false;
   }
 
-  public synchronized void answered() {
+  public synchronized void recordSuccess() {
     failuresInARow = 0;
     openedAt = null;
     probing = false;
   }
 
-  public synchronized void failed() {
+  public synchronized void recordFailure() {
     failuresInARow++;
     if (probing || failuresInARow >= failures) {
       openedAt = clock.instant();
       probing = false;
+    }
+  }
+
+  public void recordFailure(Throwable throwable) {
+    if (failurePredicate.test(throwable)) {
+      recordFailure();
+    } else {
+      recordSuccess();
     }
   }
 
@@ -78,7 +90,7 @@ public final class Breaker {
   }
 
   public <T> T execute(Supplier<T> action, Predicate<Throwable> isFailure) {
-    if (!allows()) {
+    if (!tryAcquire()) {
       Duration retry = remainingProbeDelay();
       if (retry.isZero()) {
         retry = probeAfter;
@@ -92,13 +104,13 @@ public final class Breaker {
       result = action.get();
     } catch (RuntimeException | Error ex) {
       if (isFailure.test(ex)) {
-        failed();
+        recordFailure();
       } else {
-        answered();
+        recordSuccess();
       }
       throw ex;
     }
-    answered();
+    recordSuccess();
     return result;
   }
 
@@ -126,7 +138,7 @@ public final class Breaker {
   }
 
   public synchronized boolean isOpen() {
-    return openedAt != null;
+    return state() == State.OPEN;
   }
 
   public synchronized boolean isClosed() {

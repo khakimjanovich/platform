@@ -47,6 +47,10 @@ public record BreakerConfig(
     return new BreakerConfig(this.failures, this.probeAfter, failurePredicate);
   }
 
+  public Breaker create() {
+    return create(Clock.systemUTC());
+  }
+
   public Breaker create(Clock clock) {
     return new Breaker(failures, probeAfter, clock, failurePredicate);
   }

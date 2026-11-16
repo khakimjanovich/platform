@@ -35,7 +35,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @SpringBootTest(
     classes = ObservabilityIT.App.class,
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "spring.application.name=observability-it")
+    properties = {
+      "spring.application.name=observability-it",
+      "platform.logging.masking.fields=card,access_token"
+    })
 @Testcontainers
 class ObservabilityIT {
 
@@ -117,8 +120,8 @@ class ObservabilityIT {
               var lines =
                   loki("{service_name=\"observability-it\"} | trace_id=\"" + requestId + "\"");
               assertThat(lines)
-                  .contains("paid with card 860030******7890")
-                  .contains("/cards?access_token=…1234")
+                  .contains("paid with card 860030......7890")
+                  .contains("/cards?access_token=eyJhbG.....................1234")
                   .contains("IllegalStateException")
                   .doesNotContain(PAN, TOKEN);
             });

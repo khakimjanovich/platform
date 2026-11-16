@@ -15,6 +15,7 @@ import jakarta.validation.Validation;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
+import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +38,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uz.khakimjanovich.platform.masking.Masking;
+import uz.khakimjanovich.platform.masking.MaskingRules;
 
 @ExtendWith(OutputCaptureExtension.class)
 class ProblemDetailsAdviceTest {
@@ -241,8 +244,10 @@ class ProblemDetailsAdviceTest {
 
   @Test
   void theWholeLineIsMasked(CapturedOutput output) throws Exception {
-    mvc.perform(get("/bins/8600301234567890")).andExpect(status().isBadRequest());
-    assertThat(output).contains("GET /bins/860030******7890").doesNotContain("8600301234567890");
+    mvc(new Masking(MaskingRules.of(List.of("bins"))))
+        .perform(get("/bins/8600301234567890"))
+        .andExpect(status().isBadRequest());
+    assertThat(output).contains("GET /bins/860030......7890").doesNotContain("8600301234567890");
   }
 
   @Test
@@ -260,6 +265,10 @@ class ProblemDetailsAdviceTest {
   }
 
   private static MockMvc mvc() {
+    return mvc(Masking.defaults());
+  }
+
+  private static MockMvc mvc(Masking masking) {
     var validator = new LocalValidatorFactoryBean();
     validator.afterPropertiesSet();
     var messages = new org.springframework.context.support.ResourceBundleMessageSource();
@@ -267,7 +276,7 @@ class ProblemDetailsAdviceTest {
     messages.setDefaultEncoding("UTF-8");
     messages.setFallbackToSystemLocale(false);
     messages.setAlwaysUseMessageFormat(true);
-    var advice = new ProblemDetailsAdvice(definitions());
+    var advice = new ProblemDetailsAdvice(definitions(), masking);
     advice.setMessageSource(messages);
     return MockMvcBuilders.standaloneSetup(new Endpoints())
         .setControllerAdvice(new AccessDeniedAdvice(advice), advice)

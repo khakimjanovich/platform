@@ -1,5 +1,6 @@
 package uz.khakimjanovich.platform.error;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import uz.khakimjanovich.platform.masking.Masking;
 
 @AutoConfiguration(beforeName = ErrorConstants.BOOT_WEB_MVC)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -19,8 +21,9 @@ public class ErrorAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ResponseEntityExceptionHandler.class)
-  ProblemDetailsAdvice problemDetailsAdvice(ErrorStarterProperties errors) {
-    return new ProblemDetailsAdvice(errors);
+  ProblemDetailsAdvice problemDetailsAdvice(
+      ErrorStarterProperties errors, ObjectProvider<Masking> masking) {
+    return new ProblemDetailsAdvice(errors, masking.getIfAvailable(Masking::defaults));
   }
 
   @Configuration(proxyBeanMethods = false)

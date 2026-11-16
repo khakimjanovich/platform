@@ -1,15 +1,6 @@
 # Logs, traces and metrics, the same in every service with this library (listed in its
 # LibraryDefaults.imports, loaded below the service's own configuration).
 # Structured JSON logs in the ECS format.
-platform:
-  logging:
-    masking:
-      enabled: true
-      card-pan: true
-      cvv: true
-      bearer-token: true
-      phone-number: true
-      pinfl: true
 logging:
   # Hibernate Validator warns (HV000271) about @Valid on lists in the code generated from the
   # contracts; the validation itself works, so only that warning is silenced.
@@ -24,7 +15,7 @@ logging:
       rename:
         traceId: trace.id
         spanId: span.id
-      # Every message masked (card numbers, key=value secrets), as on the readable console and OTLP.
+      # Every message masked, as on the readable console and OTLP.
       customizer: uz.khakimjanovich.platform.observability.LogMasking$Json
 
 management:

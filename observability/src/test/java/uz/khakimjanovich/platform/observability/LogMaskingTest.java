@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,8 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Configuration;
+import uz.khakimjanovich.platform.masking.Masking;
+import uz.khakimjanovich.platform.masking.MaskingRules;
 
 @ExtendWith(OutputCaptureExtension.class)
 class LogMaskingTest {
@@ -33,46 +36,45 @@ class LogMaskingTest {
                 "OTLP_LOGS_ENDPOINT=http://otlp.not-started.invalid/v1/logs")
             .run(arguments)) {
       LoggerFactory.getLogger(LogMaskingTest.class)
-          .info("paid with 8600301234567890, client_secret=s3cr3t, EMBOS_NAME=AZIZ");
+          .info("paid with pan=8600301234567890, client_secret=s3cr3t, EMBOS_NAME=AZIZ");
       LoggerFactory.getLogger(LogMaskingTest.class)
           .error(
               "failed",
-              new IllegalStateException("card 4100301234567891 declined, client_secret=t0p"));
+              new IllegalStateException("card pan=4100301234567891 declined, client_secret=t0p"));
     }
   }
 
   @Test
-  void theReadableConsoleMasksTheMessage(CapturedOutput output) {
+  void unconfiguredLoggingMaskingLeavesLogsCompletelyUnmasked(CapturedOutput output) {
     logInAnApp();
+    assertThat(output).contains("pan=8600301234567890", "client_secret=s3cr3t", "EMBOS_NAME=AZIZ");
+  }
+
+  @Test
+  void configuredFieldsMaskWithFirst6DotsLast4AndShortDots(CapturedOutput output) {
+    logInAnApp("--platform.logging.masking.fields=pan,client_secret");
     assertThat(output)
-        .contains("paid with 860030******7890, client_secret=***")
+        .contains("pan=860030......7890", "client_secret=......", "EMBOS_NAME=AZIZ")
         .doesNotContain("8600301234567890", "s3cr3t");
   }
 
   @Test
-  void ecsJsonMasksTheMessage(CapturedOutput output) {
-    logInAnApp("--logging.structured.format.console=ecs");
+  void ecsJsonMasksConfiguredFields(CapturedOutput output) {
+    logInAnApp(
+        "--logging.structured.format.console=ecs",
+        "--platform.logging.masking.fields=pan,client_secret");
     assertThat(output)
-        .contains("\"message\":\"paid with 860030******7890, client_secret=***")
+        .contains("\"message\":\"paid with pan=860030......7890, client_secret=......")
         .doesNotContain("8600301234567890", "s3cr3t");
   }
 
   @Test
-  void theReadableConsoleMasksTheStackTrace(CapturedOutput output) {
-    logInAnApp();
+  void stackTraceMasksConfiguredFields(CapturedOutput output) {
+    logInAnApp("--platform.logging.masking.fields=pan,client_secret");
     assertThat(output)
-        .contains("card 410030******7891 declined, client_secret=***")
+        .contains("card pan=410030......7891 declined, client_secret=...")
         .contains(
             "IllegalStateException", "at uz.khakimjanovich.platform.observability.LogMaskingTest")
-        .doesNotContain("4100301234567891", "t0p");
-  }
-
-  @Test
-  void ecsJsonMasksTheStackTrace(CapturedOutput output) {
-    logInAnApp("--logging.structured.format.console=ecs");
-    assertThat(output)
-        .contains("card 410030******7891 declined, client_secret=***")
-        .contains("IllegalStateException", "LogMaskingTest")
         .doesNotContain("4100301234567891", "t0p");
   }
 
@@ -81,35 +83,16 @@ class LogMaskingTest {
     var event = new LoggingEvent();
     event.setMessage("failed");
     event.setThrowableProxy(
-        new ThrowableProxy(new IllegalStateException("card 4100301234567891, client_secret=t0p")));
+        new ThrowableProxy(
+            new IllegalStateException("card pan=4100301234567891, client_secret=t0p")));
+    LogMasking.install(
+        (ch.qos.logback.classic.LoggerContext) LoggerFactory.getILoggerFactory(),
+        new Masking(MaskingRules.of(List.of("pan", "client_secret"))));
+
     var masked = LogMasking.masked(event);
     assertThat(masked.getThrowableProxy()).isNull();
     assertThat(masked.getFormattedMessage())
-        .contains("failed", "IllegalStateException", "410030******7891", "client_secret=***")
+        .contains("failed", "IllegalStateException", "pan=410030......7891", "client_secret=...")
         .doesNotContain("4100301234567891", "t0p");
-  }
-
-  @Test
-  void aServiceAddsItsOwnNames(CapturedOutput output) {
-    logInAnApp("--platform.observability.masking.additional-secret-fields=EMBOS_NAME");
-    assertThat(output).contains("EMBOS_NAME=***").doesNotContain("AZIZ");
-  }
-
-  @Test
-  void loggingMaskingPropertiesAddCustomSecretFields(CapturedOutput output) {
-    logInAnApp("--platform.logging.masking.additional-secret-fields=EMBOS_NAME");
-    assertThat(output).contains("EMBOS_NAME=***").doesNotContain("AZIZ");
-  }
-
-  @Test
-  void loggingMaskingCanBeDisabled(CapturedOutput output) {
-    logInAnApp("--platform.logging.masking.enabled=false");
-    assertThat(output).contains("8600301234567890", "client_secret=s3cr3t", "AZIZ");
-  }
-
-  @Test
-  void cardPanMaskingCanBeDisabledIndependently(CapturedOutput output) {
-    logInAnApp("--platform.logging.masking.card-pan=false");
-    assertThat(output).contains("8600301234567890", "client_secret=***").doesNotContain("s3cr3t");
   }
 }

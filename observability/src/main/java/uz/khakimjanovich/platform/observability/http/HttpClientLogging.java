@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.http;
 
 import static uz.khakimjanovich.platform.observability.ObservabilityConstants.MAX_LOGGED_BYTES;
 import static uz.khakimjanovich.platform.observability.ObservabilityConstants.NOT_LOGGED;
@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
+import java.util.List;
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -26,18 +27,30 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
   private static final Logger log = LoggerFactory.getLogger(HttpClientLogging.class);
 
   private final Masking masking;
+  private final HttpLoggingProperties properties;
 
   public HttpClientLogging(Masking masking) {
+    this(
+        masking,
+        new HttpLoggingProperties(false, MAX_LOGGED_BYTES, List.of(), List.of(), List.of()));
+  }
+
+  public HttpClientLogging(Masking masking, HttpLoggingProperties properties) {
     this.masking = masking;
+    this.properties = properties;
   }
 
   @Override
   public ClientHttpResponse intercept(
       HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
     var call = request.getMethod() + " " + masking.uri(request.getURI());
+    var headersString = formatHeaders(request.getHeaders());
+    var callWithHeaders = headersString.isEmpty() ? call : call + " " + headersString;
     var bodies = !request.getAttributes().containsKey(NO_BODIES);
     log.info(
-        "→ {} | {}", call, bodies ? masking.body(body, type(request.getHeaders())) : NOT_LOGGED);
+        "→ {} | {}",
+        callWithHeaders,
+        bodies ? masking.body(body, type(request.getHeaders())) : NOT_LOGGED);
     var started = System.nanoTime();
     ClientHttpResponse response;
     try {
@@ -73,6 +86,26 @@ public class HttpClientLogging implements ClientHttpRequestInterceptor {
     if (status.isError()) log.warn(line, status.value(), call, millis(started), logged);
     else log.info(line, status.value(), call, millis(started), logged);
     return answer;
+  }
+
+  private String formatHeaders(HttpHeaders headers) {
+    if (properties.includeHeaders() == null || properties.includeHeaders().isEmpty()) {
+      return "";
+    }
+    var joined = new StringBuilder();
+    for (var entry : headers.headerNames()) {
+      if (!properties.isHeaderIncluded(entry)) {
+        continue;
+      }
+      for (var value : headers.getOrEmpty(entry)) {
+        var maskedValue = masking.contains(entry) ? masking.maskValue(value) : value;
+        if (!joined.isEmpty()) {
+          joined.append(", ");
+        }
+        joined.append(entry).append(": ").append(maskedValue);
+      }
+    }
+    return joined.isEmpty() ? "" : "[" + joined + "]";
   }
 
   private static boolean loggable(@Nullable MediaType type) {

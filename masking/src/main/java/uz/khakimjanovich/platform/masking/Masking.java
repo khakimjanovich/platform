@@ -41,6 +41,10 @@ public final class Masking {
     return !rules.isEmpty();
   }
 
+  public boolean contains(String fieldName) {
+    return rules.contains(fieldName);
+  }
+
   public String maskValue(String value) {
     var trimmed = value.strip();
     if (trimmed.length() < 10) {

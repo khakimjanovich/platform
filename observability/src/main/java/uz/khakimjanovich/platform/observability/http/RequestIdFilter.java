@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.http;
 
 import static uz.khakimjanovich.platform.observability.ObservabilityConstants.REQUEST_ID_HEADER;
 
@@ -31,7 +31,9 @@ public class RequestIdFilter extends OncePerRequestFilter implements Ordered {
       throws ServletException, IOException {
     var current = tracer.getIfAvailable();
     var span = current == null ? null : current.currentSpan();
-    if (span != null) response.setHeader(REQUEST_ID_HEADER, span.context().traceId());
+    if (span != null) {
+      response.setHeader(REQUEST_ID_HEADER, span.context().traceId());
+    }
     chain.doFilter(request, response);
   }
 }

@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +16,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Configuration;
 import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
+import uz.khakimjanovich.platform.observability.ObservabilityAutoConfiguration;
 
 @ExtendWith(OutputCaptureExtension.class)
 class LogMaskingTest {
@@ -74,7 +75,8 @@ class LogMaskingTest {
     assertThat(output)
         .contains("card pan=410030......7891 declined, client_secret=...")
         .contains(
-            "IllegalStateException", "at uz.khakimjanovich.platform.observability.LogMaskingTest")
+            "IllegalStateException",
+            "at uz.khakimjanovich.platform.observability.logging.LogMaskingTest")
         .doesNotContain("4100301234567891", "t0p");
   }
 

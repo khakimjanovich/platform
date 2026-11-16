@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -14,6 +14,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
+import uz.khakimjanovich.platform.observability.ObservabilityConstants;
 
 @ExtendWith(OutputCaptureExtension.class)
 class HttpClientLoggingTest {
@@ -97,5 +98,33 @@ class HttpClientLoggingTest {
         .contains("→ POST /clients/c-1/client-secret | <not logged>")
         .contains("← 200 POST /clients/c-1/client-secret")
         .doesNotContain("abc", "xyz");
+  }
+
+  @Test
+  void outboundWhitelistedHeadersAreLoggedAndMasked(CapturedOutput output) {
+    var customBuilder = RestClient.builder();
+    var customLogging =
+        new HttpClientLogging(
+            new Masking(MaskingRules.of(List.of("authorization"))),
+            new HttpLoggingProperties(
+                true, 4000, List.of("content-type", "authorization"), List.of(), List.of()));
+    customBuilder.requestInterceptor(customLogging);
+    var customServer = MockRestServiceServer.bindTo(customBuilder).build();
+    var customClient = customBuilder.build();
+
+    customServer.expect(requestTo("/ping")).andRespond(withSuccess("pong", MediaType.TEXT_PLAIN));
+
+    customClient
+        .get()
+        .uri("/ping")
+        .header("Authorization", "Bearer eyJhbGciOiJSUzI1NiJ9.x.abcd1234")
+        .header("User-Agent", "curl/8.4")
+        .retrieve()
+        .body(String.class);
+
+    assertThat(output)
+        .contains("[Authorization: Bearer............................1234]")
+        .doesNotContain("abcd1234")
+        .doesNotContain("curl/8.4");
   }
 }

@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.logging;
 
 import static uz.khakimjanovich.platform.observability.ObservabilityConstants.JSON_TEXT;
 import static uz.khakimjanovich.platform.observability.ObservabilityConstants.MESSAGE_WORDS;
@@ -30,7 +30,7 @@ public final class LogMasking {
     return masking;
   }
 
-  static void install(LoggerContext context, Masking rules) {
+  public static void install(LoggerContext context, Masking rules) {
     masking = rules;
     for (var appenders = context.getLogger(Logger.ROOT_LOGGER_NAME).iteratorForAppenders();
         appenders.hasNext(); ) {

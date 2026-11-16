@@ -13,6 +13,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.registry.HealthContributorRegistry;
@@ -21,25 +22,51 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
+import uz.khakimjanovich.platform.observability.health.HealthMetrics;
+import uz.khakimjanovich.platform.observability.http.HttpClientLogging;
+import uz.khakimjanovich.platform.observability.http.HttpLoggingProperties;
+import uz.khakimjanovich.platform.observability.http.HttpServerLoggingFilter;
+import uz.khakimjanovich.platform.observability.http.RequestIdFilter;
+import uz.khakimjanovich.platform.observability.logging.LogMasking;
+import uz.khakimjanovich.platform.observability.logging.LoggingMaskingProperties;
+import uz.khakimjanovich.platform.observability.logging.MaskingOpenTelemetryAppender;
 
 @AutoConfiguration
-@EnableConfigurationProperties({ObservabilityProperties.class, LoggingMaskingProperties.class})
+@EnableConfigurationProperties({
+  ObservabilityProperties.class,
+  LoggingMaskingProperties.class,
+  HttpLoggingProperties.class
+})
 public class ObservabilityAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
   Masking logMasking(
       LoggingMaskingProperties loggingProperties, ObservabilityProperties observabilityProperties) {
-    var allFields = new ArrayList<>(loggingProperties.fields());
+    var allFields = new ArrayList<String>();
+    if (loggingProperties.fields() != null) {
+      allFields.addAll(loggingProperties.fields());
+    }
     var legacy = observabilityProperties.masking();
-    allFields.addAll(legacy.additionalSecretFields());
-    allFields.addAll(legacy.additionalTokenFields());
-    allFields.addAll(legacy.additionalCardFields());
+    if (legacy != null) {
+      if (legacy.additionalSecretFields() != null) {
+        allFields.addAll(legacy.additionalSecretFields());
+      }
+      if (legacy.additionalTokenFields() != null) {
+        allFields.addAll(legacy.additionalTokenFields());
+      }
+      if (legacy.additionalCardFields() != null) {
+        allFields.addAll(legacy.additionalCardFields());
+      }
+    }
 
     if (allFields.isEmpty()) {
       return Masking.empty();
     }
-    return new Masking(MaskingRules.of(loggingProperties.maskChar(), allFields));
+    var maskChar = loggingProperties.maskChar();
+    return maskChar == null
+        ? new Masking(MaskingRules.of(allFields))
+        : new Masking(MaskingRules.of(maskChar, allFields));
   }
 
   @Bean
@@ -61,13 +88,30 @@ public class ObservabilityAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  HttpClientLogging httpClientLogging(Masking logMasking) {
-    return new HttpClientLogging(logMasking);
+  HttpClientLogging httpClientLogging(
+      Masking logMasking, ObjectProvider<HttpLoggingProperties> httpLoggingProperties) {
+    var props = httpLoggingProperties.getIfAvailable();
+    return props == null
+        ? new HttpClientLogging(logMasking)
+        : new HttpClientLogging(logMasking, props);
   }
 
   @Bean
   RestClientCustomizer httpClientLoggingCustomizer(HttpClientLogging httpClientLogging) {
     return builder -> builder.requestInterceptor(httpClientLogging);
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+  static class WebLogging {
+
+    @Bean
+    @ConditionalOnProperty(name = "platform.logging.http.enabled", havingValue = "true")
+    @ConditionalOnMissingBean
+    HttpServerLoggingFilter httpServerLoggingFilter(
+        Masking logMasking, HttpLoggingProperties httpLoggingProperties) {
+      return new HttpServerLoggingFilter(logMasking, httpLoggingProperties);
+    }
   }
 
   @Configuration(proxyBeanMethods = false)

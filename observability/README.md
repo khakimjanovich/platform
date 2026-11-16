@@ -18,7 +18,18 @@ configuration (OTLP endpoints from `OTLP_TRACES_ENDPOINT`, `OTLP_LOGS_ENDPOINT`,
 for requests and pool waits). Those four variables are required, with no default: a service
 without them doesn't start (config, "Required settings").
 
+## Package Architecture
+
+The module is structured into cohesive, domain-specific packages:
+
+- `uz.khakimjanovich.platform.observability.http`: Inbound and outbound HTTP wire loggers (`HttpServerLoggingFilter`, `HttpClientLogging`), trace id propagation (`RequestIdFilter`), and HTTP properties (`HttpLoggingProperties`).
+- `uz.khakimjanovich.platform.observability.logging`: Logback pattern converters (`LogMasking`), OpenTelemetry OTLP bridge (`MaskingOpenTelemetryAppender`), and masking properties (`LoggingMaskingProperties`).
+- `uz.khakimjanovich.platform.observability.health`: Actuator health metric gauges (`HealthMetrics`).
+- `uz.khakimjanovich.platform.observability`: Autoconfiguration entry point and shared constants.
+
 ## Properties
+
+All configuration properties follow **fail-fast semantics** with zero hardcoded defaults.
 
 ### Logging & Masking (`platform.logging.masking`)
 
@@ -30,7 +41,7 @@ Configured via `application.yaml`:
 platform:
   logging:
     masking:
-      mask-char: "."            # masking character (default: .)
+      mask-char: "."            # masking character
       fields:                   # sensitive field names to mask (empty by default)
         - pan
         - card
@@ -39,15 +50,43 @@ platform:
         - access_token
 ```
 
+### HTTP Wire Logging (`platform.logging.http`)
+
+Controls wire-level logging for inbound servlet requests and outbound client calls. When enabled, incoming and outgoing HTTP exchanges are captured, headers filtered/masked, and payloads sanitized:
+
+```yaml
+platform:
+  logging:
+    http:
+      enabled: true             # master switch for HTTP wire logging
+      max-body-bytes: 4000      # maximum payload bytes to log before capping
+      include-headers:          # whitelisted header names to log (case-insensitive)
+        - content-type
+        - x-request-id
+        - authorization
+      exclude-paths:            # ant-style paths completely silenced (no log noise)
+        - /actuator/**
+        - /swagger-ui/**
+        - /v3/api-docs/**
+        - /favicon.ico
+      no-body-paths:            # ant-style paths where payloads are logged as <not logged>
+        - /v1/hsm/**
+        - /v1/crypto/**
+```
+
 #### Configuring via HashiCorp Vault / Environment Variables for Ops
 
-Ops teams can configure or update sensitive field lists dynamically without code changes using HashiCorp Vault KV or environment variables:
+Ops teams can configure or update sensitive field lists and HTTP wire logging dynamically without code changes using HashiCorp Vault KV or environment variables:
 
 **HashiCorp Vault KV**:
 ```json
 {
   "platform.logging.masking.fields": "pan,card,cvv,secret,access_token",
-  "platform.logging.masking.mask-char": "."
+  "platform.logging.masking.mask-char": ".",
+  "platform.logging.http.enabled": "true",
+  "platform.logging.http.max-body-bytes": "4000",
+  "platform.logging.http.include-headers": "content-type,x-request-id,authorization",
+  "platform.logging.http.exclude-paths": "/actuator/**,/swagger-ui/**"
 }
 ```
 
@@ -55,12 +94,21 @@ Ops teams can configure or update sensitive field lists dynamically without code
 ```bash
 PLATFORM_LOGGING_MASKING_FIELDS=pan,card,cvv,secret,access_token
 PLATFORM_LOGGING_MASKING_MASK_CHAR=.
+PLATFORM_LOGGING_HTTP_ENABLED=true
+PLATFORM_LOGGING_HTTP_MAX_BODY_BYTES=4000
+PLATFORM_LOGGING_HTTP_INCLUDE_HEADERS=content-type,x-request-id,authorization
+PLATFORM_LOGGING_HTTP_EXCLUDE_PATHS=/actuator/**,/swagger-ui/**
 ```
 
-| Property | Default | What |
-|---|---|---|
-| `platform.logging.masking.mask-char` | `.` | Masking character used for obscured values |
-| `platform.logging.masking.fields` | `[]` | Explicit list of sensitive field names to mask across JSON, XML, forms, URIs, and text |
+| Property | What |
+|---|---|
+| `platform.logging.masking.mask-char` | Masking character used for obscured values |
+| `platform.logging.masking.fields` | Explicit list of sensitive field names to mask across JSON, XML, forms, URIs, and text |
+| `platform.logging.http.enabled` | Enables wire logging for inbound and outbound HTTP requests |
+| `platform.logging.http.max-body-bytes` | Caps logged body payloads, truncating with `<more than N bytes>` |
+| `platform.logging.http.include-headers` | Whitelist of HTTP headers to log; headers matching masking fields are dot-masked |
+| `platform.logging.http.exclude-paths` | URL path patterns completely excluded from HTTP wire logging |
+| `platform.logging.http.no-body-paths` | URL path patterns where bodies are replaced with `<not logged>` |
 
 ## Client calls
 

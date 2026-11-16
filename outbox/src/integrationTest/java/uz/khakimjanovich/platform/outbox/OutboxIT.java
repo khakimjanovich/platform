@@ -9,6 +9,7 @@ import io.micrometer.tracing.propagation.Propagator;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -152,6 +153,21 @@ class OutboxIT {
     var down = outbox("localhost:" + closed, 2);
     down.append(event("k3", "waiting"));
     assertThatThrownBy(down::relay).isInstanceOf(RuntimeException.class);
+    assertThat(unpublished()).isOne();
+  }
+
+  @Test
+  void purgingPublishedEventsRemovesOnlyStalePublishedRows() {
+    outbox.append(event("k5", "p1"));
+    outbox.append(event("k6", "p2"));
+    outbox.relay();
+
+    outbox.append(event("k7", "unpublished"));
+
+    assertThat(outbox.purgePublishedBefore(Instant.now().minus(Duration.ofHours(1)))).isZero();
+    assertThat(unpublished()).isOne();
+
+    assertThat(outbox.purgePublishedBefore(Instant.now().plus(Duration.ofHours(1)))).isEqualTo(2);
     assertThat(unpublished()).isOne();
   }
 

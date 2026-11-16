@@ -35,6 +35,47 @@ class BreakerTest {
   final Breaker breaker = new Breaker(5, Duration.ofSeconds(30), clock);
 
   @Test
+  void stateTransitionsBetweenClosedOpenAndHalfOpen() {
+    assertThat(breaker.state()).isEqualTo(Breaker.State.CLOSED);
+    assertThat(breaker.isClosed()).isTrue();
+    assertThat(breaker.isOpen()).isFalse();
+    assertThat(breaker.isHalfOpen()).isFalse();
+
+    for (var i = 0; i < 4; i++) {
+      breaker.failed();
+      assertThat(breaker.state()).isEqualTo(Breaker.State.CLOSED);
+      assertThat(breaker.isClosed()).isTrue();
+    }
+
+    breaker.failed();
+    assertThat(breaker.state()).isEqualTo(Breaker.State.OPEN);
+    assertThat(breaker.isOpen()).isTrue();
+    assertThat(breaker.isClosed()).isFalse();
+    assertThat(breaker.isHalfOpen()).isFalse();
+
+    clock.now = clock.now.plusSeconds(30);
+    assertThat(breaker.allows()).as("canary probe permitted").isTrue();
+    assertThat(breaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
+    assertThat(breaker.isHalfOpen()).isTrue();
+    assertThat(breaker.isOpen()).isTrue();
+    assertThat(breaker.isClosed()).isFalse();
+
+    breaker.failed();
+    assertThat(breaker.state()).isEqualTo(Breaker.State.OPEN);
+    assertThat(breaker.isOpen()).isTrue();
+    assertThat(breaker.isHalfOpen()).isFalse();
+
+    clock.now = clock.now.plusSeconds(30);
+    assertThat(breaker.allows()).isTrue();
+    assertThat(breaker.state()).isEqualTo(Breaker.State.HALF_OPEN);
+    breaker.answered();
+    assertThat(breaker.state()).isEqualTo(Breaker.State.CLOSED);
+    assertThat(breaker.isClosed()).isTrue();
+    assertThat(breaker.isOpen()).isFalse();
+    assertThat(breaker.isHalfOpen()).isFalse();
+  }
+
+  @Test
   void fiveFailuresInARowOpenItAndOneProbeGoesAfter30s() {
     for (var i = 0; i < 4; i++) {
       breaker.failed();

@@ -9,6 +9,12 @@ import uz.khakimjanovich.platform.error.GeneralException;
 
 public final class Breaker {
 
+  public enum State {
+    CLOSED,
+    OPEN,
+    HALF_OPEN
+  }
+
   private final int failures;
   private final Duration probeAfter;
   private final Clock clock;
@@ -56,8 +62,26 @@ public final class Breaker {
     }
   }
 
+  public synchronized State state() {
+    if (openedAt == null) {
+      return State.CLOSED;
+    }
+    if (probing) {
+      return State.HALF_OPEN;
+    }
+    return State.OPEN;
+  }
+
   public synchronized boolean isOpen() {
     return openedAt != null;
+  }
+
+  public synchronized boolean isClosed() {
+    return state() == State.CLOSED;
+  }
+
+  public synchronized boolean isHalfOpen() {
+    return state() == State.HALF_OPEN;
   }
 
   public int failures() {

@@ -16,9 +16,14 @@ usually no answer in time, no connection or a 5xx is `failed()`, and any other a
 is `answered()`. Each instance keeps its own count
 in memory; it is not shared between replicas.
 
+The breaker reports its tri-state lifecycle (`Breaker.State`): `CLOSED` (healthy), `OPEN`
+(shedding load), and `HALF_OPEN` (probing single canary request). `breaker.state()` gives the
+state; `isClosed()`, `isOpen()`, and `isHalfOpen()` query it.
+
 ```java
 var breaker = new Breaker(5, Duration.ofSeconds(30), clock); // failures >= 1, probeAfter > 0
 Gauge.builder("<system>.breaker.open", breaker, b -> b.isOpen() ? 1 : 0).register(registry);
+Gauge.builder("<system>.breaker.state", breaker, b -> b.state().ordinal()).register(registry);
 
 if (!breaker.allows()) {
   throw new GeneralException(SERVICE_UNAVAILABLE).subError("breaker", "open");

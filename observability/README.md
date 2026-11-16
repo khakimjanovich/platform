@@ -20,12 +20,42 @@ without them doesn't start (config, "Required settings").
 
 ## Properties
 
-| Property | What |
-|---|---|
-| `platform.observability.masking.additional-secret-fields` | field names hidden whole, beyond the defaults |
-| `platform.observability.masking.additional-token-fields` | field names cut to their last 4 characters |
-| `platform.observability.masking.additional-card-fields` | field names kept to their first 6 and last 4 digits |
-| `platform.observability.masking.additional-secrets-beside.<field>` | in JSON, `<field>` hidden only beside or under one of these names, e.g. `code: [pan, otp]` |
+### Logging & Masking (`platform.logging.masking`)
+
+Configured via `application.yaml`:
+
+```yaml
+platform:
+  logging:
+    masking:
+      enabled: true                 # master switch (default: true)
+      card-pan: true                # masks 13-19 digit card PANs: 400000******1234 (default: true)
+      cvv: true                     # masks CVV/CVC codes (default: true)
+      bearer-token: true            # masks Authorization / Bearer tokens (default: true)
+      phone-number: true            # masks customer phone numbers (default: true)
+      pinfl: true                   # masks PINFL/JShShIR numbers (default: true)
+      additional-secret-fields:     # extra field names hidden whole (***)
+        - embos_name
+      additional-token-fields:      # extra field names cut to their last 4 characters (…xxxx)
+        - client_token
+      additional-card-fields:       # extra field names masked as card numbers
+        - custom_pan
+      additional-secrets-beside:    # in JSON, field hidden only beside/under one of these names
+        code: [pan, otp]
+```
+
+| Property | Default | What |
+|---|---|---|
+| `platform.logging.masking.enabled` | `true` | master switch: when `false`, log masking is bypassed |
+| `platform.logging.masking.card-pan` | `true` | masks card PANs (6+*+4 digits) adhering to PCI-DSS 4.0 |
+| `platform.logging.masking.cvv` | `true` | masks CVV/CVC verification codes |
+| `platform.logging.masking.bearer-token` | `true` | masks Bearer and JWT authorization credentials |
+| `platform.logging.masking.phone-number` | `true` | masks customer phone numbers |
+| `platform.logging.masking.pinfl` | `true` | masks Uzbek personal identification numbers (PINFL/JShShIR) |
+| `platform.logging.masking.additional-secret-fields` | `[]` | field names hidden whole (`***`), beyond defaults |
+| `platform.logging.masking.additional-token-fields` | `[]` | field names cut to last 4 characters (`…xxxx`) |
+| `platform.logging.masking.additional-card-fields` | `[]` | field names kept to first 6 and last 4 digits |
+| `platform.logging.masking.additional-secrets-beside.<field>` | `{}` | in JSON, `<field>` hidden only beside one of these names |
 
 ## Client calls
 

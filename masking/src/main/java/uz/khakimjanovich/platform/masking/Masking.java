@@ -13,6 +13,8 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,18 +27,33 @@ import tools.jackson.databind.node.ObjectNode;
 public final class Masking {
 
   private final MaskingRules rules;
+  private final boolean enabled;
 
   public Masking(MaskingRules rules) {
+    this(rules, true);
+  }
+
+  public Masking(MaskingRules rules, boolean enabled) {
     this.rules = rules;
+    this.enabled = enabled;
   }
 
   public static Masking defaults() {
     return new Masking(MaskingRules.defaults());
   }
 
+  public static Masking disabled() {
+    return new Masking(new MaskingRules(false, Set.of(), Set.of(), Set.of(), Map.of()), false);
+  }
+
+  public boolean isEnabled() {
+    return enabled;
+  }
+
   public String body(byte @Nullable [] body, @Nullable String contentType) {
     if (body == null || body.length == 0) return "";
     var text = new String(body, StandardCharsets.UTF_8);
+    if (!enabled) return text;
     var subtype = subtype(contentType);
     String masked;
     if (subtype.contains("json")) masked = json(text);
@@ -44,21 +61,24 @@ public final class Masking {
     else if (subtype.equals("x-www-form-urlencoded")) masked = form(text);
     else
       return "<" + body.length + " bytes" + (contentType == null ? "" : ", " + contentType) + ">";
-    return cut(cards(masked));
+    return cut(rules.maskCards() ? cards(masked) : masked);
   }
 
   public @Nullable String text(@Nullable String text) {
-    if (text == null || text.isEmpty()) return text;
-    return cards(pairs(KEY_COLON, pairs(KEY_EQUALS, text)));
+    if (!enabled || text == null || text.isEmpty()) return text;
+    var result = pairs(KEY_COLON, pairs(KEY_EQUALS, text));
+    return rules.maskCards() ? cards(result) : result;
   }
 
   public String uri(URI uri) {
     var query = uri.getRawQuery();
     var whole = uri.toString();
-    if (query == null) return cards(whole);
+    if (!enabled) return whole;
+    if (query == null) return rules.maskCards() ? cards(whole) : whole;
     var at = whole.indexOf('?');
-    return cards(
-        whole.substring(0, at + 1) + form(query) + whole.substring(at + 1 + query.length()));
+    var result =
+        whole.substring(0, at + 1) + form(query) + whole.substring(at + 1 + query.length());
+    return rules.maskCards() ? cards(result) : result;
   }
 
   private String json(String text) {

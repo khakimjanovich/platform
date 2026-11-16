@@ -6,6 +6,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Tracer;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.stream.Stream;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,20 +25,54 @@ import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
 
 @AutoConfiguration
-@EnableConfigurationProperties(ObservabilityProperties.class)
+@EnableConfigurationProperties({ObservabilityProperties.class, LoggingMaskingProperties.class})
 public class ObservabilityAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  Masking logMasking(ObservabilityProperties properties) {
-    var extra = properties.masking();
-    return new Masking(
-        MaskingRules.defaults()
-            .with(
-                extra.additionalSecretFields(),
-                extra.additionalTokenFields(),
-                extra.additionalCardFields(),
-                extra.additionalSecretsBeside()));
+  Masking logMasking(
+      LoggingMaskingProperties loggingProperties, ObservabilityProperties observabilityProperties) {
+    if (!loggingProperties.enabled()) {
+      return Masking.disabled();
+    }
+    var rules = MaskingRules.defaults();
+    if (!loggingProperties.cardPan()) {
+      rules = rules.withoutCards();
+    }
+    if (!loggingProperties.cvv()) {
+      rules = rules.withoutCvv();
+    }
+    if (!loggingProperties.bearerToken()) {
+      rules = rules.withoutTokens();
+    }
+    if (!loggingProperties.phoneNumber()) {
+      rules = rules.withoutPhone();
+    }
+    if (!loggingProperties.pinfl()) {
+      rules = rules.withoutPinfl();
+    }
+
+    var legacy = observabilityProperties.masking();
+    var secretFields = new ArrayList<>(loggingProperties.additionalSecretFields());
+    secretFields.addAll(legacy.additionalSecretFields());
+
+    var tokenFields = new ArrayList<>(loggingProperties.additionalTokenFields());
+    tokenFields.addAll(legacy.additionalTokenFields());
+
+    var cardFields = new ArrayList<>(loggingProperties.additionalCardFields());
+    cardFields.addAll(legacy.additionalCardFields());
+
+    var secretsBeside = new HashMap<>(loggingProperties.additionalSecretsBeside());
+    legacy
+        .additionalSecretsBeside()
+        .forEach(
+            (key, context) ->
+                secretsBeside.merge(
+                    key,
+                    context,
+                    (c1, c2) -> Stream.concat(c1.stream(), c2.stream()).distinct().toList()));
+
+    return new Masking(rules.with(secretFields, tokenFields, cardFields, secretsBeside));
   }
 
   @Bean

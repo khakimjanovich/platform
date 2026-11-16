@@ -1,7 +1,7 @@
 # masking
 
 Used by observability (every log line, every client call) and error (its log line). The library
-knows only generic names; a service adds its own fields with `platform.observability.masking.*`,
+knows only generic names; a service configures its logging masking via `platform.logging.masking.*` in YAML,
 never by copying the lists, and no app's field name is written here.
 
 ```groovy

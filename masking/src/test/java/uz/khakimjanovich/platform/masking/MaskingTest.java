@@ -131,4 +131,46 @@ class MaskingTest {
         .as("nor a code beside a card number")
         .contains("660130");
   }
+
+  @Test
+  void authorizationAndPinflAndApiKeyAreMaskedByDefault() {
+    assertThat(MASKING.text("Authorization: secret-token-xyz")).isEqualTo("Authorization: ***");
+    assertThat(MASKING.text("bearer=secret-token-xyz")).isEqualTo("bearer=***");
+    assertThat(MASKING.text("api_key=my-super-secret-key-123")).isEqualTo("api_key=***");
+    assertThat(
+            MASKING.body("{\"pinfl\":\"31234567890123\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"pinfl\":\"…0123\"}");
+    assertThat(
+            MASKING.body("{\"jshshir\":\"51234567890123\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"jshshir\":\"…0123\"}");
+  }
+
+  @Test
+  void rulesCanDisableSpecificPresets() {
+    var noCards = new Masking(MaskingRules.defaults().withoutCards());
+    assertThat(noCards.text("card 8600301234567890 password: s3cr3t"))
+        .isEqualTo("card 8600301234567890 password: ***");
+
+    var noCvv = new Masking(MaskingRules.defaults().withoutCvv());
+    assertThat(noCvv.text("cvv=123 pan=8600301234567890"))
+        .isEqualTo("cvv=123 pan=860030******7890");
+
+    var noPhone = new Masking(MaskingRules.defaults().withoutPhone());
+    assertThat(noPhone.body("{\"phone\":\"998901234567\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"phone\":\"998901234567\"}");
+
+    var noPinflOrCards = new Masking(MaskingRules.defaults().withoutPinfl().withoutCards());
+    assertThat(
+            noPinflOrCards.body(
+                "{\"pinfl\":\"31234567890123\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"pinfl\":\"31234567890123\"}");
+
+    var disabled = Masking.disabled();
+    assertThat(disabled.isEnabled()).isFalse();
+    assertThat(disabled.text("card 8600301234567890 password: s3cr3t"))
+        .isEqualTo("card 8600301234567890 password: s3cr3t");
+    assertThat(
+            disabled.body("{\"pan\":\"8600301234567890\"}".getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"pan\":\"8600301234567890\"}");
+  }
 }

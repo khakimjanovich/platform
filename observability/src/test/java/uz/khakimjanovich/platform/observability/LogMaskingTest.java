@@ -94,4 +94,22 @@ class LogMaskingTest {
     logInAnApp("--platform.observability.masking.additional-secret-fields=EMBOS_NAME");
     assertThat(output).contains("EMBOS_NAME=***").doesNotContain("AZIZ");
   }
+
+  @Test
+  void loggingMaskingPropertiesAddCustomSecretFields(CapturedOutput output) {
+    logInAnApp("--platform.logging.masking.additional-secret-fields=EMBOS_NAME");
+    assertThat(output).contains("EMBOS_NAME=***").doesNotContain("AZIZ");
+  }
+
+  @Test
+  void loggingMaskingCanBeDisabled(CapturedOutput output) {
+    logInAnApp("--platform.logging.masking.enabled=false");
+    assertThat(output).contains("8600301234567890", "client_secret=s3cr3t", "AZIZ");
+  }
+
+  @Test
+  void cardPanMaskingCanBeDisabledIndependently(CapturedOutput output) {
+    logInAnApp("--platform.logging.masking.card-pan=false");
+    assertThat(output).contains("8600301234567890", "client_secret=***").doesNotContain("s3cr3t");
+  }
 }

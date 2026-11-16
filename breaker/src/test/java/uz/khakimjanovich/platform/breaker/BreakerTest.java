@@ -3,11 +3,18 @@ package uz.khakimjanovich.platform.breaker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import uz.khakimjanovich.platform.error.GeneralException;
 
 class BreakerTest {
@@ -131,5 +138,106 @@ class BreakerTest {
   void noProbePeriodBelowOneNanosecond() {
     assertThatThrownBy(() -> new Breaker(5, Duration.ZERO, clock))
         .isInstanceOf(GeneralException.class);
+  }
+
+  @Test
+  void configPrototypeDerivationAndValidation() {
+    var base = BreakerConfig.of(5, Duration.ofSeconds(30));
+    assertThat(base.failures()).isEqualTo(5);
+    assertThat(base.probeAfter()).isEqualTo(Duration.ofSeconds(30));
+
+    var derived = BreakerConfig.from(base).withFailures(3).withProbeAfter(Duration.ofSeconds(5));
+    assertThat(derived.failures()).isEqualTo(3);
+    assertThat(derived.probeAfter()).isEqualTo(Duration.ofSeconds(5));
+
+    var created = derived.create(clock);
+    assertThat(created.failures()).isEqualTo(3);
+    assertThat(created.probeAfter()).isEqualTo(Duration.ofSeconds(5));
+
+    assertThatThrownBy(() -> BreakerConfig.of(0, Duration.ofSeconds(30)))
+        .isInstanceOf(GeneralException.class);
+    assertThatThrownBy(() -> BreakerConfig.of(5, Duration.ZERO))
+        .isInstanceOf(GeneralException.class);
+  }
+
+  @Test
+  void predicatesClassifyInfrastructureVersusClientErrors() {
+    assertThat(BreakerPredicates.isFailure(new IOException("connection reset"))).isTrue();
+    assertThat(BreakerPredicates.isFailure(new TimeoutException("timeout"))).isTrue();
+    assertThat(BreakerPredicates.isFailure(new ResourceAccessException("socket timeout"))).isTrue();
+    assertThat(
+            BreakerPredicates.isFailure(
+                new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR)))
+        .isTrue();
+    assertThat(BreakerPredicates.isFailure(new HttpServerErrorException(HttpStatus.BAD_GATEWAY)))
+        .isTrue();
+
+    assertThat(BreakerPredicates.isFailure(new HttpClientErrorException(HttpStatus.BAD_REQUEST)))
+        .isFalse();
+    assertThat(
+            BreakerPredicates.isFailure(
+                new HttpClientErrorException(HttpStatus.UNPROCESSABLE_CONTENT)))
+        .isFalse();
+    assertThat(BreakerPredicates.isFailure(new IllegalArgumentException("invalid PIN"))).isFalse();
+
+    assertThat(BreakerPredicates.isFailure(new RuntimeException(new IOException("broken"))))
+        .isTrue();
+  }
+
+  @Test
+  void executeReturnsValueAndRecordsAnswerOnSuccess() {
+    var result = breaker.execute(() -> "success");
+    assertThat(result).isEqualTo("success");
+    assertThat(breaker.isClosed()).isTrue();
+  }
+
+  @Test
+  void executeTripsBreakerOnInfrastructureFailures() {
+    var b = new Breaker(2, Duration.ofSeconds(10), clock);
+
+    assertThatThrownBy(
+            () ->
+                b.execute(
+                    () -> {
+                      throw new HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE);
+                    }))
+        .isInstanceOf(HttpServerErrorException.class);
+    assertThat(b.isClosed()).isTrue();
+
+    assertThatThrownBy(
+            () ->
+                b.execute(
+                    () -> {
+                      throw new ResourceAccessException("timed out");
+                    }))
+        .isInstanceOf(ResourceAccessException.class);
+    assertThat(b.isOpen()).isTrue();
+
+    assertThatThrownBy(() -> b.execute(() -> "never-run")).isInstanceOf(GeneralException.class);
+  }
+
+  @Test
+  void executeDoesNotTripOnClientErrorsAndKeepsBreakerClosed() {
+    var b = new Breaker(2, Duration.ofSeconds(10), clock);
+
+    for (var i = 0; i < 5; i++) {
+      assertThatThrownBy(
+              () ->
+                  b.execute(
+                      () -> {
+                        throw new HttpClientErrorException(HttpStatus.UNPROCESSABLE_CONTENT);
+                      }))
+          .isInstanceOf(HttpClientErrorException.class);
+    }
+
+    assertThat(b.isClosed()).isTrue();
+    assertThat(b.isOpen()).isFalse();
+  }
+
+  @Test
+  void runExecutesVoidOperationsSafely() {
+    var counter = new AtomicInteger();
+    breaker.run(counter::incrementAndGet);
+    assertThat(counter).hasValue(1);
   }
 }

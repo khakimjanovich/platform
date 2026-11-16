@@ -3,6 +3,9 @@ package uz.khakimjanovich.platform.breaker;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 import uz.khakimjanovich.platform.error.ErrorExceptionStatus;
 import uz.khakimjanovich.platform.error.GeneralException;
@@ -18,11 +21,17 @@ public final class Breaker {
   private final int failures;
   private final Duration probeAfter;
   private final Clock clock;
+  private final Predicate<Throwable> failurePredicate;
   private int failuresInARow;
   private @Nullable Instant openedAt;
   private boolean probing;
 
   public Breaker(int failures, Duration probeAfter, Clock clock) {
+    this(failures, probeAfter, clock, BreakerPredicates.defaultPredicate());
+  }
+
+  public Breaker(
+      int failures, Duration probeAfter, Clock clock, Predicate<Throwable> failurePredicate) {
     if (failures < 1) {
       throw new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR)
           .subError("failures", "must be at least 1, not " + failures);
@@ -34,6 +43,8 @@ public final class Breaker {
     this.failures = failures;
     this.probeAfter = probeAfter;
     this.clock = clock;
+    this.failurePredicate =
+        Objects.requireNonNull(failurePredicate, "failurePredicate must not be null");
   }
 
   public synchronized boolean allows() {
@@ -62,6 +73,44 @@ public final class Breaker {
     }
   }
 
+  public <T> T execute(Supplier<T> action) {
+    return execute(action, failurePredicate);
+  }
+
+  public <T> T execute(Supplier<T> action, Predicate<Throwable> isFailure) {
+    if (!allows()) {
+      throw new GeneralException(BreakerExceptionStatus.BREAKER_OPEN)
+          .subError("breaker", "open")
+          .retryAfter(probeAfter);
+    }
+    T result;
+    try {
+      result = action.get();
+    } catch (RuntimeException | Error ex) {
+      if (isFailure.test(ex)) {
+        failed();
+      } else {
+        answered();
+      }
+      throw ex;
+    }
+    answered();
+    return result;
+  }
+
+  public void run(Runnable action) {
+    run(action, failurePredicate);
+  }
+
+  public void run(Runnable action, Predicate<Throwable> isFailure) {
+    execute(
+        () -> {
+          action.run();
+          return null;
+        },
+        isFailure);
+  }
+
   public synchronized State state() {
     if (openedAt == null) {
       return State.CLOSED;
@@ -86,5 +135,13 @@ public final class Breaker {
 
   public int failures() {
     return failures;
+  }
+
+  public Duration probeAfter() {
+    return probeAfter;
+  }
+
+  public Predicate<Throwable> failurePredicate() {
+    return failurePredicate;
   }
 }

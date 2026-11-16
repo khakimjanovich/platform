@@ -29,5 +29,8 @@ public class IdempotencyConstants {
   public static final String EXPIRE =
       "DELETE FROM %s WHERE client_id = :client AND idempotency_key = :key AND created_at < :before";
 
+  public static final String EXPIRE_IN_PROGRESS =
+      "DELETE FROM %s WHERE client_id = :client AND idempotency_key = :key AND response IS NULL AND created_at < :before";
+
   public static final String PURGE = "DELETE FROM %s WHERE created_at < :before";
 }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -43,6 +44,8 @@ class ValkeyKeysIT {
               "+incr",
               "+expire",
               "+ttl",
+              "+eval",
+              "+evalsha",
               "+ping",
               "+info",
               "+hello",
@@ -183,5 +186,121 @@ class ValkeyKeysIT {
             context ->
                 assertThatThrownBy(() -> context.getBean(ValkeyKeys.class).count("sends", "n1"))
                     .satisfies(ValkeyKeysIT::unavailable));
+  }
+
+  @Test
+  void aLockCanBeAcquiredAndReleasedAtomically() {
+    app("customer-gw")
+        .run(
+            context -> {
+              var locks = context.getBean(ValkeyLocks.class);
+              var token = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(token).isPresent();
+              assertThat(admin.opsForValue().get("customer-gw:payout:p1")).isEqualTo(token.get());
+
+              var released = locks.unlock("payout", "p1", token.get());
+              assertThat(released).isTrue();
+              assertThat(admin.keys("*")).isEmpty();
+            });
+  }
+
+  @Test
+  void aLockCannotBeAcquiredTwiceConcurrently() {
+    app("customer-gw")
+        .run(
+            context -> {
+              var locks = context.getBean(ValkeyLocks.class);
+              var first = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(first).isPresent();
+
+              var second = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(second).isEmpty();
+
+              locks.unlock("payout", "p1", first.get());
+              var third = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(third).isPresent();
+              locks.unlock("payout", "p1", third.get());
+            });
+  }
+
+  @Test
+  void aLockReleasedWithWrongTokenIsRefusedAndKeyRemains() {
+    app("customer-gw")
+        .run(
+            context -> {
+              var locks = context.getBean(ValkeyLocks.class);
+              var token = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(token).isPresent();
+
+              var released = locks.unlock("payout", "p1", "wrong-token");
+              assertThat(released).isFalse();
+              assertThat(admin.opsForValue().get("customer-gw:payout:p1")).isEqualTo(token.get());
+
+              locks.unlock("payout", "p1", token.get());
+              assertThat(admin.keys("*")).isEmpty();
+            });
+  }
+
+  @Test
+  void aLockExpiresAfterTtlAndCanBeReacquired() throws Exception {
+    app("customer-gw")
+        .run(
+            context -> {
+              var locks = context.getBean(ValkeyLocks.class);
+              var token = locks.tryLock("payout", "p1", Duration.ofMillis(500));
+              assertThat(token).isPresent();
+
+              Thread.sleep(700);
+
+              var next = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(next).isPresent();
+              locks.unlock("payout", "p1", next.get());
+            });
+  }
+
+  @Test
+  void withLockExecutesActionAndReleasesLock() {
+    app("customer-gw")
+        .run(
+            context -> {
+              var locks = context.getBean(ValkeyLocks.class);
+              var executed = new AtomicBoolean(false);
+              var result =
+                  locks.withLock(
+                      "payout",
+                      "p1",
+                      Duration.ofMinutes(1),
+                      () -> {
+                        executed.set(true);
+                        return "payout-result";
+                      });
+
+              assertThat(result).isEqualTo("payout-result");
+              assertThat(executed).isTrue();
+              assertThat(admin.keys("*")).isEmpty();
+            });
+  }
+
+  @Test
+  void withLockThrowsLockHeldWhenResourceIsLocked() {
+    app("customer-gw")
+        .run(
+            context -> {
+              var locks = context.getBean(ValkeyLocks.class);
+              var held = locks.tryLock("payout", "p1", Duration.ofMinutes(1));
+              assertThat(held).isPresent();
+
+              assertThatThrownBy(
+                      () ->
+                          locks.withLock(
+                              "payout", "p1", Duration.ofMinutes(1), () -> "unreachable"))
+                  .isInstanceOfSatisfying(
+                      GeneralException.class,
+                      e ->
+                          assertThat(e.getStatus())
+                              .isEqualTo(ValkeyExceptionStatus.VALKEY_LOCK_HELD));
+
+              locks.unlock("payout", "p1", held.get());
+            });
   }
 }

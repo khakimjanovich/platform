@@ -1,6 +1,7 @@
 package uz.khakimjanovich.platform.idempotency;
 
 import java.sql.Timestamp;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -20,11 +21,14 @@ public class Idempotency {
   private final TransactionTemplate own;
   private final JsonMapper json;
   private final @Nullable Duration keep;
+  private final @Nullable Duration inProgressTimeout;
+  private final Clock clock;
   private final String find;
   private final String claim;
   private final String answer;
   private final String release;
   private final String expire;
+  private final String expireInProgress;
   private final String purge;
 
   public Idempotency(
@@ -43,6 +47,18 @@ public class Idempotency {
       PlatformTransactionManager transactionManager,
       JsonMapper json,
       @Nullable Duration keep) {
+    this(schema, table, dataSource, transactionManager, json, keep, null, Clock.systemUTC());
+  }
+
+  public Idempotency(
+      String schema,
+      String table,
+      DataSource dataSource,
+      PlatformTransactionManager transactionManager,
+      JsonMapper json,
+      @Nullable Duration keep,
+      @Nullable Duration inProgressTimeout,
+      Clock clock) {
     var target = name(schema) + "." + name(table);
     this.jdbc = JdbcClient.create(dataSource);
     // The claim, the answer and the release commit at once, whatever transaction the caller is in:
@@ -51,15 +67,18 @@ public class Idempotency {
     this.own.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     this.json = json;
     this.keep = keep;
+    this.inProgressTimeout = inProgressTimeout;
+    this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.find = IdempotencyConstants.FIND.formatted(target);
     this.claim = IdempotencyConstants.CLAIM.formatted(target);
     this.answer = IdempotencyConstants.ANSWER.formatted(target);
     this.release = IdempotencyConstants.RELEASE.formatted(target);
     this.expire = IdempotencyConstants.EXPIRE.formatted(target);
+    this.expireInProgress = IdempotencyConstants.EXPIRE_IN_PROGRESS.formatted(target);
     this.purge = IdempotencyConstants.PURGE.formatted(target);
   }
 
-  public record Result<T>(T response, boolean replayed) {}
+  public record Result<T>(@Nullable T response, boolean replayed) {}
 
   public <T> Result<T> execute(
       String clientId, String key, String requestHash, Class<T> type, Supplier<T> work) {
@@ -86,18 +105,50 @@ public class Idempotency {
     return new Result<>(response, false);
   }
 
+  public Result<Void> run(String clientId, String key, String requestHash, Runnable work) {
+    return execute(
+        clientId,
+        key,
+        requestHash,
+        Void.class,
+        () -> {
+          work.run();
+          return null;
+        });
+  }
+
   public int purgeBefore(Instant before) {
     return jdbc.sql(purge).param("before", Timestamp.from(before)).update();
+  }
+
+  public @Nullable Duration keep() {
+    return keep;
+  }
+
+  public @Nullable Duration inProgressTimeout() {
+    return inProgressTimeout;
+  }
+
+  public Clock clock() {
+    return clock;
   }
 
   private int claim(String clientId, String key, String requestHash) {
     return ownTransaction(
         () -> {
+          var now = clock.instant();
+          if (inProgressTimeout != null) {
+            jdbc.sql(expireInProgress)
+                .param("client", clientId)
+                .param("key", key)
+                .param("before", Timestamp.from(now.minus(inProgressTimeout)))
+                .update();
+          }
           if (keep != null) {
             jdbc.sql(expire)
                 .param("client", clientId)
                 .param("key", key)
-                .param("before", Timestamp.from(Instant.now().minus(keep)))
+                .param("before", Timestamp.from(now.minus(keep)))
                 .update();
           }
           return jdbc.sql(claim)

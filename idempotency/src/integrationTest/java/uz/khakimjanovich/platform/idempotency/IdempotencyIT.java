@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.zaxxer.hikari.HikariDataSource;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -207,6 +208,64 @@ class IdempotencyIT {
 
     assertThat(kept.execute(CLIENT, "k8", "h2", Answer.class, this::note).replayed()).isFalse();
     assertThat(runs).hasValue(2);
+  }
+
+  @Test
+  void runExecutesVoidWorkAndReplaysEmptyResult() {
+    var voidRuns = new AtomicInteger();
+    var first = idempotency.run(CLIENT, "k-void", "h1", voidRuns::incrementAndGet);
+    assertThat(first.replayed()).isFalse();
+    assertThat(voidRuns).hasValue(1);
+
+    var retry = idempotency.run(CLIENT, "k-void", "h1", voidRuns::incrementAndGet);
+    assertThat(retry.replayed()).isTrue();
+    assertThat(voidRuns).hasValue(1);
+  }
+
+  @Test
+  void anInProgressKeyOlderThanInProgressTimeoutIsReclaimed() {
+    var withTimeout =
+        new Idempotency(
+            "note",
+            "note_idempotency",
+            dataSource,
+            transactionManager,
+            JsonMapper.shared(),
+            null,
+            Duration.ofMinutes(2),
+            Clock.systemUTC());
+
+    // Crash during execution leaving response IS NULL
+    assertThatThrownBy(
+            () ->
+                withTimeout.execute(
+                    CLIENT,
+                    "k-crashed",
+                    "h1",
+                    Answer.class,
+                    () -> {
+                      runs.incrementAndGet();
+                      throw new RuntimeException("node crashed mid-flight");
+                    }))
+        .isInstanceOf(RuntimeException.class);
+
+    // Immediate retry gets IN_PROGRESS
+    assertThatThrownBy(
+            () -> withTimeout.execute(CLIENT, "k-crashed", "h1", Answer.class, this::note))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e ->
+                assertThat(e.getStatus())
+                    .isEqualTo(IdempotencyExceptionStatus.IDEMPOTENCY_IN_PROGRESS));
+
+    // Simulate elapsed inProgressTimeout
+    jdbc.sql(
+            "UPDATE note.note_idempotency SET created_at = now() - interval '3 minutes' WHERE idempotency_key = 'k-crashed'")
+        .update();
+
+    // After inProgressTimeout elapses, key is reclaimed and work succeeds
+    var recovered = withTimeout.execute(CLIENT, "k-crashed", "h1", Answer.class, this::note);
+    assertThat(recovered.replayed()).isFalse();
   }
 
   @Test

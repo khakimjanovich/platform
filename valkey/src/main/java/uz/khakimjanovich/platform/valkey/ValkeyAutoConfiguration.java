@@ -18,4 +18,10 @@ public class ValkeyAutoConfiguration {
   ValkeyKeys valkeyKeys(StringRedisTemplate valkey, ValkeyProperties properties) {
     return new ValkeyKeys(valkey, properties.service());
   }
+
+  @Bean
+  @ConditionalOnMissingBean
+  ValkeyLocks valkeyLocks(StringRedisTemplate valkey, ValkeyKeys keys) {
+    return new ValkeyLocks(valkey, keys);
+  }
 }

@@ -21,7 +21,6 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.util.unit.DataSize;
-import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -109,8 +108,8 @@ class FileStoreTest {
                     "sha256", PDF_SHA256,
                     "uploaded-at", "2026-10-21T00:00:00Z"))
             .build();
-    when(s3.getObjectAsBytes(any(Consumer.class)))
-        .thenReturn(ResponseBytes.fromByteArray(response, bytes));
+    when(s3.getObject(any(Consumer.class)))
+        .thenReturn(new ResponseInputStream<>(response, new ByteArrayInputStream(bytes)));
     assertThatThrownBy(() -> files.read("partner-documents", UUID.randomUUID()))
         .isInstanceOfSatisfying(
             GeneralException.class,
@@ -123,8 +122,9 @@ class FileStoreTest {
   @SuppressWarnings("unchecked")
   void anObjectWithoutTheStoresMetadataIsCorrupt() {
     var response = GetObjectResponse.builder().contentType("application/pdf").build();
-    when(s3.getObjectAsBytes(any(Consumer.class)))
-        .thenReturn(ResponseBytes.fromByteArray(response, new byte[] {1, 2, 3}));
+    when(s3.getObject(any(Consumer.class)))
+        .thenReturn(
+            new ResponseInputStream<>(response, new ByteArrayInputStream(new byte[] {1, 2, 3})));
     assertThatThrownBy(() -> files.read("partner-documents", UUID.randomUUID()))
         .isInstanceOfSatisfying(
             GeneralException.class,
@@ -136,7 +136,7 @@ class FileStoreTest {
   @Test
   @SuppressWarnings("unchecked")
   void aStoreThatDoesntAnswerIsUnavailable(CapturedOutput output) {
-    when(s3.getObjectAsBytes(any(Consumer.class)))
+    when(s3.getObject(any(Consumer.class)))
         .thenThrow(SdkClientException.create("connection refused"));
     assertThatThrownBy(() -> files.read("partner-documents", UUID.randomUUID()))
         .isInstanceOfSatisfying(

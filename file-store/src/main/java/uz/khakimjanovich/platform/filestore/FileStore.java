@@ -40,7 +40,22 @@ public class FileStore {
       String sha256,
       Instant uploadedAt) {}
 
-  public record FileContent(StoredFile file, byte[] bytes) {
+  public static final class FileContent {
+    private final StoredFile file;
+    private final byte[] bytes;
+
+    public FileContent(StoredFile file, byte[] bytes) {
+      this.file = file;
+      this.bytes = bytes;
+    }
+
+    public StoredFile file() {
+      return file;
+    }
+
+    public byte[] bytes() {
+      return bytes;
+    }
   }
 
   public record StreamingFileContent(StoredFile file, InputStream stream) implements AutoCloseable {
@@ -49,11 +64,11 @@ public class FileStore {
       stream.transferTo(target);
     }
 
-      @Override
-      public void close() throws IOException {
-        stream.close();
-      }
+    @Override
+    public void close() throws IOException {
+      stream.close();
     }
+  }
 
   public void checkBuckets() {
     for (var name : properties.buckets().keySet()) {
@@ -155,31 +170,12 @@ public class FileStore {
   }
 
   public FileContent read(String bucket, UUID fileId) {
-    bucket(bucket);
-    var object =
-        storage(
-            () -> s3.getObjectAsBytes(get -> get.bucket(bucket).key(fileId.toString())), fileId);
-    var response = object.response();
-    var metadata = response.metadata();
-    var bytes = object.asByteArray();
-    var name = metadata.get(FileStoreConstants.FILE_NAME_METADATA);
-    var checksum = metadata.get(FileStoreConstants.SHA256_METADATA);
-    var uploadedAt = metadata.get(FileStoreConstants.UPLOADED_AT_METADATA);
-    // Bytes that no longer match, or an object the store didn't write, are not this file.
-    if (name == null || uploadedAt == null || checksum == null || !sha256(bytes).equals(checksum)) {
-      log.error(FileStoreConstants.LOG_CORRUPT, fileId, bucket);
-      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT, fileId);
+    try (var streaming = openStream(bucket, fileId)) {
+      return new FileContent(streaming.file(), streaming.stream().readAllBytes());
+    } catch (IOException e) {
+      log.warn(FileStoreConstants.LOG_UNAVAILABLE, e.getMessage(), e);
+      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);
     }
-    return new FileContent(
-        new StoredFile(
-            fileId,
-            bucket,
-            name,
-            response.contentType(),
-            bytes.length,
-            checksum,
-            Instant.parse(uploadedAt)),
-        bytes);
   }
 
   public void delete(String bucket, UUID fileId) {

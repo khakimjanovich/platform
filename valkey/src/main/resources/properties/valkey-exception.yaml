@@ -16,3 +16,10 @@ platform:
         message-en: "Something went wrong on our side. Please try again later."
         message-ru: "Что-то пошло не так на нашей стороне. Попробуйте позже."
         message-uz: "Bizning tomonda xatolik yuz berdi. Keyinroq urinib koʻring."
+      VALKEY_LOCK_HELD:
+        http-code: 409
+        title: valkey-lock-held
+        is-loggable: false
+        message-en: "The resource is currently locked by another operation. Please try again later."
+        message-ru: "Ресурс в данный момент заблокирован другой операцией. Попробуйте позже."
+        message-uz: "Resurs hozirda boshqa operatsiya tomonidan band qilingan. Keyinroq urinib koʻring."

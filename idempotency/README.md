@@ -20,6 +20,9 @@ databaseChangeLog:
 ```java
 var idempotency = new Idempotency("card", "card_idempotency", dataSource, transactionManager, json);
 var result = idempotency.execute(clientId, key, requestHash, PaymentResult.class, () -> pay(request));
+
+// For void / 204 No Content commands (refunds, cancellations):
+idempotency.run(clientId, key, requestHash, () -> cancel(request));
 ```
 
 - Keys are the client's own: two clients may use the same key.
@@ -30,8 +33,11 @@ var result = idempotency.execute(clientId, key, requestHash, PaymentResult.class
 - The work commits on its own. A `GeneralException` from it frees the key, so the client may
   correct the request and retry; anything else (no answer in time, a crash) leaves the outcome
   unknown, and the key stays in progress: the work is never run twice.
-- With `keep` (the constructor's last argument), a key older than that is free again; the module
-  also purges old keys on its own schedule: `purgeBefore(Instant)`.
+- With `keep`, a key older than that is free again; the module also purges old keys on its own
+  schedule: `purgeBefore(Instant)`.
+- With `inProgressTimeout`, orphaned in-progress keys left by worker node crashes mid-transaction
+  (`response IS NULL`) are safely reclaimed after the timeout expires, preventing permanent key lockout.
+- Configurable `Clock clock` enables deterministic time-travel testing.
 
 ## Tests
 

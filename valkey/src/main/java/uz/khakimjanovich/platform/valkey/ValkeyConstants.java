@@ -15,4 +15,7 @@ public class ValkeyConstants {
   static final Pattern NAME = Pattern.compile(NAME_REGEX);
 
   public static final String LOG_UNAVAILABLE = "Valkey unavailable: {}";
+
+  public static final String UNLOCK_LUA =
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
 }

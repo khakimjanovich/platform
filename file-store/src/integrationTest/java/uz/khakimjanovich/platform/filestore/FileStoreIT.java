@@ -114,6 +114,27 @@ class FileStoreIT {
   }
 
   @Test
+  void aFileCanBeStreamedAndTransferredWithoutHeapMaterialization() throws Exception {
+    var pdf =
+        "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"
+            .getBytes(StandardCharsets.US_ASCII);
+    var stored = files.store("partner-documents", file("Document.pdf", "application/pdf", pdf));
+
+    try (var streaming = files.openStream("partner-documents", stored.id())) {
+      assertThat(streaming.file().fileName()).isEqualTo("Document.pdf");
+      assertThat(streaming.file().contentType()).isEqualTo("application/pdf");
+      var streamedBytes = streaming.stream().readAllBytes();
+      assertThat(streamedBytes).isEqualTo(pdf);
+    }
+
+    var out = new ByteArrayOutputStream();
+    files.transferTo("partner-documents", stored.id(), out);
+    assertThat(out.toByteArray()).isEqualTo(pdf);
+
+    files.delete("partner-documents", stored.id());
+  }
+
+  @Test
   void eachBucketTakesOnlyItsTypesAndSizes() throws Exception {
     var svg = "<svg onload=alert(1)/>".getBytes(StandardCharsets.UTF_8);
     assertThatThrownBy(() -> files.store("sales-point-logos", file("logo.png", "image/png", svg)))

@@ -83,6 +83,53 @@ class SigningKeysTest {
     verifyNoInteractions(vault);
   }
 
+  @Test
+  void cacheDoesNotExceedMaxEntriesUnderBurstOfDistinctClients() {
+    var boundedKeys = new SigningKeys(vault, "merchants/%s", "signingKey", TTL, clock, 5);
+    for (int i = 1; i <= 20; i++) {
+      var id = "shop-" + i;
+      var rawKey = ("key-" + i).getBytes(StandardCharsets.UTF_8);
+      when(vault.get("merchants/" + id))
+          .thenReturn(
+              Optional.of(Map.of("signingKey", Base64.getEncoder().encodeToString(rawKey))));
+      assertThat(boundedKeys.find(id)).contains(rawKey);
+    }
+    assertThat(boundedKeys.cacheSize()).isEqualTo(5);
+  }
+
+  @Test
+  void leastRecentlyUsedKeyIsEvictedWhenCapacityExceeded() {
+    var boundedKeys = new SigningKeys(vault, "merchants/%s", "signingKey", TTL, clock, 3);
+    for (int i = 1; i <= 3; i++) {
+      var id = "shop-" + i;
+      var rawKey = ("key-" + i).getBytes(StandardCharsets.UTF_8);
+      when(vault.get("merchants/" + id))
+          .thenReturn(
+              Optional.of(Map.of("signingKey", Base64.getEncoder().encodeToString(rawKey))));
+      boundedKeys.find(id);
+    }
+    assertThat(boundedKeys.cacheSize()).isEqualTo(3);
+
+    // Access shop-1 so shop-2 becomes the least recently used
+    boundedKeys.find("shop-1");
+
+    // Add shop-4, which should evict shop-2
+    var key4 = "key-4".getBytes(StandardCharsets.UTF_8);
+    when(vault.get("merchants/shop-4"))
+        .thenReturn(Optional.of(Map.of("signingKey", Base64.getEncoder().encodeToString(key4))));
+    boundedKeys.find("shop-4");
+
+    assertThat(boundedKeys.cacheSize()).isEqualTo(3);
+
+    // Querying shop-1 still hits cache (1 vault call total)
+    boundedKeys.find("shop-1");
+    verify(vault, times(1)).get("merchants/shop-1");
+
+    // Querying shop-2 must miss cache and query vault again (2 vault calls total)
+    boundedKeys.find("shop-2");
+    verify(vault, times(2)).get("merchants/shop-2");
+  }
+
   private static final class TestClock extends Clock {
     private Instant now = Instant.parse("2026-01-01T00:00:00Z");
 

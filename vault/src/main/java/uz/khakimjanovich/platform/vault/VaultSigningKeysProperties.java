@@ -15,10 +15,19 @@ import org.springframework.validation.annotation.Validated;
  *     client id (required in it: without it every client would verify with one key)
  * @param field the entry's key holding the base64 signing key
  * @param cacheTtl how long a key read from Vault is used before reading it again
+ * @param maxEntries maximum number of keys held in memory cache before LRU eviction occurs
  */
 @Validated
 @ConfigurationProperties(VaultConstants.SIGNING_KEYS_PREFIX)
 public record VaultSigningKeysProperties(
     @Nullable @Pattern(regexp = ".*%s.*", message = "must contain %s, the client id") String path,
     @Nullable String field,
-    @Nullable Duration cacheTtl) {}
+    @Nullable Duration cacheTtl,
+    @Nullable Integer maxEntries) {
+
+  public int resolvedMaxEntries() {
+    return maxEntries != null && maxEntries > 0
+        ? maxEntries
+        : VaultConstants.DEFAULT_SIGNING_KEYS_MAX_ENTRIES;
+  }
+}

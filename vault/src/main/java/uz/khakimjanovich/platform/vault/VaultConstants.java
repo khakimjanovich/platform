@@ -18,6 +18,7 @@ public class VaultConstants {
       "platform.vault.signing-keys.field is required with platform.vault.signing-keys.path";
   public static final String SIGNING_KEYS_CACHE_TTL_MISSING =
       "platform.vault.signing-keys.cache-ttl is required with platform.vault.signing-keys.path";
+  public static final int DEFAULT_SIGNING_KEYS_MAX_ENTRIES = 10_000;
   public static final String TRANSIT_PREFIX = "platform.vault.transit";
   public static final String TRANSIT_PREFIX_FORMAT = "vault:v%d:";
   public static final String TRANSIT_FAILED = "Vault Transit failed: {}: {}";

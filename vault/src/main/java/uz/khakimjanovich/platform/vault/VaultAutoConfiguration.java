@@ -38,7 +38,12 @@ public class VaultAutoConfiguration {
         Objects.requireNonNull(
             properties.cacheTtl(), VaultConstants.SIGNING_KEYS_CACHE_TTL_MISSING);
     return new SigningKeys(
-        vaultSecrets, Objects.requireNonNull(properties.path()), field, ttl, Clock.systemUTC());
+        vaultSecrets,
+        Objects.requireNonNull(properties.path()),
+        field,
+        ttl,
+        Clock.systemUTC(),
+        properties.resolvedMaxEntries());
   }
 
   @Bean

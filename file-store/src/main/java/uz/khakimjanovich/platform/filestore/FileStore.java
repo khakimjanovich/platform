@@ -1,6 +1,9 @@
 package uz.khakimjanovich.platform.filestore;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
@@ -52,6 +55,18 @@ public class FileStore {
 
     public byte[] bytes() {
       return bytes;
+    }
+  }
+
+  public record StreamingFileContent(StoredFile file, InputStream stream) implements AutoCloseable {
+
+    public void transferTo(OutputStream target) throws IOException {
+      stream.transferTo(target);
+    }
+
+    @Override
+    public void close() throws IOException {
+      stream.close();
     }
   }
 
@@ -117,32 +132,50 @@ public class FileStore {
     return stored;
   }
 
-  public FileContent read(String bucket, UUID fileId) {
+  public StreamingFileContent openStream(String bucket, UUID fileId) {
     bucket(bucket);
-    var object =
-        storage(
-            () -> s3.getObjectAsBytes(get -> get.bucket(bucket).key(fileId.toString())), fileId);
-    var response = object.response();
+    var stream =
+        storage(() -> s3.getObject(get -> get.bucket(bucket).key(fileId.toString())), fileId);
+    var response = stream.response();
     var metadata = response.metadata();
-    var bytes = object.asByteArray();
     var name = metadata.get(FileStoreConstants.FILE_NAME_METADATA);
     var checksum = metadata.get(FileStoreConstants.SHA256_METADATA);
     var uploadedAt = metadata.get(FileStoreConstants.UPLOADED_AT_METADATA);
-    // Bytes that no longer match, or an object the store didn't write, are not this file.
-    if (name == null || uploadedAt == null || checksum == null || !sha256(bytes).equals(checksum)) {
+    if (name == null || uploadedAt == null || checksum == null) {
+      try {
+        stream.close();
+      } catch (IOException e) {
+        log.debug("Stream close failed for corrupt file {} in {}", fileId, bucket, e);
+      }
       log.error(FileStoreConstants.LOG_CORRUPT, fileId, bucket);
       throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT, fileId);
     }
-    return new FileContent(
+    var storedFile =
         new StoredFile(
             fileId,
             bucket,
             name,
             response.contentType(),
-            bytes.length,
+            response.contentLength(),
             checksum,
-            Instant.parse(uploadedAt)),
-        bytes);
+            Instant.parse(uploadedAt));
+    return new StreamingFileContent(
+        storedFile, new VerifyingInputStream(stream, checksum, fileId, bucket));
+  }
+
+  public void transferTo(String bucket, UUID fileId, OutputStream target) throws IOException {
+    try (var streaming = openStream(bucket, fileId)) {
+      streaming.transferTo(target);
+    }
+  }
+
+  public FileContent read(String bucket, UUID fileId) {
+    try (var streaming = openStream(bucket, fileId)) {
+      return new FileContent(streaming.file(), streaming.stream().readAllBytes());
+    } catch (IOException e) {
+      log.warn(FileStoreConstants.LOG_UNAVAILABLE, e.getMessage(), e);
+      throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_STORAGE_UNAVAILABLE);
+    }
   }
 
   public void delete(String bucket, UUID fileId) {
@@ -203,6 +236,74 @@ public class FileStore {
       return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  private static final class VerifyingInputStream extends FilterInputStream {
+    private final MessageDigest digest;
+    private final String expectedChecksum;
+    private final UUID fileId;
+    private final String bucket;
+    private boolean verified;
+    private boolean eof;
+
+    private VerifyingInputStream(
+        InputStream in, String expectedChecksum, UUID fileId, String bucket) {
+      super(in);
+      this.expectedChecksum = expectedChecksum;
+      this.fileId = fileId;
+      this.bucket = bucket;
+      try {
+        this.digest = MessageDigest.getInstance("SHA-256");
+      } catch (NoSuchAlgorithmException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public int read() throws IOException {
+      int b = super.read();
+      if (b != -1) {
+        digest.update((byte) b);
+      } else {
+        eof = true;
+        verifyChecksum();
+      }
+      return b;
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+      int count = super.read(b, off, len);
+      if (count != -1) {
+        digest.update(b, off, count);
+      } else {
+        eof = true;
+        verifyChecksum();
+      }
+      return count;
+    }
+
+    @Override
+    public void close() throws IOException {
+      try {
+        super.close();
+      } finally {
+        if (eof) {
+          verifyChecksum();
+        }
+      }
+    }
+
+    private void verifyChecksum() {
+      if (!verified) {
+        verified = true;
+        String computed = HexFormat.of().formatHex(digest.digest());
+        if (!computed.equals(expectedChecksum)) {
+          log.error(FileStoreConstants.LOG_CORRUPT, fileId, bucket);
+          throw new GeneralException(FileStoreExceptionStatus.FILE_STORE_FILE_CORRUPT, fileId);
+        }
+      }
     }
   }
 }

@@ -1,9 +1,10 @@
-# Format check, unit and integration tests for every library in the platform.
+# Format check, unit and integration tests for every library in the platform. develop builds its
+# -SNAPSHOT versions here and releases nothing; only main releases (release.yml).
 name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths-ignore: ["**/*.md", "LICENSE", "docs/**"]
   pull_request:
     paths-ignore: ["**/*.md", "LICENSE", "docs/**"]

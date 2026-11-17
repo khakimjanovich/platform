@@ -46,15 +46,55 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
 
 ## Versions
 
-- One version for the whole platform, `platform` in `gradle/libs.versions.toml` (the catalog
-  every build reads), following Semantic Versioning 2.0.
+- Every artifact has its own version in `gradle/libs.versions.toml` (the catalog every build reads),
+  following Semantic Versioning 2.0: each library `platform-<lib>`, the build plugins `platform-build`,
+  and the catalog itself `platform`, the hub, which pins the set of versions checked together.
 - While 0.x: breaking changes and additions bump the minor, fixes the patch. From 1.0: breaking →
   major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
-  method, property or error code.
-- A release is a merge to `main` that raises `platform`: the release workflow runs the checks,
-  tags `platform-vX.Y.Z` and publishes every library (`uz.khakimjanovich.platform:<lib>:X.Y.Z`, with sources and test
-  fixtures), the build plugins (`platform.java`, `platform.library`, `platform.module`,
-  `platform.integration-test`, at the same version) and the catalog (`uz.khakimjanovich.platform:versioning:X.Y.Z`) to GitHub Packages
-  (`https://maven.pkg.github.com/khakimjanovich/platform`). The contracts build pins the catalog;
-  the services pin the libraries the same way, or build them from source with `--include-build`.
+  method, property or error code. A library that takes a breaking change from another raises its own
+  version too.
+- A release is a merge to `main` that raises one or more of those versions: the release workflow runs
+  the checks and publishes only what was raised to GitHub Packages
+  (`https://maven.pkg.github.com/khakimjanovich/platform`), each with a tag:
+  a library (`uz.khakimjanovich.platform:<lib>`, with sources and test fixtures) as `<lib>-vX.Y.Z`;
+  the build plugins (`platform.java`, `platform.library`, `platform.module`, `platform.integration-test`)
+  as `build-logic-vX.Y.Z`; the catalog (`uz.khakimjanovich.platform:versioning`) last, as
+  `platform-vX.Y.Z` with a GitHub release. `.github/scripts/unreleased.sh` lists what a merge would release.
+- `develop` carries work in progress as `-SNAPSHOT` (`2.8.0-SNAPSHOT`): CI builds it and releases
+  nothing. A pull request into `main` fails the `release gate` while any platform version is still a
+  `-SNAPSHOT` (`.github/scripts/no-snapshots.sh`), and the release workflow checks again before it
+  publishes. `./gradlew publishLocal` puts every `-SNAPSHOT` artifact, the build plugins and the catalog in
+  `~/.m2`; a released version is left alone, so nothing local shadows the registry. A build on the
+  platform reads Maven local first, for snapshots only:
+
+  ```groovy
+  // settings.gradle; gradle.properties: platformVersion=2.8.0-SNAPSHOT
+  pluginManagement {
+      repositories {
+          mavenLocal { mavenContent { snapshotsOnly() } }
+          mavenCentral()
+          gradlePluginPortal()
+      }
+  }
+  dependencyResolutionManagement {
+      repositories {
+          mavenLocal {
+              mavenContent { snapshotsOnly() }
+              content { includeGroup 'uz.khakimjanovich.platform' }
+          }
+          mavenCentral()
+      }
+      versionCatalogs {
+          create('libs') { from("uz.khakimjanovich.platform:versioning:${providers.gradleProperty('platformVersion').get()}") }
+      }
+  }
+  // build.gradle
+  plugins { id 'platform.library' version '2.8.0-SNAPSHOT' }
+  ```
+
+  Releasing is dropping `-SNAPSHOT` from the versions that changed (an unchanged library goes back to
+  its last release) in one merge to `main`.
+- Raise `platform` only when a consumer needs the new set; libraries can release many times in between.
+  The contracts build pins the catalog; the services pin the libraries the same way, or build them from
+  source with `--include-build`.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).

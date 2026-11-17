@@ -1,0 +1,18 @@
+# A pull request into main must carry released versions only: develop works on -SNAPSHOT, main
+# releases. No path filter, so the check always reports and can be required on main.
+name: release gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  no-snapshots:
+    name: no snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: .github/scripts/no-snapshots.sh

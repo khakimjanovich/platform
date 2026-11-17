@@ -8,7 +8,11 @@ plugins {
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
 
 group = 'uz.khakimjanovich.platform'
-version = libs.findVersion('platform').get().requiredVersion
+// Each library releases on its own: its version is `platform-<project name>` in the catalog.
+def ownVersion = "platform-${project.name}"
+version = libs.findVersion(ownVersion)
+    .orElseThrow { new GradleException("No version for library ${project.name}: add ${ownVersion} to the catalog's [versions]") }
+    .requiredVersion
 
 java { withSourcesJar() }
 

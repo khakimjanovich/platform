@@ -20,8 +20,10 @@ import org.springframework.boot.health.registry.HealthContributorRegistry;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import uz.khakimjanovich.platform.breaker.Breaker;
 import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
+import uz.khakimjanovich.platform.observability.breaker.BreakerMetrics;
 import uz.khakimjanovich.platform.observability.health.HealthMetrics;
 import uz.khakimjanovich.platform.observability.http.HttpClientLogging;
 import uz.khakimjanovich.platform.observability.http.HttpLoggingProperties;
@@ -135,6 +137,18 @@ public class ObservabilityAutoConfiguration {
     HealthMetrics healthMetrics(
         ObjectProvider<HealthContributorRegistry> registry, ObjectProvider<MeterRegistry> meters) {
       return new HealthMetrics(registry, meters);
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass({Breaker.class, MeterRegistry.class})
+  static class Breakers {
+
+    @Bean
+    @ConditionalOnMissingBean
+    BreakerMetrics breakerMetrics(
+        ObjectProvider<Breaker> breakers, ObjectProvider<MeterRegistry> meters) {
+      return new BreakerMetrics(breakers, meters);
     }
   }
 }

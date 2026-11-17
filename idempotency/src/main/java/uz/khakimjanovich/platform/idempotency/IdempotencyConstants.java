@@ -1,5 +1,6 @@
 package uz.khakimjanovich.platform.idempotency;
 
+import java.time.Duration;
 import java.util.regex.Pattern;
 import lombok.experimental.UtilityClass;
 
@@ -9,6 +10,8 @@ public class IdempotencyConstants {
   public static final Pattern NAME = Pattern.compile("[a-z_][a-z0-9_]{0,62}");
 
   public static final String NAME_INVALID = "Not a lower-case SQL name: '%s'";
+
+  public static final Duration DEFAULT_IN_PROGRESS_TIMEOUT = Duration.ofMinutes(1);
 
   public static final String FIND =
       "SELECT request_hash, response FROM %s WHERE client_id = :client AND idempotency_key = :key";

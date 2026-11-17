@@ -35,8 +35,9 @@ idempotency.run(clientId, key, requestHash, () -> cancel(request));
   unknown, and the key stays in progress: the work is never run twice.
 - With `keep`, a key older than that is free again; the module also purges old keys on its own
   schedule: `purgeBefore(Instant)`.
-- With `inProgressTimeout`, orphaned in-progress keys left by worker node crashes mid-transaction
-  (`response IS NULL`) are safely reclaimed after the timeout expires, preventing permanent key lockout.
+- With `inProgressTimeout` (defaulting to 1 minute), orphaned in-progress keys left by worker node
+  crashes mid-transaction (`response IS NULL`) are safely reclaimed after the timeout expires,
+  preventing permanent key lockout.
 - Configurable `Clock clock` enables deterministic time-travel testing.
 
 ## Tests

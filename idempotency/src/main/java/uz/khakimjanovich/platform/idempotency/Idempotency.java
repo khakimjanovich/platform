@@ -21,7 +21,7 @@ public class Idempotency {
   private final TransactionTemplate own;
   private final JsonMapper json;
   private final @Nullable Duration keep;
-  private final @Nullable Duration inProgressTimeout;
+  private final Duration inProgressTimeout;
   private final Clock clock;
   private final String find;
   private final String claim;
@@ -47,7 +47,15 @@ public class Idempotency {
       PlatformTransactionManager transactionManager,
       JsonMapper json,
       @Nullable Duration keep) {
-    this(schema, table, dataSource, transactionManager, json, keep, null, Clock.systemUTC());
+    this(
+        schema,
+        table,
+        dataSource,
+        transactionManager,
+        json,
+        keep,
+        IdempotencyConstants.DEFAULT_IN_PROGRESS_TIMEOUT,
+        Clock.systemUTC());
   }
 
   public Idempotency(
@@ -57,7 +65,26 @@ public class Idempotency {
       PlatformTransactionManager transactionManager,
       JsonMapper json,
       @Nullable Duration keep,
-      @Nullable Duration inProgressTimeout,
+      Duration inProgressTimeout) {
+    this(
+        schema,
+        table,
+        dataSource,
+        transactionManager,
+        json,
+        keep,
+        inProgressTimeout,
+        Clock.systemUTC());
+  }
+
+  public Idempotency(
+      String schema,
+      String table,
+      DataSource dataSource,
+      PlatformTransactionManager transactionManager,
+      JsonMapper json,
+      @Nullable Duration keep,
+      Duration inProgressTimeout,
       Clock clock) {
     var target = name(schema) + "." + name(table);
     this.jdbc = JdbcClient.create(dataSource);
@@ -67,7 +94,8 @@ public class Idempotency {
     this.own.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     this.json = json;
     this.keep = keep;
-    this.inProgressTimeout = inProgressTimeout;
+    this.inProgressTimeout =
+        Objects.requireNonNull(inProgressTimeout, "inProgressTimeout must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.find = IdempotencyConstants.FIND.formatted(target);
     this.claim = IdempotencyConstants.CLAIM.formatted(target);
@@ -125,7 +153,7 @@ public class Idempotency {
     return keep;
   }
 
-  public @Nullable Duration inProgressTimeout() {
+  public Duration inProgressTimeout() {
     return inProgressTimeout;
   }
 
@@ -137,13 +165,11 @@ public class Idempotency {
     return ownTransaction(
         () -> {
           var now = clock.instant();
-          if (inProgressTimeout != null) {
-            jdbc.sql(expireInProgress)
-                .param("client", clientId)
-                .param("key", key)
-                .param("before", Timestamp.from(now.minus(inProgressTimeout)))
-                .update();
-          }
+          jdbc.sql(expireInProgress)
+              .param("client", clientId)
+              .param("key", key)
+              .param("before", Timestamp.from(now.minus(inProgressTimeout)))
+              .update();
           if (keep != null) {
             jdbc.sql(expire)
                 .param("client", clientId)

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxy;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,13 @@ class LogMaskingTest {
   @Configuration(proxyBeanMethods = false)
   @ImportAutoConfiguration(ObservabilityAutoConfiguration.class)
   static class App {}
+
+  @AfterEach
+  void resetLoggingMasking() {
+    LogMasking.install(
+        (ch.qos.logback.classic.LoggerContext) LoggerFactory.getILoggerFactory(),
+        Masking.defaults());
+  }
 
   private static void logInAnApp(String... arguments) {
     try (var _ =
@@ -81,20 +89,90 @@ class LogMaskingTest {
   }
 
   @Test
-  void otlpGetsTheStackTraceMaskedInTheMessage() {
+  void otlpEventPreservesMaskedThrowableProxyWithStructuredAttributes() {
+    var original = new IllegalStateException("card pan=4100301234567891, client_secret=t0p");
     var event = new LoggingEvent();
     event.setMessage("failed");
-    event.setThrowableProxy(
-        new ThrowableProxy(
-            new IllegalStateException("card pan=4100301234567891, client_secret=t0p")));
+    event.setThrowableProxy(new ThrowableProxy(original));
     LogMasking.install(
         (ch.qos.logback.classic.LoggerContext) LoggerFactory.getILoggerFactory(),
         new Masking(MaskingRules.of(List.of("pan", "client_secret"))));
 
     var masked = LogMasking.masked(event);
-    assertThat(masked.getThrowableProxy()).isNull();
-    assertThat(masked.getFormattedMessage())
-        .contains("failed", "IllegalStateException", "pan=410030......7891", "client_secret=...")
+    assertThat(masked.getFormattedMessage()).isEqualTo("failed");
+    assertThat(masked.getArgumentArray()).isNull();
+
+    var proxy = masked.getThrowableProxy();
+    assertThat(proxy).isNotNull().isInstanceOf(ThrowableProxy.class);
+    assertThat(proxy.getClassName()).isEqualTo("java.lang.IllegalStateException");
+    assertThat(proxy.getMessage())
+        .isEqualTo("card pan=410030......7891, client_secret=...")
         .doesNotContain("4100301234567891", "t0p");
+
+    var throwable = ((ThrowableProxy) proxy).getThrowable();
+    assertThat(throwable).isNotNull().isInstanceOf(IllegalStateException.class);
+    assertThat(throwable.getMessage())
+        .isEqualTo("card pan=410030......7891, client_secret=...")
+        .doesNotContain("4100301234567891", "t0p");
+    assertThat(throwable.getStackTrace()).isEqualTo(original.getStackTrace());
+  }
+
+  @Test
+  void otlpEventRecursivelyMasksNestedCausesAndSuppressedExceptions() {
+    var cause =
+        new IllegalArgumentException("nested cause pan=5600301234567892, client_secret=c4us3");
+    var suppressed = new RuntimeException("suppressed pan=6600301234567893, client_secret=h1dd3n");
+    var root = new IllegalStateException("root pan=4100301234567891, client_secret=t0p", cause);
+    root.addSuppressed(suppressed);
+
+    var event = new LoggingEvent();
+    event.setMessage("payment error");
+    event.setThrowableProxy(new ThrowableProxy(root));
+    LogMasking.install(
+        (ch.qos.logback.classic.LoggerContext) LoggerFactory.getILoggerFactory(),
+        new Masking(MaskingRules.of(List.of("pan", "client_secret"))));
+
+    var masked = LogMasking.masked(event);
+    var proxy = masked.getThrowableProxy();
+    assertThat(proxy).isNotNull();
+    assertThat(proxy.getMessage()).contains("pan=410030......7891", "client_secret=...");
+
+    var causeProxy = proxy.getCause();
+    assertThat(causeProxy).isNotNull().isInstanceOf(ThrowableProxy.class);
+    assertThat(causeProxy.getClassName()).isEqualTo("java.lang.IllegalArgumentException");
+    assertThat(causeProxy.getMessage())
+        .contains("pan=560030......7892", "client_secret=...")
+        .doesNotContain("5600301234567892", "c4us3");
+
+    var suppressedProxies = proxy.getSuppressed();
+    assertThat(suppressedProxies).hasSize(1);
+    assertThat(suppressedProxies[0].getClassName()).isEqualTo("java.lang.RuntimeException");
+    assertThat(suppressedProxies[0].getMessage())
+        .contains("pan=660030......7893", "client_secret=...")
+        .doesNotContain("6600301234567893", "h1dd3n");
+
+    var sanitizedThrowable = ((ThrowableProxy) proxy).getThrowable();
+    assertThat(sanitizedThrowable.getCause())
+        .isNotNull()
+        .isInstanceOf(IllegalArgumentException.class);
+    assertThat(sanitizedThrowable.getCause().getMessage())
+        .contains("pan=560030......7892", "client_secret=...");
+    assertThat(sanitizedThrowable.getSuppressed()).hasSize(1);
+    assertThat(sanitizedThrowable.getSuppressed()[0].getMessage())
+        .contains("pan=660030......7893", "client_secret=...");
+  }
+
+  @Test
+  void otlpEventWithoutThrowableLeavesThrowableProxyNull() {
+    var event = new LoggingEvent();
+    event.setMessage("no exception here pan=8600301234567890");
+    event.setThrowableProxy(null);
+    LogMasking.install(
+        (ch.qos.logback.classic.LoggerContext) LoggerFactory.getILoggerFactory(),
+        new Masking(MaskingRules.of(List.of("pan"))));
+
+    var masked = LogMasking.masked(event);
+    assertThat(masked.getThrowableProxy()).isNull();
+    assertThat(masked.getFormattedMessage()).isEqualTo("no exception here pan=860030......7890");
   }
 }

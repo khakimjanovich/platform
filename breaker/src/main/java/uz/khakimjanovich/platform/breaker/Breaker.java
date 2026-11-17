@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
@@ -18,6 +19,7 @@ public final class Breaker {
     HALF_OPEN
   }
 
+  private final String name;
   private final int failures;
   private final Duration probeAfter;
   private final Clock clock;
@@ -25,17 +27,52 @@ public final class Breaker {
   private int failuresInARow;
   private @Nullable Instant openedAt;
   private boolean probing;
+  private final AtomicLong successfulCalls = new AtomicLong();
+  private final AtomicLong failedCalls = new AtomicLong();
+  private final AtomicLong rejectedCalls = new AtomicLong();
 
   public Breaker(int failures, Duration probeAfter) {
-    this(failures, probeAfter, Clock.systemUTC(), BreakerPredicates.defaultPredicate());
+    this(
+        BreakerConstants.DEFAULT_BREAKER_NAME,
+        failures,
+        probeAfter,
+        Clock.systemUTC(),
+        BreakerPredicates.defaultPredicate());
+  }
+
+  public Breaker(String name, int failures, Duration probeAfter) {
+    this(name, failures, probeAfter, Clock.systemUTC(), BreakerPredicates.defaultPredicate());
   }
 
   public Breaker(int failures, Duration probeAfter, Clock clock) {
-    this(failures, probeAfter, clock, BreakerPredicates.defaultPredicate());
+    this(
+        BreakerConstants.DEFAULT_BREAKER_NAME,
+        failures,
+        probeAfter,
+        clock,
+        BreakerPredicates.defaultPredicate());
+  }
+
+  public Breaker(String name, int failures, Duration probeAfter, Clock clock) {
+    this(name, failures, probeAfter, clock, BreakerPredicates.defaultPredicate());
   }
 
   public Breaker(
       int failures, Duration probeAfter, Clock clock, Predicate<Throwable> failurePredicate) {
+    this(BreakerConstants.DEFAULT_BREAKER_NAME, failures, probeAfter, clock, failurePredicate);
+  }
+
+  public Breaker(
+      String name,
+      int failures,
+      Duration probeAfter,
+      Clock clock,
+      Predicate<Throwable> failurePredicate) {
+    Objects.requireNonNull(name, "name must not be null");
+    if (name.isBlank()) {
+      throw new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR)
+          .subError("name", "must not be blank");
+    }
     if (failures < 1) {
       throw new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR)
           .subError("failures", "must be at least 1, not " + failures);
@@ -44,6 +81,7 @@ public final class Breaker {
       throw new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR)
           .subError("probeAfter", "must be positive, not " + probeAfter);
     }
+    this.name = name;
     this.failures = failures;
     this.probeAfter = probeAfter;
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
@@ -60,6 +98,7 @@ public final class Breaker {
       openedAt = clock.instant();
       return true;
     }
+    rejectedCalls.incrementAndGet();
     return false;
   }
 
@@ -67,10 +106,12 @@ public final class Breaker {
     failuresInARow = 0;
     openedAt = null;
     probing = false;
+    successfulCalls.incrementAndGet();
   }
 
   public synchronized void recordFailure() {
     failuresInARow++;
+    failedCalls.incrementAndGet();
     if (probing || failuresInARow >= failures) {
       openedAt = clock.instant();
       probing = false;
@@ -167,5 +208,25 @@ public final class Breaker {
 
   public Predicate<Throwable> failurePredicate() {
     return failurePredicate;
+  }
+
+  public String name() {
+    return name;
+  }
+
+  public synchronized int consecutiveFailures() {
+    return failuresInARow;
+  }
+
+  public long successfulCalls() {
+    return successfulCalls.get();
+  }
+
+  public long failedCalls() {
+    return failedCalls.get();
+  }
+
+  public long rejectedCalls() {
+    return rejectedCalls.get();
   }
 }

@@ -269,6 +269,38 @@ class IdempotencyIT {
   }
 
   @Test
+  void defaultConstructorReclaimsOrphanedInProgressKeyAfterOneMinute() {
+    assertThatThrownBy(
+            () ->
+                idempotency.execute(
+                    CLIENT,
+                    "k-default-timeout",
+                    "h1",
+                    Answer.class,
+                    () -> {
+                      runs.incrementAndGet();
+                      throw new RuntimeException("node crashed mid-flight");
+                    }))
+        .isInstanceOf(RuntimeException.class);
+
+    assertThatThrownBy(
+            () -> idempotency.execute(CLIENT, "k-default-timeout", "h1", Answer.class, this::note))
+        .isInstanceOfSatisfying(
+            GeneralException.class,
+            e ->
+                assertThat(e.getStatus())
+                    .isEqualTo(IdempotencyExceptionStatus.IDEMPOTENCY_IN_PROGRESS));
+
+    jdbc.sql(
+            "UPDATE note.note_idempotency SET created_at = now() - interval '65 seconds' WHERE idempotency_key = 'k-default-timeout'")
+        .update();
+
+    var recovered =
+        idempotency.execute(CLIENT, "k-default-timeout", "h1", Answer.class, this::note);
+    assertThat(recovered.replayed()).isFalse();
+  }
+
+  @Test
   void purgingForgetsOldKeys() {
     idempotency.execute(CLIENT, "k6", "h1", Answer.class, this::note);
     assertThat(idempotency.purgeBefore(Instant.now().minus(Duration.ofHours(1)))).isZero();

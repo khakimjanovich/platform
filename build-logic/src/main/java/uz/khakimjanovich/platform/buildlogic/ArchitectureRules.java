@@ -6,6 +6,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
+import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -22,6 +23,7 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import com.tngtech.archunit.library.GeneralCodingRules;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,6 +60,16 @@ public final class ArchitectureRules {
           "a ConstantUtils or *Constants class",
           c ->
               c.getSimpleName().equals("ConstantUtils") || c.getSimpleName().endsWith("Constants"));
+
+  private static final DescribedPredicate<JavaClass> UTILITY_CLASS =
+      describe(
+          "a *Utils or *Util class",
+          c ->
+              (c.getSimpleName().endsWith("Utils") || c.getSimpleName().endsWith("Util"))
+                  && !c.isAnonymousClass()
+                  && !c.isMemberClass()
+                  && !c.isInterface()
+                  && !c.isEnum());
 
   private static final DescribedPredicate<JavaField> A_CONSTANT =
       describe(
@@ -145,6 +157,42 @@ public final class ArchitectureRules {
               .haveFullyQualifiedName("org.springframework.util.LinkedMultiValueMap")
               .because(
                   "a body is a DTO, a form is typed @RequestParams: never a map of name, value pairs")
+              .allowEmptyShould(true),
+          noFields()
+              .should(GeneralCodingRules.BE_ANNOTATED_WITH_AN_INJECTION_ANNOTATION)
+              .because("dependencies must be injected via constructors, never fields")
+              .allowEmptyShould(true),
+          noClasses()
+              .should(GeneralCodingRules.ACCESS_STANDARD_STREAMS)
+              .because(
+                  "production code must use structured logging (SLF4J), never System.out,"
+                      + " System.err, or printStackTrace")
+              .allowEmptyShould(true),
+          noClasses()
+              .should(GeneralCodingRules.USE_JAVA_UTIL_LOGGING)
+              .because("production code must use SLF4J, never java.util.logging")
+              .allowEmptyShould(true),
+          slices()
+              .matching("uz.khakimjanovich.platform.(*)..")
+              .should()
+              .beFreeOfCycles()
+              .because("packages must be free of cyclic dependencies")
+              .allowEmptyShould(true),
+          classes()
+              .that(CONSTANT_CLASS)
+              .should()
+              .haveModifier(JavaModifier.FINAL)
+              .andShould(haveOnlyPrivateConstructors())
+              .because("a constant class is final and cannot be instantiated")
+              .allowEmptyShould(true),
+          classes()
+              .that(UTILITY_CLASS)
+              .should()
+              .haveModifier(JavaModifier.FINAL)
+              .andShould(haveOnlyPrivateConstructors())
+              .andShould(haveOnlyStaticMethods())
+              .andShould(haveOnlyStaticFields())
+              .because("a utility class is final with a private constructor and only static members")
               .allowEmptyShould(true));
 
   // What @EnableModulePersistence builds for a module.
@@ -255,9 +303,81 @@ public final class ArchitectureRules {
           classes()
               .that()
               .areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+              .or()
+              .areAnnotatedWith("org.springframework.stereotype.Controller")
               .should()
+              .haveSimpleNameEndingWith("Controller")
+              .andShould()
               .resideInAPackage("..controller..")
-              .because("a controller lives in controller")
+              .because(
+                  "controllers are annotated with @RestController or @Controller, reside in"
+                      + " controller and end with Controller")
+              .allowEmptyShould(true),
+          classes()
+              .that()
+              .areAnnotatedWith("org.springframework.stereotype.Service")
+              .should()
+              .resideInAPackage("..service..")
+              .because("a service lives in service")
+              .allowEmptyShould(true),
+          classes()
+              .that()
+              .areAnnotatedWith("org.springframework.stereotype.Repository")
+              .or()
+              .haveSimpleNameEndingWith("Repository")
+              .should()
+              .resideInAPackage("..repository..")
+              .because("a repository lives in repository")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideInAPackage("..repository..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAnyPackage("..controller..", "..service..")
+              .because("a repository never depends on services or controllers")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideInAPackage("..repository..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAPackage("org.springframework.web..")
+              .because("repositories must not depend on web layer classes")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideInAPackage("..service..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAPackage("..controller..")
+              .because("services must never depend on the presentation layer")
+              .allowEmptyShould(true),
+          noClasses()
+              .that()
+              .resideInAPackage("..controller..")
+              .should()
+              .beAnnotatedWith("org.springframework.transaction.annotation.Transactional")
+              .orShould()
+              .beAnnotatedWith("jakarta.transaction.Transactional")
+              .because("transactions belong in the service layer, never in controllers")
+              .allowEmptyShould(true),
+          noMethods()
+              .that()
+              .areDeclaredInClassesThat()
+              .resideInAPackage("..controller..")
+              .should()
+              .beAnnotatedWith("org.springframework.transaction.annotation.Transactional")
+              .orShould()
+              .beAnnotatedWith("jakarta.transaction.Transactional")
+              .because("transactions belong in the service layer, never in controllers")
+              .allowEmptyShould(true),
+          slices()
+              .matching(
+                  "..(controller|service|repository|config|property|model|client|mapper|workflow)..")
+              .should()
+              .beFreeOfCycles()
+              .because("service layers must be free of cyclic dependencies")
               .allowEmptyShould(true),
           classes()
               .that()
@@ -428,6 +548,68 @@ public final class ArchitectureRules {
           events.add(
               SimpleConditionEvent.satisfied(
                   method, method.getFullName() + " takes name, value pairs"));
+        }
+      }
+    };
+  }
+
+  private static ArchCondition<JavaClass> haveOnlyPrivateConstructors() {
+    return new ArchCondition<>("have only private constructors") {
+      @Override
+      public void check(JavaClass item, ConditionEvents events) {
+        if (item.getConstructors().isEmpty()) {
+          events.add(
+              SimpleConditionEvent.violated(
+                  item, item.getFullName() + " has no declared constructors"));
+          return;
+        }
+        for (var ctor : item.getConstructors()) {
+          if (!ctor.getModifiers().contains(JavaModifier.PRIVATE)) {
+            events.add(
+                SimpleConditionEvent.violated(
+                    item,
+                    item.getFullName()
+                        + " has a non-private constructor: "
+                        + ctor.getFullName()));
+          }
+        }
+      }
+    };
+  }
+
+  private static ArchCondition<JavaClass> haveOnlyStaticMethods() {
+    return new ArchCondition<>("have only static methods") {
+      @Override
+      public void check(JavaClass item, ConditionEvents events) {
+        for (var method : item.getMethods()) {
+          if (!method.getModifiers().contains(JavaModifier.STATIC)
+              && !method.getModifiers().contains(JavaModifier.SYNTHETIC)) {
+            events.add(
+                SimpleConditionEvent.violated(
+                    item,
+                    item.getFullName()
+                        + " has a non-static method: "
+                        + method.getFullName()));
+          }
+        }
+      }
+    };
+  }
+
+  private static ArchCondition<JavaClass> haveOnlyStaticFields() {
+    return new ArchCondition<>("have only static fields") {
+      @Override
+      public void check(JavaClass item, ConditionEvents events) {
+        for (var field : item.getFields()) {
+          if (!field.getModifiers().contains(JavaModifier.STATIC)
+              && !field.getModifiers().contains(JavaModifier.SYNTHETIC)) {
+            events.add(
+                SimpleConditionEvent.violated(
+                    item,
+                    item.getFullName()
+                        + " has a non-static field: "
+                        + field.getFullName()));
+          }
         }
       }
     };

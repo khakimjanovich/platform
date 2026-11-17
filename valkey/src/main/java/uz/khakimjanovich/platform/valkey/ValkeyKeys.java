@@ -2,6 +2,7 @@ package uz.khakimjanovich.platform.valkey;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -72,6 +73,14 @@ public class ValkeyKeys {
   public void reset(String kind, String id) {
     var name = key(kind, id);
     run(() -> valkey.delete(name));
+  }
+
+  public String service() {
+    return service;
+  }
+
+  public <T> T execute(ValkeyScript<T> script, List<String> keys, Object... args) {
+    return run(() -> valkey.execute(script.target(), keys, args));
   }
 
   private static long seconds(Duration window) {

@@ -13,30 +13,29 @@ import java.util.function.Supplier;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
 import uz.khakimjanovich.platform.error.GeneralException;
+import uz.khakimjanovich.platform.valkey.ValkeyExceptionStatus;
+import uz.khakimjanovich.platform.valkey.ValkeyKeys;
+import uz.khakimjanovich.platform.valkey.ValkeyScript;
 
 @Slf4j
 public class OtpService {
 
   private static final SecureRandom RANDOM = new SecureRandom();
 
-  private static final RedisScript<List<Long>> ISSUE = script(OtpConstants.ISSUE_SCRIPT);
-  private static final RedisScript<List<Long>> VERIFY = script(OtpConstants.VERIFY_SCRIPT);
+  private static final ValkeyScript<List<Long>> ISSUE = script(OtpConstants.ISSUE_SCRIPT);
+  private static final ValkeyScript<List<Long>> VERIFY = script(OtpConstants.VERIFY_SCRIPT);
 
-  private final StringRedisTemplate redis;
+  private final ValkeyKeys valkey;
   private final OtpProperties properties;
   private final MeterRegistry meters;
   private final SecretKeySpec key;
 
-  public OtpService(StringRedisTemplate redis, OtpProperties properties, MeterRegistry meters) {
+  public OtpService(ValkeyKeys valkey, OtpProperties properties, MeterRegistry meters) {
     if (properties.secret() == null || properties.secret().isBlank()) {
       throw new IllegalStateException(OtpConstants.SECRET_MISSING);
     }
-    this.redis = redis;
+    this.valkey = valkey;
     this.properties = properties;
     this.meters = meters;
     this.key =
@@ -49,7 +48,7 @@ public class OtpService {
     var result =
         run(
             () ->
-                redis.execute(
+                valkey.execute(
                     ISSUE,
                     keys(
                         flow,
@@ -77,7 +76,7 @@ public class OtpService {
     var result =
         run(
             () ->
-                redis.execute(
+                valkey.execute(
                     VERIFY,
                     keys(flow, subject, OtpConstants.KEY_CODE, OtpConstants.KEY_ATTEMPTS),
                     String.valueOf(properties.maxAttempts()),
@@ -116,7 +115,13 @@ public class OtpService {
   private static List<Long> run(Supplier<List<Long>> script) {
     try {
       return script.get();
-    } catch (DataAccessException e) {
+    } catch (GeneralException e) {
+      if (e.getStatus() == ValkeyExceptionStatus.VALKEY_UNAVAILABLE) {
+        log.warn(OtpConstants.LOG_UNAVAILABLE, e.getMessage(), e);
+        throw new GeneralException(OtpExceptionStatus.OTP_UNAVAILABLE);
+      }
+      throw e;
+    } catch (RuntimeException e) {
       log.warn(OtpConstants.LOG_UNAVAILABLE, e.getMessage(), e);
       throw new GeneralException(OtpExceptionStatus.OTP_UNAVAILABLE);
     }
@@ -124,17 +129,18 @@ public class OtpService {
 
   // The cast changes only the static type: Spring uses the class to choose a multi-bulk reply.
   @SuppressWarnings("unchecked")
-  private static RedisScript<List<Long>> script(String path) {
-    return RedisScript.of(new ClassPathResource(path), (Class<List<Long>>) (Class<?>) List.class);
+  private static ValkeyScript<List<Long>> script(String path) {
+    return ValkeyScript.ofClassPath(path, (Class<List<Long>>) (Class<?>) List.class);
   }
 
   private List<String> keys(String flow, String subject, String... parts) {
+    var prefix =
+        (properties.keyPrefix() != null && !properties.keyPrefix().isBlank())
+            ? properties.keyPrefix()
+            : valkey.service();
     var hashedSubject = hash(OtpConstants.HASH_SUBJECT + subject);
     return Arrays.stream(parts)
-        .map(
-            part ->
-                OtpConstants.KEY_FORMAT.formatted(
-                    properties.keyPrefix(), flow, hashedSubject, part))
+        .map(part -> OtpConstants.KEY_FORMAT.formatted(prefix, flow, hashedSubject, part))
         .toList();
   }
 

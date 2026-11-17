@@ -1,13 +1,13 @@
 # otp
 
-One-time codes for any module: issued and checked in Redis by one Lua script each, so limits hold
-and a code works once even under concurrent requests. Redis keeps only HMAC-SHA256 hashes of the
+One-time codes for any module: issued and checked in Valkey by one Lua script each, so limits hold
+and a code works once even under concurrent requests. Valkey keeps only HMAC-SHA256 hashes of the
 code and of the subject (an email), keyed with a secret and kept apart (`code:` and `subject:`
-before hashing). A subject's keys share a Redis Cluster hash tag (`otp:<flow>:{<hash>}:<part>`), so
+before hashing). A subject's keys share a Valkey Cluster hash tag (`otp:<flow>:{<hash>}:<part>`), so
 the scripts run on a cluster too.
 
 ```groovy
-implementation libs.platform.otp // needs Redis (spring.data.redis.*)
+implementation libs.platform.otp // needs Valkey (platform.valkey.* and spring.data.redis.*)
 ```
 
 ```java
@@ -17,7 +17,7 @@ otp.verify("registration", email, typedCode); // returns normally if right; neve
 
 Wrong codes count for the whole send window, across codes, so a lockout lasts until the window
 ends and a locked subject gets no new code. A new code waits `resend-after` after the last one.
-Without Redis nothing is issued or accepted, and a warning logs Redis's own message.
+Without Valkey nothing is issued or accepted, and a warning logs Valkey's own message.
 
 ## Properties
 
@@ -33,7 +33,7 @@ unworkable value stops startup, naming the property.
 | `platform.otp.max-sends` | codes sent to one subject per send window |
 | `platform.otp.send-window` | the window sends and wrong codes count in |
 | `platform.otp.resend-after` | wait between two codes; `0s` for none |
-| `platform.otp.key-prefix` | first part of every Redis key |
+| `platform.otp.key-prefix` | first part of every Valkey key |
 
 ## Errors
 
@@ -44,7 +44,7 @@ unworkable value stops startup, naming the property.
 | `OTP_ATTEMPTS_EXCEEDED` | 429 | too many wrong codes in this window; `Retry-After` |
 | `OTP_SEND_LIMIT` | 429 | too many codes sent in this window; `Retry-After` |
 | `OTP_RESEND_TOO_EARLY` | 429 | a code was just sent; `Retry-After` |
-| `OTP_UNAVAILABLE` | 503 | Redis can't be reached |
+| `OTP_UNAVAILABLE` | 503 | Valkey can't be reached |
 
 ## Metrics
 
@@ -58,7 +58,7 @@ meter registry.
 ## Tests
 
 - `./gradlew -p platform :otp:test`: codes, how every script answer becomes an error with
-  `Retry-After`, Redis down, the property checks.
-- `./gradlew -p platform :otp:integrationTest`: a real Redis (`@ServiceConnection`): single use under
+  `Retry-After`, Valkey down, the property checks.
+- `./gradlew -p platform :otp:integrationTest`: a real Valkey (`@ServiceConnection`): single use under
   20 concurrent checks, nothing readable stored, lockout that holds across codes, cooldown, send
-  limit, Redis down, counters.
+  limit, Valkey down, counters.

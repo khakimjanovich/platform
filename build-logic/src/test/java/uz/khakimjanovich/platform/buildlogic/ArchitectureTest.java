@@ -969,6 +969,55 @@ class ArchitectureTest {
     assertTrue(output.contains("demo.service.DemoService"), output);
   }
 
+  @Test
+  void testFrameworkImportInProductionCodeFailsTheBuild() throws IOException {
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.junit.jupiter:junit-jupiter-api' }
+        """);
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import org.junit.jupiter.api.Assertions;
+
+        public class DemoService {
+          public void check() {
+            Assertions.assertNotNull("ok");
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains("test frameworks must not leak into production code"), output);
+    assertTrue(output.contains("demo.service.DemoService"), output);
+  }
+
+  @Test
+  void threadSleepInProductionCodeFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        public class DemoService {
+          public void delay() throws InterruptedException {
+            Thread.sleep(100);
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("production code must not call Thread.sleep"), output);
+    assertTrue(output.contains("DemoService.delay()"), output);
+  }
+
   private GradleRunner runner() {
     return GradleRunner.create()
         .withProjectDir(build.toFile())

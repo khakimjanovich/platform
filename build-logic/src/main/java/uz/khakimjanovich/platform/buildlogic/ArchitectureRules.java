@@ -193,6 +193,17 @@ public final class ArchitectureRules {
               .andShould(haveOnlyStaticMethods())
               .andShould(haveOnlyStaticFields())
               .because("a utility class is final with a private constructor and only static members")
+              .allowEmptyShould(true),
+          noClasses()
+              .should()
+              .dependOnClassesThat()
+              .resideInAnyPackage("org.junit..", "org.mockito..", "org.assertj..")
+              .because("test frameworks must not leak into production code")
+              .allowEmptyShould(true),
+          noClasses()
+              .should()
+              .callMethod(Thread.class, "sleep", long.class)
+              .because("production code must not call Thread.sleep")
               .allowEmptyShould(true));
 
   // What @EnableModulePersistence builds for a module.

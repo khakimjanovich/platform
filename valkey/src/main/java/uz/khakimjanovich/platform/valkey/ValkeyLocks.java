@@ -9,14 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
 import uz.khakimjanovich.platform.error.GeneralException;
 
 @Slf4j
 public class ValkeyLocks {
 
-  private static final RedisScript<Long> UNLOCK_SCRIPT =
-      RedisScript.of(ValkeyConstants.UNLOCK_LUA, Long.class);
+  private static final ValkeyScript<Long> UNLOCK_SCRIPT =
+      ValkeyScript.of(ValkeyConstants.UNLOCK_LUA, Long.class);
 
   private final StringRedisTemplate valkey;
   private final ValkeyKeys keys;
@@ -50,7 +49,7 @@ public class ValkeyLocks {
       throw invalid();
     }
     var key = keys.key(kind, id);
-    var result = run(() -> valkey.execute(UNLOCK_SCRIPT, List.of(key), token));
+    var result = keys.execute(UNLOCK_SCRIPT, List.of(key), token);
     return Long.valueOf(1L).equals(result);
   }
 

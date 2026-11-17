@@ -26,10 +26,12 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import uz.khakimjanovich.platform.error.GeneralException;
+import uz.khakimjanovich.platform.valkey.ValkeyAutoConfiguration;
 
 @SpringBootTest(
     classes = OtpServiceIT.App.class,
     properties = {
+      "platform.valkey.service=otp-service",
       "platform.otp.secret=test-secret",
       "platform.otp.length=6",
       "platform.otp.ttl=5m",
@@ -46,6 +48,7 @@ class OtpServiceIT {
   private static final String EMAIL = "aziza@example.uz";
 
   private static final String[] LIMITS = {
+    "platform.valkey.service=otp-service",
     "platform.otp.length=6",
     "platform.otp.ttl=5m",
     "platform.otp.max-attempts=5",
@@ -57,8 +60,8 @@ class OtpServiceIT {
 
   @Container
   @ServiceConnection(name = "redis")
-  static final GenericContainer<?> REDIS =
-      new GenericContainer<>(ResourceBundle.getBundle("images").getString("redis"))
+  static final GenericContainer<?> VALKEY =
+      new GenericContainer<>(ResourceBundle.getBundle("images").getString("valkey"))
           .withExposedPorts(6379);
 
   @Configuration(proxyBeanMethods = false)
@@ -75,7 +78,7 @@ class OtpServiceIT {
   @Autowired SimpleMeterRegistry meters;
 
   @BeforeEach
-  void emptyRedis() {
+  void emptyValkey() {
     redis.getConnectionFactory().getConnection().serverCommands().flushAll();
   }
 
@@ -123,7 +126,10 @@ class OtpServiceIT {
   void aServiceWithoutASecretRefusesToStart() {
     new ApplicationContextRunner()
         .withConfiguration(
-            AutoConfigurations.of(DataRedisAutoConfiguration.class, OtpAutoConfiguration.class))
+            AutoConfigurations.of(
+                DataRedisAutoConfiguration.class,
+                ValkeyAutoConfiguration.class,
+                OtpAutoConfiguration.class))
         .withPropertyValues(LIMITS)
         .withPropertyValues("platform.otp.secret= ")
         .run(context -> assertThat(context).hasFailed());
@@ -168,11 +174,14 @@ class OtpServiceIT {
   void aSecondCodeInsideTheCooldownWaits() {
     new ApplicationContextRunner()
         .withConfiguration(
-            AutoConfigurations.of(DataRedisAutoConfiguration.class, OtpAutoConfiguration.class))
+            AutoConfigurations.of(
+                DataRedisAutoConfiguration.class,
+                ValkeyAutoConfiguration.class,
+                OtpAutoConfiguration.class))
         .withPropertyValues(LIMITS)
         .withPropertyValues(
-            "spring.data.redis.host=" + REDIS.getHost(),
-            "spring.data.redis.port=" + REDIS.getMappedPort(6379),
+            "spring.data.redis.host=" + VALKEY.getHost(),
+            "spring.data.redis.port=" + VALKEY.getMappedPort(6379),
             "platform.otp.secret=test-secret",
             "platform.otp.resend-after=1m")
         .run(
@@ -190,14 +199,17 @@ class OtpServiceIT {
   }
 
   @Test
-  void withoutRedisCodesFailClosed() throws Exception {
+  void withoutValkeyCodesFailClosed() throws Exception {
     int closed;
     try (var socket = new ServerSocket(0)) {
       closed = socket.getLocalPort();
     }
     new ApplicationContextRunner()
         .withConfiguration(
-            AutoConfigurations.of(DataRedisAutoConfiguration.class, OtpAutoConfiguration.class))
+            AutoConfigurations.of(
+                DataRedisAutoConfiguration.class,
+                ValkeyAutoConfiguration.class,
+                OtpAutoConfiguration.class))
         .withPropertyValues(LIMITS)
         .withPropertyValues(
             "spring.data.redis.port=" + closed,

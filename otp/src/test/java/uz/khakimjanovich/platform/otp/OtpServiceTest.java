@@ -15,15 +15,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
 import uz.khakimjanovich.platform.error.GeneralException;
+import uz.khakimjanovich.platform.valkey.ValkeyExceptionStatus;
+import uz.khakimjanovich.platform.valkey.ValkeyKeys;
+import uz.khakimjanovich.platform.valkey.ValkeyScript;
 
 @ExtendWith(OutputCaptureExtension.class)
 class OtpServiceTest {
 
-  private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
+  private final ValkeyKeys valkey = mock(ValkeyKeys.class);
   private final SimpleMeterRegistry meters = new SimpleMeterRegistry();
 
   private static OtpProperties properties(String secret, int length) {
@@ -38,11 +38,11 @@ class OtpServiceTest {
         "otp");
   }
 
-  private final OtpService otp = new OtpService(redis, properties("test-secret", 6), meters);
+  private final OtpService otp = new OtpService(valkey, properties("test-secret", 6), meters);
 
   private void scriptAnswers(long status, long millis) {
-    when(redis.execute(
-            ArgumentMatchers.<RedisScript<List<Long>>>any(), anyList(), any(Object[].class)))
+    when(valkey.execute(
+            ArgumentMatchers.<ValkeyScript<List<Long>>>any(), anyList(), any(Object[].class)))
         .thenReturn(List.of(status, millis));
   }
 
@@ -50,7 +50,7 @@ class OtpServiceTest {
   void aCodeHasTheConfiguredLengthAndOnlyDigits() {
     scriptAnswers(1, 0);
     assertThat(otp.issue("registration", "aziz@example.uz")).matches("\\d{6}");
-    var eight = new OtpService(redis, properties("test-secret", 8), meters);
+    var eight = new OtpService(valkey, properties("test-secret", 8), meters);
     assertThat(eight.issue("registration", "aziz@example.uz")).matches("\\d{8}");
     assertThat(meters.counter("platform.otp.issued", "flow", "registration").count()).isEqualTo(2);
   }
@@ -89,10 +89,10 @@ class OtpServiceTest {
   }
 
   @Test
-  void withoutRedisNothingIsIssuedOrAccepted(CapturedOutput output) {
-    when(redis.execute(
-            ArgumentMatchers.<RedisScript<List<Long>>>any(), anyList(), any(Object[].class)))
-        .thenThrow(new RedisConnectionFailureException("refused"));
+  void withoutValkeyNothingIsIssuedOrAccepted(CapturedOutput output) {
+    when(valkey.execute(
+            ArgumentMatchers.<ValkeyScript<List<Long>>>any(), anyList(), any(Object[].class)))
+        .thenThrow(new GeneralException(ValkeyExceptionStatus.VALKEY_UNAVAILABLE));
     assertThatThrownBy(() -> otp.issue("f", "s"))
         .isInstanceOfSatisfying(
             GeneralException.class,
@@ -101,12 +101,12 @@ class OtpServiceTest {
         .isInstanceOfSatisfying(
             GeneralException.class,
             e -> assertThat(e.getStatus()).isEqualTo(OtpExceptionStatus.OTP_UNAVAILABLE));
-    assertThat(output).contains("One-time codes unavailable: refused");
+    assertThat(output).contains("One-time codes unavailable:");
   }
 
   @Test
   void aServiceWithoutASecretRefusesToStart() {
-    assertThatThrownBy(() -> new OtpService(redis, properties(" ", 6), meters))
+    assertThatThrownBy(() -> new OtpService(valkey, properties(" ", 6), meters))
         .isInstanceOf(IllegalStateException.class);
   }
 

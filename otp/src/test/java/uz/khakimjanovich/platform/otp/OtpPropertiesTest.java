@@ -6,14 +6,14 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import uz.khakimjanovich.platform.valkey.ValkeyKeys;
 
 class OtpPropertiesTest {
 
   private final ApplicationContextRunner runner =
       new ApplicationContextRunner()
           .withConfiguration(AutoConfigurations.of(OtpAutoConfiguration.class))
-          .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+          .withBean(ValkeyKeys.class, () -> mock(ValkeyKeys.class))
           .withPropertyValues(
               "platform.otp.secret=test-secret",
               "platform.otp.length=6",
@@ -33,7 +33,7 @@ class OtpPropertiesTest {
   void aMissingLimitStopsStartup() {
     new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(OtpAutoConfiguration.class))
-        .withBean(StringRedisTemplate.class, () -> mock(StringRedisTemplate.class))
+        .withBean(ValkeyKeys.class, () -> mock(ValkeyKeys.class))
         .withPropertyValues("platform.otp.secret=test-secret")
         .run(
             context ->

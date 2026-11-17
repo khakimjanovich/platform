@@ -78,6 +78,7 @@ class KeycloakAdminIT {
                 "platform.keycloak.realm=demo",
                 "platform.keycloak.client-id=demo-backend",
                 "platform.keycloak.client-secret=local-only",
+                "platform.logging.masking.fields=value",
                 // No setting has a default; this test starts no collector, and traces nothing.
                 "TRACING_SAMPLING=0.0",
                 "OTLP_TRACES_ENDPOINT=http://otlp.not-started.invalid/v1/traces",

@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.health;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -8,9 +8,10 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.health.registry.HealthContributorRegistry;
+import uz.khakimjanovich.platform.observability.ObservabilityConstants;
 
 @RequiredArgsConstructor
-class HealthMetrics implements SmartInitializingSingleton {
+public class HealthMetrics implements SmartInitializingSingleton {
 
   private final ObjectProvider<HealthContributorRegistry> registry;
   private final ObjectProvider<MeterRegistry> meters;
@@ -19,7 +20,9 @@ class HealthMetrics implements SmartInitializingSingleton {
   public void afterSingletonsInstantiated() {
     var contributors = registry.getIfAvailable();
     var meters = this.meters.getIfAvailable();
-    if (contributors == null || meters == null) return;
+    if (contributors == null || meters == null) {
+      return;
+    }
     contributors.stream()
         .filter(named -> named.contributor() instanceof HealthIndicator)
         .forEach(

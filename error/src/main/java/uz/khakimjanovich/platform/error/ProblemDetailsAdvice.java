@@ -34,10 +34,15 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
   private static final Log log = LogFactory.getLog(ProblemDetailsAdvice.class);
 
   private final ErrorStarterProperties errors;
-  private final Masking masking = Masking.defaults();
+  private final Masking masking;
 
   ProblemDetailsAdvice(ErrorStarterProperties errors) {
+    this(errors, Masking.defaults());
+  }
+
+  ProblemDetailsAdvice(ErrorStarterProperties errors, Masking masking) {
     this.errors = errors;
+    this.masking = masking;
   }
 
   @ExceptionHandler(GeneralException.class)

@@ -1,9 +1,10 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -12,12 +13,17 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 import uz.khakimjanovich.platform.masking.Masking;
+import uz.khakimjanovich.platform.masking.MaskingRules;
+import uz.khakimjanovich.platform.observability.ObservabilityConstants;
 
 @ExtendWith(OutputCaptureExtension.class)
 class HttpClientLoggingTest {
 
   private final RestClient.Builder builder =
-      RestClient.builder().requestInterceptor(new HttpClientLogging(Masking.defaults()));
+      RestClient.builder()
+          .requestInterceptor(
+              new HttpClientLogging(
+                  new Masking(MaskingRules.of(List.of("access_token", "pan", "value")))));
   private final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
   private final RestClient client = builder.build();
 
@@ -32,8 +38,8 @@ class HttpClientLoggingTest {
         .retrieve()
         .body(String.class);
     assertThat(output)
-        .contains("GET /users?username=aziz&access_token=…1234")
-        .doesNotContain("eyJhbGci");
+        .contains("GET /users?username=aziz&access_token=eyJhbG.........1234")
+        .doesNotContain("abcd1234");
   }
 
   @Test
@@ -43,7 +49,7 @@ class HttpClientLoggingTest {
         .andRespond(withSuccess("{\"pan\":\"8600301234567890\"}", MediaType.APPLICATION_JSON));
     var body = client.get().uri("/cards").retrieve().body(String.class);
     assertThat(body).isEqualTo("{\"pan\":\"8600301234567890\"}");
-    assertThat(output).contains("860030******7890").doesNotContain("8600301234567890");
+    assertThat(output).contains("860030......7890").doesNotContain("8600301234567890");
   }
 
   @Test
@@ -71,7 +77,7 @@ class HttpClientLoggingTest {
         .andRespond(
             withSuccess("{\"type\":\"secret\",\"value\":\"abc\"}", MediaType.APPLICATION_JSON));
     client.get().uri("/clients/c-1/client-secret").retrieve().body(String.class);
-    assertThat(output).contains("\"value\":\"***\"").doesNotContain("abc");
+    assertThat(output).contains("\"value\":\"...\"").doesNotContain("abc");
   }
 
   @Test
@@ -92,5 +98,33 @@ class HttpClientLoggingTest {
         .contains("→ POST /clients/c-1/client-secret | <not logged>")
         .contains("← 200 POST /clients/c-1/client-secret")
         .doesNotContain("abc", "xyz");
+  }
+
+  @Test
+  void outboundWhitelistedHeadersAreLoggedAndMasked(CapturedOutput output) {
+    var customBuilder = RestClient.builder();
+    var customLogging =
+        new HttpClientLogging(
+            new Masking(MaskingRules.of(List.of("authorization"))),
+            new HttpLoggingProperties(
+                true, 4000, List.of("content-type", "authorization"), List.of(), List.of()));
+    customBuilder.requestInterceptor(customLogging);
+    var customServer = MockRestServiceServer.bindTo(customBuilder).build();
+    var customClient = customBuilder.build();
+
+    customServer.expect(requestTo("/ping")).andRespond(withSuccess("pong", MediaType.TEXT_PLAIN));
+
+    customClient
+        .get()
+        .uri("/ping")
+        .header("Authorization", "Bearer eyJhbGciOiJSUzI1NiJ9.x.abcd1234")
+        .header("User-Agent", "curl/8.4")
+        .retrieve()
+        .body(String.class);
+
+    assertThat(output)
+        .contains("[Authorization: Bearer............................1234]")
+        .doesNotContain("abcd1234")
+        .doesNotContain("curl/8.4");
   }
 }

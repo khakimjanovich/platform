@@ -1,4 +1,4 @@
-package uz.khakimjanovich.platform.observability;
+package uz.khakimjanovich.platform.observability.health;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,6 +9,7 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.registry.DefaultHealthContributorRegistry;
 import org.springframework.boot.health.registry.HealthContributorRegistry;
+import uz.khakimjanovich.platform.observability.ObservabilityAutoConfiguration;
 
 class HealthMetricsTest {
 

@@ -6,11 +6,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class MaskingConstants {
 
-  public static final String HIDDEN = "***";
+  public static final String DEFAULT_MASK_CHAR = ".";
 
   static final int MAX_LENGTH = 4_000;
-
-  static final Pattern DIGITS = Pattern.compile("(?<!\\d)\\d{13,19}(?!\\d)");
 
   static final Pattern XML_ITEM =
       Pattern.compile("(<name>\\s*([\\w:]+)\\s*</name>\\s*<value>)([^<]*)(</value>)");
@@ -24,4 +22,9 @@ public class MaskingConstants {
   static final Pattern KEY_COLON =
       Pattern.compile(
           "(?<![\\w.-])([A-Za-z_][\\w.-]*)(\"?\\s*:\\s*)(\"?)([^\\s&,;\"':]*+)\\3(?!:)");
+
+  static final Pattern KEY_SPACE =
+      Pattern.compile("(?<![\\w.-])([A-Za-z_][\\w.-]*)(\\s+)(\"?)([^\\s&,;\"':]+)\\3");
+
+  static final Pattern KEY_PATH = Pattern.compile("/([A-Za-z_][\\w.-]*)/([^/?#\\s,;\"']+)");
 }

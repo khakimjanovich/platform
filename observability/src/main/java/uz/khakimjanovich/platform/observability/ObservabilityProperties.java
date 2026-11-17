@@ -2,8 +2,8 @@ package uz.khakimjanovich.platform.observability;
 
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
  * What this service adds to the names every service masks in its logs.
@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param masking field names to mask beyond the defaults
  */
 @ConfigurationProperties("platform.observability")
-public record ObservabilityProperties(@DefaultValue Masking masking) {
+public record ObservabilityProperties(@Nullable Masking masking) {
 
   /**
    * Field names added to the defaults, compared ignoring case; the defaults are never repeated.
@@ -23,8 +23,8 @@ public record ObservabilityProperties(@DefaultValue Masking masking) {
    *     names, e.g. a scheme's {@code code: [pan, otp]}
    */
   public record Masking(
-      @DefaultValue List<String> additionalSecretFields,
-      @DefaultValue List<String> additionalTokenFields,
-      @DefaultValue List<String> additionalCardFields,
-      @DefaultValue Map<String, List<String>> additionalSecretsBeside) {}
+      @Nullable List<String> additionalSecretFields,
+      @Nullable List<String> additionalTokenFields,
+      @Nullable List<String> additionalCardFields,
+      @Nullable Map<String, List<String>> additionalSecretsBeside) {}
 }

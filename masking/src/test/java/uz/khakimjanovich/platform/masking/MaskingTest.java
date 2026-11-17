@@ -5,130 +5,77 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class MaskingTest {
 
   private static final String JSON = "application/json";
-  private static final Masking MASKING = Masking.defaults();
 
-  private static final Masking SERVICE =
-      new Masking(
-          MaskingRules.defaults()
-              .with(List.of(), List.of("aacct"), List.of(), Map.of("code", List.of("pan", "otp"))));
+  @Test
+  void unconfiguredMaskingLeavesContentCompletelyUnmasked() {
+    var masking = Masking.empty();
+    assertThat(masking.isEnabled()).isFalse();
 
-  private static String masked(String body, String type) {
-    return SERVICE.body(body.getBytes(StandardCharsets.UTF_8), type);
+    var json = "{\"pan\":\"8600301234567890\",\"cvv\":\"123\",\"password\":\"s3cr3t\"}";
+    assertThat(masking.body(json.getBytes(StandardCharsets.UTF_8), JSON)).isEqualTo(json);
+
+    var text = "failed: pan=8600301234567890 cvv=123 password=s3cr3t at 12:30";
+    assertThat(masking.text(text)).isEqualTo(text);
+
+    var uri = URI.create("http://api.local/pay?pan=8600301234567890&cvv=123");
+    assertThat(masking.uri(uri)).isEqualTo(uri.toString());
   }
 
   @Test
-  void jsonKeepsItsErrorsButNotTheCard() {
-    var request =
-        """
-        {"method":"cards.new.verify","params":{"card":{"pan":"8600301234567890","expiry":"2812"},\
-        "otp":{"id":"otp-1","code":"123456"}},"error":{"code":-207,"message":"duplicate"}}""";
-    assertThat(masked(request, JSON))
-        .contains("860030******7890", "\"expiry\":\"***\"", "\"code\":\"***\"", "otp-1")
-        .contains("\"code\":-207", "duplicate")
-        .doesNotContain("8600301234567890", "2812", "123456");
+  void configuredFieldsMaskWithFirst6DotsLast4ForLongValues() {
+    var masking = new Masking(MaskingRules.of(List.of("pan", "card_number")));
+    assertThat(masking.isEnabled()).isTrue();
+
+    var json = "{\"pan\":\"8600301234567890\",\"orderId\":9876543210123456}";
+    assertThat(masking.body(json.getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"pan\":\"860030......7890\",\"orderId\":9876543210123456}");
   }
 
   @Test
-  void theCardholderAndTokensAreHidden() {
-    var response =
-        """
-        {"result":{"id":"9C51","pan":"561468******7502","fullName":"JENNIFER GREEN",\
-        "phone":"998941905545","aacct":"0115022618000000000000100","token":"uztok-abcdef123"}}""";
-    assertThat(masked(response, JSON))
-        .contains("\"fullName\":\"***\"", "…5545", "…0100", "…f123")
-        .doesNotContain("JENNIFER", "998941905545", "uztok-abcdef");
+  void shortFieldsUnder10CharsMaskEntirelyWithDots() {
+    var masking = new Masking(MaskingRules.of(List.of("cvv", "password", "pin")));
+
+    var json = "{\"cvv\":\"123\",\"password\":\"secret\",\"pin\":\"1234\"}";
+    assertThat(masking.body(json.getBytes(StandardCharsets.UTF_8), JSON))
+        .isEqualTo("{\"cvv\":\"...\",\"password\":\"......\",\"pin\":\"....\"}");
+
+    var text = "login failed: password=s3cr3t cvv=999";
+    assertThat(masking.text(text)).isEqualTo("login failed: password=...... cvv=...");
   }
 
   @Test
-  void xmlNameValuePairsAndACodeNextToAPan() {
-    var soap =
-        "<ns:Payment><item><name>pan</name><value>9860090101191238</value></item>"
-            + "<item><name>expiry</name><value>2905</value></item></ns:Payment>";
-    assertThat(masked(soap, "text/xml"))
-        .contains("986009******1238", "<value>***</value>")
-        .doesNotContain("9860090101191238", "2905");
-    assertThat(masked("{\"pan\":\"9860090101191238\",\"code\":\"660130\"}", JSON))
-        .doesNotContain("660130");
-  }
+  void maskingWorksAcrossXmlAndFormsAndPlainText() {
+    var masking = new Masking(MaskingRules.of(List.of("pan", "client_secret", "card")));
 
-  @Test
-  void formsAndTypedCredentialsAndAnyStrayCardNumber() {
-    assertThat(
-            masked(
-                "grant_type=client_credentials&client_id=demo&client_secret=s3cr3t",
-                "application/x-www-form-urlencoded"))
-        .isEqualTo("grant_type=client_credentials&client_id=demo&client_secret=***");
-    assertThat(
-            masked(
-                "{\"credentials\":[{\"type\":\"password\",\"value\":\"hunter2\"}],"
-                    + "\"note\":\"card 8600301234567890\"}",
-                JSON))
-        .doesNotContain("hunter2", "8600301234567890");
-    assertThat(
-            MASKING.body(
-                "{\"type\":\"secret\",\"value\":\"abc\"}".getBytes(StandardCharsets.UTF_8), JSON))
-        .as("a typed secret, by the defaults alone")
-        .isEqualTo("{\"type\":\"secret\",\"value\":\"***\"}");
-    assertThat(masked("<html>502</html>", "text/html")).isEqualTo("<16 bytes, text/html>");
-  }
+    var xml = "<Payment><item><name>pan</name><value>9860090101191238</value></item></Payment>";
+    assertThat(masking.body(xml.getBytes(StandardCharsets.UTF_8), "text/xml"))
+        .contains("986009......1238");
 
-  @Test
-  void aUriKeepsItsPathButNotItsSecrets() {
-    var uri =
-        URI.create(
-            "http://keycloak:8080/admin/realms/demo/users?email=aziz%40example.uz"
-                + "&access_token=eyJhbGciOiJSUzI1NiJ9.x.yz12&exact=true");
-    assertThat(MASKING.uri(uri))
-        .isEqualTo(
-            "http://keycloak:8080/admin/realms/demo/users?email=aziz%40example.uz"
-                + "&access_token=…yz12&exact=true");
-    assertThat(MASKING.uri(URI.create("http://bin/internal/v1/bins/8600301234567890")))
-        .isEqualTo("http://bin/internal/v1/bins/860030******7890");
-  }
-
-  @Test
-  void textHidesKeyValuePairsAndStrayCardNumbers() {
-    assertThat(
-            MASKING.text(
-                "token refresh failed: client_secret=s3cr3t pan=8600301234567890 for card"
-                    + " 9860090101191238, price=$5"))
-        .isEqualTo(
-            "token refresh failed: client_secret=*** pan=860030******7890 for card"
-                + " 986009******1238, price=$5");
-    assertThat(MASKING.text("password=\"hunter2\" password: hunter2"))
-        .isEqualTo("password=\"***\" password: ***");
-    assertThat(MASKING.text("failed: password: hunter2, at 12:30"))
-        .isEqualTo("failed: password: ***, at 12:30");
-    assertThat(MASKING.text("{\"client_secret\":\"s3cr3t\"}"))
-        .isEqualTo("{\"client_secret\":\"***\"}");
-    assertThat(MASKING.text(null)).isNull();
-  }
-
-  @Test
-  void aServiceAddsItsOwnNamesToTheDefaults() {
-    var masking =
-        new Masking(
-            MaskingRules.defaults()
-                .with(List.of("EMBOS_NAME"), List.of("hpan"), List.of(), Map.of()));
+    var form = "client_id=partner&client_secret=s3cr3t&pan=8600301234567890";
     assertThat(
             masking.body(
-                "{\"EMBOS_NAME\":\"AZIZ K\",\"hpan\":\"abcdef1234\",\"password\":\"x\"}"
-                    .getBytes(StandardCharsets.UTF_8),
-                JSON))
-        .isEqualTo("{\"EMBOS_NAME\":\"***\",\"hpan\":\"…1234\",\"password\":\"***\"}");
-    assertThat(MASKING.body("{\"hpan\":\"abcdef1234\"}".getBytes(StandardCharsets.UTF_8), JSON))
-        .as("the defaults alone don't know it")
-        .contains("abcdef1234");
-    assertThat(
-            MASKING.body(
-                "{\"pan\":\"x\",\"code\":\"660130\"}".getBytes(StandardCharsets.UTF_8), JSON))
-        .as("nor a code beside a card number")
-        .contains("660130");
+                form.getBytes(StandardCharsets.UTF_8), "application/x-www-form-urlencoded"))
+        .isEqualTo("client_id=partner&client_secret=......&pan=860030......7890");
+
+    var text = "pan=8600301234567890 client_secret: topsecret paid with card 8600301234567890";
+    assertThat(masking.text(text))
+        .isEqualTo("pan=860030......7890 client_secret: ......... paid with card 860030......7890");
+
+    var uri = URI.create("https://api.payment.uz/v1/checkout?pan=8600301234567890&ref=123");
+    assertThat(masking.uri(uri))
+        .isEqualTo("https://api.payment.uz/v1/checkout?pan=860030......7890&ref=123");
+  }
+
+  @Test
+  void customMaskCharacterCanBeConfigured() {
+    var masking = new Masking(MaskingRules.of("*", List.of("pan", "cvv")));
+
+    assertThat(masking.maskValue("8600301234567890")).isEqualTo("860030******7890");
+    assertThat(masking.maskValue("123")).isEqualTo("***");
   }
 }

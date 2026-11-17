@@ -8,7 +8,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -61,13 +60,17 @@ public class Outbox {
   }
 
   public void append(OutboxEvent event) {
+    append(event, traceparent());
+  }
+
+  public void append(OutboxEvent event, @Nullable String traceparent) {
     jdbc.sql(insert)
         .param("id", event.id())
         .param("topic", event.topic())
         .param("key", event.key())
         .param("type", event.type())
         .param("payload", event.payload())
-        .param("traceparent", traceparent())
+        .param("traceparent", traceparent)
         .update();
   }
 
@@ -110,7 +113,9 @@ public class Outbox {
       // Sent inside the trace of the request that wrote the event, which Kafka then carries on.
       var span = span(row.traceparent());
       try (var _ = tracer.withSpan(span)) {
-        sends.add(kafka.send(record(row)));
+        var record = record(row);
+        injectTrace(record, span, row.traceparent());
+        sends.add(kafka.send(record));
       } finally {
         span.end();
       }
@@ -121,17 +126,64 @@ public class Outbox {
   }
 
   private static ProducerRecord<String, String> record(Row row) {
-    return new ProducerRecord<>(
-        row.topic(),
-        null,
-        row.key(),
-        row.payload(),
-        List.of(
+    var record = new ProducerRecord<String, String>(row.topic(), null, row.key(), row.payload());
+    record
+        .headers()
+        .add(
             new RecordHeader(
                 OutboxConstants.HEADER_EVENT_ID,
-                row.id().toString().getBytes(StandardCharsets.UTF_8)),
+                row.id().toString().getBytes(StandardCharsets.UTF_8)))
+        .add(
             new RecordHeader(
-                OutboxConstants.HEADER_EVENT_TYPE, row.type().getBytes(StandardCharsets.UTF_8))));
+                OutboxConstants.HEADER_EVENT_TYPE, row.type().getBytes(StandardCharsets.UTF_8)));
+    return record;
+  }
+
+  private void injectTrace(
+      ProducerRecord<String, String> record, Span span, @Nullable String traceparent) {
+    var context = span.context();
+    if (context != null && context.traceId() != null && !context.traceId().isBlank()) {
+      propagator.inject(
+          context,
+          record.headers(),
+          (same, key, value) ->
+              record.headers().add(new RecordHeader(key, value.getBytes(StandardCharsets.UTF_8))));
+      if (record.headers().lastHeader(OutboxConstants.HEADER_REQUEST_ID) == null) {
+        record
+            .headers()
+            .add(
+                new RecordHeader(
+                    OutboxConstants.HEADER_REQUEST_ID,
+                    context.traceId().getBytes(StandardCharsets.UTF_8)));
+      }
+    }
+    if (traceparent != null && record.headers().lastHeader(OutboxConstants.TRACEPARENT) == null) {
+      record
+          .headers()
+          .add(
+              new RecordHeader(
+                  OutboxConstants.TRACEPARENT, traceparent.getBytes(StandardCharsets.UTF_8)));
+    }
+    if (traceparent != null
+        && record.headers().lastHeader(OutboxConstants.HEADER_REQUEST_ID) == null) {
+      var traceId = extractTraceId(traceparent);
+      if (traceId != null) {
+        record
+            .headers()
+            .add(
+                new RecordHeader(
+                    OutboxConstants.HEADER_REQUEST_ID, traceId.getBytes(StandardCharsets.UTF_8)));
+      }
+    }
+  }
+
+  private static @Nullable String extractTraceId(String traceparent) {
+    if (traceparent.length() == 55
+        && traceparent.startsWith("00-")
+        && traceparent.charAt(35) == '-') {
+      return traceparent.substring(3, 35);
+    }
+    return null;
   }
 
   private Span span(@Nullable String traceparent) {
@@ -147,7 +199,22 @@ public class Outbox {
     if (context == null) return null;
     var carrier = new HashMap<String, String>();
     propagator.inject(context, carrier, (same, key, value) -> carrier.put(key, value));
-    return carrier.get(OutboxConstants.TRACEPARENT);
+    var injected = carrier.get(OutboxConstants.TRACEPARENT);
+    if (injected != null && !injected.isBlank()) {
+      return injected;
+    }
+    if (context.traceId() != null
+        && !context.traceId().isBlank()
+        && context.spanId() != null
+        && !context.spanId().isBlank()) {
+      return "00-"
+          + context.traceId()
+          + "-"
+          + context.spanId()
+          + "-"
+          + (Boolean.TRUE.equals(context.sampled()) ? "01" : "00");
+    }
+    return null;
   }
 
   private static String name(String name) {

@@ -92,6 +92,7 @@ class OutboxIT {
   void setUp() {
     JdbcClient.create(dataSource).sql("DELETE FROM note.note_outbox").update();
     outbox = outbox(KAFKA.getBootstrapServers(), 2);
+    while (consumer.poll(Duration.ofMillis(100)).count() > 0) {}
   }
 
   @Test
@@ -154,6 +155,20 @@ class OutboxIT {
     down.append(event("k3", "waiting"));
     assertThatThrownBy(down::relay).isInstanceOf(RuntimeException.class);
     assertThat(unpublished()).isOne();
+  }
+
+  @Test
+  void anEventPreservesTraceparentAndRequestIdInKafkaHeaders() {
+    var traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
+    var event = event("k-trace", "payload-with-trace");
+    outbox.append(event, traceparent);
+    outbox.relay();
+
+    var records = poll(1);
+    var record = records.getFirst();
+    assertThat(header(record, OutboxConstants.TRACEPARENT)).isEqualTo(traceparent);
+    assertThat(header(record, OutboxConstants.HEADER_REQUEST_ID))
+        .isEqualTo("4bf92f3577b34da6a3ce929d0e0e4736");
   }
 
   @Test

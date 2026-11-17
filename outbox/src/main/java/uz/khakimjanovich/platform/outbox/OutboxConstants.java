@@ -37,6 +37,8 @@ public class OutboxConstants {
 
   public static final String HEADER_EVENT_TYPE = "event-type";
 
+  public static final String HEADER_REQUEST_ID = "X-Request-Id";
+
   public static final String TRACEPARENT = "traceparent";
   public static final String RELAY_SPAN = "outbox relay";
 }

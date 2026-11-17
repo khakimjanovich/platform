@@ -2,6 +2,7 @@ package uz.khakimjanovich.platform.observability;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
+import io.micrometer.context.ContextSnapshot;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Tracer;
 import io.opentelemetry.api.OpenTelemetry;
@@ -20,10 +21,12 @@ import org.springframework.boot.health.registry.HealthContributorRegistry;
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
 import uz.khakimjanovich.platform.breaker.Breaker;
 import uz.khakimjanovich.platform.masking.Masking;
 import uz.khakimjanovich.platform.masking.MaskingRules;
 import uz.khakimjanovich.platform.observability.breaker.BreakerMetrics;
+import uz.khakimjanovich.platform.observability.context.ContextPropagatingTaskDecorator;
 import uz.khakimjanovich.platform.observability.health.HealthMetrics;
 import uz.khakimjanovich.platform.observability.http.HttpClientLogging;
 import uz.khakimjanovich.platform.observability.http.HttpLoggingProperties;
@@ -149,6 +152,17 @@ public class ObservabilityAutoConfiguration {
     BreakerMetrics breakerMetrics(
         ObjectProvider<Breaker> breakers, ObjectProvider<MeterRegistry> meters) {
       return new BreakerMetrics(breakers, meters);
+    }
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass({TaskDecorator.class, ContextSnapshot.class})
+  static class AsyncContext {
+
+    @Bean
+    @ConditionalOnMissingBean(TaskDecorator.class)
+    TaskDecorator contextPropagatingTaskDecorator() {
+      return new ContextPropagatingTaskDecorator();
     }
   }
 }

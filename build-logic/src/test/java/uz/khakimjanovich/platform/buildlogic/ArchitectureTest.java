@@ -544,7 +544,12 @@ class ArchitectureTest {
         rootProject.name = 'demo-lib'
         dependencyResolutionManagement {
             repositories { mavenCentral() }
-            versionCatalogs { create('libs') { from(files('%s')) } }
+            versionCatalogs {
+                create('libs') {
+                    from(files('%s'))
+                    version('platform-demo-lib', '0.0.0')
+                }
+            }
         }
         """
             .formatted(System.getProperty("catalog")));

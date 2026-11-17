@@ -50,9 +50,20 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     var definition = errors.codes().get(ex.getStatus().getType());
     var problem = problem(ex.getStatus(), ex.getParams());
     if (!ex.getSubErrors().isEmpty()) {
-      problem.setProperty(ErrorConstants.SUB_ERRORS_PROPERTY, ex.getSubErrors());
+      var maskedSubErrors =
+          ex.getSubErrors().stream()
+              .map(
+                  se ->
+                      new GeneralException.SubError(
+                          se.code(), se.message() == null ? null : masking.text(se.message())))
+              .toList();
+      problem.setProperty(ErrorConstants.SUB_ERRORS_PROPERTY, maskedSubErrors);
     }
-    log(problem, definition == null ? null : definition.messageEn(), loggable(definition));
+    log(
+        problem,
+        definition == null ? null : definition.messageEn(),
+        loggable(definition),
+        ex.getCause());
     var response =
         ResponseEntity.status(problem.getStatus()).contentType(MediaType.APPLICATION_PROBLEM_JSON);
     if (ex.getRetryAfter() != null) {
@@ -74,10 +85,10 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
                         ErrorConstants.FIELD,
                         violation.getPropertyPath().toString(),
                         ErrorConstants.MESSAGE,
-                        violation.getMessage()))
+                        String.valueOf(masking.text(violation.getMessage()))))
             .toList();
     problem.setProperty(ErrorConstants.ERRORS_PROPERTY, fields);
-    log(problem, ErrorConstants.LOG_INVALID + fieldNames(fields), false);
+    log(problem, ErrorConstants.LOG_INVALID + fieldNames(fields), false, null);
     return ResponseEntity.badRequest()
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
         .body(problem);
@@ -85,8 +96,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(Exception.class)
   ResponseEntity<ProblemDetail> unexpected(Exception ex) {
-    log.error(ErrorConstants.LOG_UNEXPECTED_ERROR, ex);
-    return general(new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR));
+    return general(new GeneralException(ErrorExceptionStatus.INTERNAL_ERROR, ex));
   }
 
   private ProblemDetail problem(StatusThrowable status, Object... params) {
@@ -98,8 +108,9 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
       definition = errors.codes().getOrDefault(status.getType(), ErrorConstants.LAST_RESORT);
     }
     var detail = definition.message(LocaleContextHolder.getLocale(), params);
+    var maskedDetail = detail == null ? null : masking.text(detail);
     var problem =
-        ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(definition.httpCode()), detail);
+        ProblemDetail.forStatusAndDetail(HttpStatus.valueOf(definition.httpCode()), maskedDetail);
     problem.setTitle(definition.title());
     problem.setProperty(ErrorConstants.CODE_PROPERTY, status.getType());
     identify(problem);
@@ -112,10 +123,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
-    var errors =
-        ex.getBindingResult().getFieldErrors().stream()
-            .map(ProblemDetailsAdvice::fieldError)
-            .toList();
+    var errors = ex.getBindingResult().getFieldErrors().stream().map(this::fieldError).toList();
     return invalid(ex, ex.getBody(), errors, headers, status, request);
   }
 
@@ -136,7 +144,8 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
                                     ErrorConstants.FIELD,
                                     String.valueOf(result.getMethodParameter().getParameterName()),
                                     ErrorConstants.MESSAGE,
-                                    String.valueOf(error.getDefaultMessage()))))
+                                    String.valueOf(
+                                        masking.text(String.valueOf(error.getDefaultMessage()))))))
             .toList();
     return invalid(ex, ex.getBody(), errors, headers, status, request);
   }
@@ -161,7 +170,7 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
             named == null ? String.valueOf(status.value()) : named.name());
         // Spring's messages quote the caller's input ("For input string: …"); its class name
         // doesn't.
-        log(problem, ex.getClass().getSimpleName(), false);
+        log(problem, ex.getClass().getSimpleName(), false, status.value() >= 500 ? ex : null);
       }
       identify(problem);
     }
@@ -181,16 +190,16 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     problem.setProperty(
         ErrorConstants.CODE_PROPERTY, ErrorExceptionStatus.VALIDATION_FAILED.getType());
     problem.setProperty(ErrorConstants.ERRORS_PROPERTY, errors);
-    log(problem, ErrorConstants.LOG_INVALID + fieldNames(errors), false);
+    log(problem, ErrorConstants.LOG_INVALID + fieldNames(errors), false, null);
     return handleExceptionInternal(ex, problem, headers, status, request);
   }
 
-  private static Map<String, String> fieldError(FieldError error) {
+  private Map<String, String> fieldError(FieldError error) {
     return Map.of(
         ErrorConstants.FIELD,
         error.getField(),
         ErrorConstants.MESSAGE,
-        String.valueOf(error.getDefaultMessage()));
+        String.valueOf(masking.text(String.valueOf(error.getDefaultMessage()))));
   }
 
   private static List<String> fieldNames(List<Map<String, String>> errors) {
@@ -217,7 +226,8 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
     }
   }
 
-  private void log(ProblemDetail problem, @Nullable String reason, boolean loggable) {
+  private void log(
+      ProblemDetail problem, @Nullable String reason, boolean loggable, @Nullable Throwable ex) {
     var properties = problem.getProperties() == null ? Map.of() : problem.getProperties();
     var line =
         ErrorConstants.LOG_PROBLEM.formatted(
@@ -226,9 +236,17 @@ class ProblemDetailsAdvice extends ResponseEntityExceptionHandler {
             request(),
             reason == null ? String.valueOf(problem.getTitle()) : reason);
     line = String.valueOf(masking.text(line));
-    if (problem.getStatus() >= 500) log.error(line);
-    else if (loggable) log.warn(line);
-    else log.info(line);
+    if (problem.getStatus() >= 500) {
+      if (ex != null) {
+        log.error(line, ex);
+      } else {
+        log.error(line);
+      }
+    } else if (loggable) {
+      log.warn(line);
+    } else {
+      log.info(line);
+    }
   }
 
   private static String request() {

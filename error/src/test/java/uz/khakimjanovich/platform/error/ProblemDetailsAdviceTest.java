@@ -48,6 +48,7 @@ class ProblemDetailsAdviceTest {
 
   enum TestStatus implements StatusThrowable {
     EMAIL_TAKEN,
+    CARD_DECLINED,
     NOT_DEFINED;
 
     @Override
@@ -103,6 +104,12 @@ class ProblemDetailsAdviceTest {
     @GetMapping("/odd{rest}")
     void odd() {
       throw new IllegalStateException("odd");
+    }
+
+    @GetMapping("/card")
+    void card() {
+      throw new GeneralException(TestStatus.CARD_DECLINED, "pan=8600301234567890")
+          .subError("SCHEME_ERR", "declined with client_secret=s3cr3t");
     }
 
     @GetMapping("/boom")
@@ -264,6 +271,56 @@ class ProblemDetailsAdviceTest {
         .andExpect(jsonPath("$.instance").value("/odd%7Cpath"));
   }
 
+  @Test
+  void clientErrorsLogAtWarnOrInfoAndNeverAtError(CapturedOutput output) throws Exception {
+    mvc.perform(get("/taken")).andExpect(status().isConflict());
+    mvc.perform(get("/card")).andExpect(status().isBadRequest());
+    mvc.perform(delete("/taken")).andExpect(status().isMethodNotAllowed());
+    mvc.perform(post("/signup").contentType(MediaType.APPLICATION_JSON).content("{bad json"))
+        .andExpect(status().isBadRequest());
+    mvc.perform(get("/denied")).andExpect(status().isForbidden());
+
+    assertThat(output)
+        .contains("409 EMAIL_TAKEN")
+        .contains("400 CARD_DECLINED")
+        .contains("405 METHOD_NOT_ALLOWED")
+        .contains("400 BAD_REQUEST")
+        .contains("403 FORBIDDEN");
+    assertThat(output.getOut().lines())
+        .filteredOn(line -> line.contains("uz.khakimjanovich.platform.error.ProblemDetailsAdvice"))
+        .noneMatch(line -> line.contains("ERROR"));
+  }
+
+  @Test
+  void serverErrorsLogAtErrorWithSingleStructuredSummaryAndException(CapturedOutput output)
+      throws Exception {
+    mvc.perform(get("/boom")).andExpect(status().isInternalServerError());
+
+    assertThat(output)
+        .contains("500 INTERNAL_ERROR | GET /boom")
+        .contains("IllegalStateException: db password is hunter2")
+        .doesNotContain("Unexpected error");
+    assertThat(output.getOut().lines())
+        .filteredOn(line -> line.contains("uz.khakimjanovich.platform.error.ProblemDetailsAdvice"))
+        .anyMatch(line -> line.contains("ERROR") && line.contains("500 INTERNAL_ERROR"));
+  }
+
+  @Test
+  void problemDetailsMasksSensitiveDataInDetailAndSubErrors() throws Exception {
+    var masking = new Masking(MaskingRules.of(List.of("pan", "client_secret")));
+    mvc(masking)
+        .perform(get("/card"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("CARD_DECLINED"))
+        .andExpect(jsonPath("$.detail").value("Card pan=860030......7890 was declined."))
+        .andExpect(jsonPath("$.subErrors[0].message").value("declined with client_secret=......"))
+        .andExpect(
+            jsonPath("$.detail").value(Matchers.not(Matchers.containsString("8600301234567890"))))
+        .andExpect(
+            jsonPath("$.subErrors[0].message")
+                .value(Matchers.not(Matchers.containsString("s3cr3t"))));
+  }
+
   private static MockMvc mvc() {
     return mvc(Masking.defaults());
   }
@@ -293,6 +350,10 @@ class ProblemDetailsAdviceTest {
     properties.put("platform.error.codes.EMAIL_TAKEN.message-en", "{0} is already registered.");
     properties.put(
         "platform.error.codes.EMAIL_TAKEN.message-uz", "{0} allaqachon roʻyxatdan oʻtgan.");
+    properties.put("platform.error.codes.CARD_DECLINED.http-code", "400");
+    properties.put("platform.error.codes.CARD_DECLINED.title", "card-declined");
+    properties.put("platform.error.codes.CARD_DECLINED.is-loggable", "true");
+    properties.put("platform.error.codes.CARD_DECLINED.message-en", "Card {0} was declined.");
     return new Binder(new MapConfigurationPropertySource(properties))
         .bind(ErrorConstants.PROPERTIES_PREFIX, ErrorStarterProperties.class)
         .get();

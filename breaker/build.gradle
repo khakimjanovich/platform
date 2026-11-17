@@ -9,5 +9,8 @@ dependencies {
     api project(":error") // a breaker built with bad settings is a GeneralException
     runtimeOnly project(':config') // loads properties/breaker-exception.yaml
 
+    compileOnly libs.micrometer.core
+
     testImplementation testFixtures(project(':error')) // ErrorDefinitions
+    testImplementation libs.micrometer.core
 }

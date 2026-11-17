@@ -9,16 +9,25 @@ tasks.named('check') {
     dependsOn gradle.includedBuild('build-logic').task(':check')
 }
 
-// Work in progress for the other builds (app, adapters, contracts): every artifact whose catalog
-// version is a -SNAPSHOT, with the build plugins and the catalog, into ~/.m2. A released version is
-// left alone, so a local build never shadows what the registry has (README.md §Versions).
 def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
 def snapshot = { String alias -> catalog.findVersion(alias).map { it.requiredVersion.endsWith('-SNAPSHOT') }.orElse(false) }
+def snapshotProjects = subprojects.findAll { it.buildFile.exists() }
+    .findAll { snapshot(it.name == 'versioning' ? 'platform' : "platform-${it.name}") }
+    .collect { it.path }
+def buildLogicSnapshot = snapshot('platform-build')
+
 tasks.register('publishLocal') {
     group = 'publishing'
     description = 'Publishes every -SNAPSHOT artifact, the build plugins and the catalog to Maven local.'
-    subprojects.findAll { it.buildFile.exists() }.each { p ->
-        if (snapshot(p.name == 'versioning' ? 'platform' : "platform-${p.name}")) dependsOn "${p.path}:publishToMavenLocal"
+    snapshotProjects.each { dependsOn "${it}:publishToMavenLocal" }
+    if (buildLogicSnapshot) dependsOn gradle.includedBuild('build-logic').task(':publishToMavenLocal')
+}
+
+tasks.register('publishSnapshots') {
+    group = 'publishing'
+    description = 'Publishes every -SNAPSHOT artifact, the build plugins and the catalog to GitHub Packages.'
+    snapshotProjects.each { dependsOn "${it}:publishAllPublicationsToGithubPackagesRepository" }
+    if (buildLogicSnapshot) {
+        dependsOn gradle.includedBuild('build-logic').task(':publishAllPublicationsToGithubPackagesRepository')
     }
-    if (snapshot('platform-build')) dependsOn gradle.includedBuild('build-logic').task(':publishToMavenLocal')
 }

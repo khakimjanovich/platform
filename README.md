@@ -53,25 +53,40 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
   major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
   method, property or error code. A library that takes a breaking change from another raises its own
   version too.
-- A release is a merge to `main` that raises one or more of those versions: the release workflow runs
-  the checks and publishes only what was raised to GitHub Packages
-  (`https://maven.pkg.github.com/khakimjanovich/platform`), each with a tag:
-  a library (`uz.khakimjanovich.platform:<lib>`, with sources and test fixtures) as `<lib>-vX.Y.Z`;
-  the build plugins (`platform.java`, `platform.library`, `platform.module`, `platform.integration-test`)
-  as `build-logic-vX.Y.Z`; the catalog (`uz.khakimjanovich.platform:versioning`) last, as
-  `platform-vX.Y.Z` with a GitHub release. `.github/scripts/unreleased.sh` lists what a merge would release.
-- `develop` carries work in progress as `-SNAPSHOT` (`2.8.0-SNAPSHOT`): CI builds it and releases
-  nothing. A pull request into `main` fails the `release gate` while any platform version is still a
-  `-SNAPSHOT` (`.github/scripts/no-snapshots.sh`), and the release workflow checks again before it
-  publishes. `./gradlew publishLocal` puts every `-SNAPSHOT` artifact, the build plugins and the catalog in
-  `~/.m2`; a released version is left alone, so nothing local shadows the registry. A build on the
-  platform reads Maven local first, for snapshots only:
+- There are two kinds of release, both to GitHub Packages
+  (`https://maven.pkg.github.com/khakimjanovich/platform`):
+
+  | | Snapshot | Production |
+  |---|---|---|
+  | Branch | `develop` | `main` |
+  | Versions | `X.Y.Z-SNAPSHOT` | `X.Y.Z` |
+  | Workflow | `snapshot.yml`, on every push | `release.yml`, on a merge that changes the catalog |
+  | Publishes | every `-SNAPSHOT` artifact, the build plugins and the catalog (`./gradlew publishSnapshots`) | every artifact whose version has no tag yet, the catalog last |
+  | Same version again | allowed: the newest build replaces the previous one for consumers | fails: an artifact changed since the tag of its version must raise it |
+  | Tags | none | `<lib>-vX.Y.Z`, `build-logic-vX.Y.Z`, `platform-vX.Y.Z` with a GitHub release |
+
+- Into `main`: a pull request fails the `release gate` while any platform version is a `-SNAPSHOT`
+  (`.github/scripts/no-snapshots.sh`) or an artifact changed since the tag of its version
+  (`.github/scripts/unreleased.sh`, which also prints what the merge will release). The release
+  workflow runs both again and publishes nothing if either fails. To release, drop `-SNAPSHOT` from the
+  versions that changed; an unchanged library goes back to its last release.
+- Locally, `./gradlew publishLocal` puts the same snapshot set in `~/.m2` and overwrites it on each run,
+  with no version bump. A build on the platform reads snapshots from Maven local first, then from the
+  registry (a GitHub token with `read:packages` as `gpr.user` / `gpr.key` in `~/.gradle/gradle.properties`):
 
   ```groovy
   // settings.gradle; gradle.properties: platformVersion=2.8.0-SNAPSHOT
   pluginManagement {
       repositories {
           mavenLocal { mavenContent { snapshotsOnly() } }
+          maven {
+              url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+              credentials {
+                  username = providers.gradleProperty('gpr.user').getOrElse('')
+                  password = providers.gradleProperty('gpr.key').getOrElse('')
+              }
+              content { includeGroupByRegex 'platform\\..*' } // the build plugins' markers
+          }
           mavenCentral()
           gradlePluginPortal()
       }
@@ -82,18 +97,25 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
               mavenContent { snapshotsOnly() }
               content { includeGroup 'uz.khakimjanovich.platform' }
           }
+          maven {
+              url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+              credentials {
+                  username = providers.gradleProperty('gpr.user').getOrElse('')
+                  password = providers.gradleProperty('gpr.key').getOrElse('')
+              }
+              content { includeGroup 'uz.khakimjanovich.platform' }
+          }
           mavenCentral()
       }
       versionCatalogs {
-          create('libs') { from("uz.khakimjanovich.platform:versioning:${providers.gradleProperty('platformVersion').get()}") }
+          create('libs') {
+              from("uz.khakimjanovich.platform:versioning:${providers.gradleProperty('platformVersion').get()}")
+          }
       }
   }
   // build.gradle
   plugins { id 'platform.library' version '2.8.0-SNAPSHOT' }
   ```
-
-  Releasing is dropping `-SNAPSHOT` from the versions that changed (an unchanged library goes back to
-  its last release) in one merge to `main`.
 - Raise `platform` only when a consumer needs the new set; libraries can release many times in between.
   The contracts build pins the catalog; the services pin the libraries the same way, or build them from
   source with `--include-build`.

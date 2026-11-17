@@ -1,7 +1,8 @@
-# A merge to main that raises a version in the catalog publishes just that artifact to GitHub Packages
-# and tags it: a library or build-logic `platform-<name>` as `<name>-v<version>`, the hub catalog
-# `platform` as `platform-v<version>` with a GitHub release. A dependency bump that raises nothing
-# releases nothing (.github/scripts/unreleased.sh decides).
+# The production release: a merge to main publishes every artifact whose catalog version is new to
+# GitHub Packages and tags it: a library or build-logic `platform-<name>` as `<name>-v<version>`, the
+# hub catalog `platform` as `platform-v<version>` with a GitHub release. It fails, publishing nothing,
+# on a -SNAPSHOT version or on an artifact changed since the tag of its version
+# (.github/scripts/no-snapshots.sh, unreleased.sh). Snapshots come from develop (snapshot.yml).
 name: release
 
 on:
@@ -25,6 +26,8 @@ jobs:
       unreleased: ${{ steps.plan.outputs.unreleased }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the release tags
       - run: .github/scripts/no-snapshots.sh # the release gate let one through: stop here
       - id: plan
         run: |

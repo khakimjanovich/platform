@@ -1,5 +1,6 @@
-# A pull request into main must carry released versions only: develop works on -SNAPSHOT, main
-# releases. No path filter, so the check always reports and can be required on main.
+# A pull request into main must be releasable: no -SNAPSHOT version, and no artifact changed since
+# the tag of its version (a released version is never published again). Prints what the merge will
+# release. No path filter, so the check always reports and can be required on main.
 name: release gate
 
 on:
@@ -15,4 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the release tags
       - run: .github/scripts/no-snapshots.sh
+      - name: Release plan
+        run: |
+          plan=$(.github/scripts/unreleased.sh)
+          echo "${plan:-nothing to release}"

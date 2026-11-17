@@ -75,7 +75,9 @@ Where Vault is and how to sign in are Spring Cloud Vault's `spring.cloud.vault.*
 `VaultUnavailableException` (from `VaultSecrets`, `SigningKeys`, `ClientRegistry`): callers fail
 closed (a module refuses the request).
 
-`VaultTransit` throws `GeneralException`; the log names Vault's status and path, never a value:
+`VaultTransit` throws `GeneralException`; the log names Vault's status and path, never a value.
+Any cardholder data (PAN), encryption context, or sensitive fields reflected in Vault errors are
+sanitized through `Masking` and PCI-DSS PAN masking (`first6...last4`) before logging.
 
 | Code | Status | When |
 |---|---|---|

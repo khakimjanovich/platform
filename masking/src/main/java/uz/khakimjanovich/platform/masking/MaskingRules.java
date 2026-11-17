@@ -34,6 +34,11 @@ public record MaskingRules(String maskChar, Set<String> fields) {
   }
 
   public boolean contains(String fieldName) {
-    return fields.contains(fieldName.toLowerCase(Locale.ROOT));
+    var lower = fieldName.toLowerCase(Locale.ROOT);
+    if (fields.contains(lower)) {
+      return true;
+    }
+    var dot = lower.lastIndexOf('.');
+    return dot >= 0 && fields.contains(lower.substring(dot + 1));
   }
 }

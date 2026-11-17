@@ -25,6 +25,7 @@ public class VaultConstants {
   public static final String TRANSIT_KEY_MISSING = "Vault Transit has no key {}";
 
   public static final Set<Integer> TRANSIT_REFUSED_STATUSES = Set.of(400, 404);
+  public static final Pattern CARD_PATTERN = Pattern.compile("\\b(?:\\d[ -]*?){13,19}\\b");
 
   public static final String TOKEN_LOOKUP_SELF = "auth/token/lookup-self";
   public static final String HEALTH_INDICATOR_BEAN = "vaultTokenHealthIndicator";

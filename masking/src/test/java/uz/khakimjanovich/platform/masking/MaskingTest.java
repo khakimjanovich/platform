@@ -78,4 +78,14 @@ class MaskingTest {
     assertThat(masking.maskValue("8600301234567890")).isEqualTo("860030******7890");
     assertThat(masking.maskValue("123")).isEqualTo("***");
   }
+
+  @Test
+  void qualifiedFieldNamesWithDotsAreMaskedWhenSuffixMatches() {
+    var masking = new Masking(MaskingRules.of(List.of("pan", "cvv", "secret")));
+
+    var text = "transit context: card.pan:8600301234567890 item.secret:supersecret order.cvv:123";
+    assertThat(masking.text(text))
+        .isEqualTo(
+            "transit context: card.pan:860030......7890 item.secret:supers.cret order.cvv:...");
+  }
 }

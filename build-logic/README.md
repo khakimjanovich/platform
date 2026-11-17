@@ -47,6 +47,8 @@ generated code is left out. The rules are in `ArchitectureRules`, the same for e
   via explicit constructor injection.
 - structured logging: production code never calls `System.out`, `System.err`, `printStackTrace()`,
   or `java.util.logging`; all application logging flows through SLF4J.
+- test isolation: test frameworks (`org.junit`, `org.mockito`, `org.assertj`) never leak into `src/main`.
+- non-blocking: production code never calls `Thread.sleep`.
 - cycle-free package slices: packages under `uz.khakimjanovich.platform` are free of cyclic dependencies.
 
 - no `Map<String, Object>` (or `Map<String, ?>`) as a field, a parameter or a return type: a

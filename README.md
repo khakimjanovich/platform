@@ -60,6 +60,40 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
   the build plugins (`platform.java`, `platform.library`, `platform.module`, `platform.integration-test`)
   as `build-logic-vX.Y.Z`; the catalog (`uz.khakimjanovich.platform:versioning`) last, as
   `platform-vX.Y.Z` with a GitHub release. `.github/scripts/unreleased.sh` lists what a merge would release.
+- `develop` carries work in progress as `-SNAPSHOT` (`2.8.0-SNAPSHOT`): CI builds it and releases
+  nothing. A pull request into `main` fails the `release gate` while any platform version is still a
+  `-SNAPSHOT` (`.github/scripts/no-snapshots.sh`), and the release workflow checks again before it
+  publishes. `./gradlew publishLocal` puts every `-SNAPSHOT` artifact, the build plugins and the catalog in
+  `~/.m2`; a released version is left alone, so nothing local shadows the registry. A build on the
+  platform reads Maven local first, for snapshots only:
+
+  ```groovy
+  // settings.gradle; gradle.properties: platformVersion=2.8.0-SNAPSHOT
+  pluginManagement {
+      repositories {
+          mavenLocal { mavenContent { snapshotsOnly() } }
+          mavenCentral()
+          gradlePluginPortal()
+      }
+  }
+  dependencyResolutionManagement {
+      repositories {
+          mavenLocal {
+              mavenContent { snapshotsOnly() }
+              content { includeGroup 'uz.khakimjanovich.platform' }
+          }
+          mavenCentral()
+      }
+      versionCatalogs {
+          create('libs') { from("uz.khakimjanovich.platform:versioning:${providers.gradleProperty('platformVersion').get()}") }
+      }
+  }
+  // build.gradle
+  plugins { id 'platform.library' version '2.8.0-SNAPSHOT' }
+  ```
+
+  Releasing is dropping `-SNAPSHOT` from the versions that changed (an unchanged library goes back to
+  its last release) in one merge to `main`.
 - Raise `platform` only when a consumer needs the new set; libraries can release many times in between.
   The contracts build pins the catalog; the services pin the libraries the same way, or build them from
   source with `--include-build`.

@@ -2,6 +2,7 @@
 # Prints "<tag> <gradle publish args>" for every artifact whose catalog version has no tag yet: the
 # libraries and build-logic (`platform-<name>`, tagged `<name>-v<version>`), then the hub catalog
 # (`platform`, tagged `platform-v<version>`) last, so it is published after what it pins.
+# main carries no -SNAPSHOT (no-snapshots.sh); develop's go to Maven local (`./gradlew publishLocal`).
 set -euo pipefail
 
 catalog=${1:-gradle/libs.versions.toml}
@@ -18,4 +19,8 @@ sed -n 's/^platform-\([a-z-]*\) = "\([^"]*\)".*/\1 \2/p' "$catalog" | while read
 done
 
 hub=$(sed -n 's/^platform = "\([^"]*\)".*/\1/p' "$catalog")
+if [ -z "$hub" ]; then
+  echo "no hub version (platform = \"x\") in $catalog" >&2
+  exit 1
+fi
 tagged "platform-v$hub" || echo "platform-v$hub :versioning:publish"

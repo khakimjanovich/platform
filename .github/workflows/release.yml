@@ -25,6 +25,7 @@ jobs:
       unreleased: ${{ steps.plan.outputs.unreleased }}
     steps:
       - uses: actions/checkout@v7
+      - run: .github/scripts/no-snapshots.sh # the release gate let one through: stop here
       - id: plan
         run: |
           unreleased=$(.github/scripts/unreleased.sh)

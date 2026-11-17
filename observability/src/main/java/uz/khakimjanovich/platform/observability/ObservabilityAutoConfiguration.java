@@ -7,7 +7,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Tracer;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
-import java.util.ArrayList;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.ObjectProvider;
@@ -37,41 +36,20 @@ import uz.khakimjanovich.platform.observability.logging.LoggingMaskingProperties
 import uz.khakimjanovich.platform.observability.logging.MaskingOpenTelemetryAppender;
 
 @AutoConfiguration
-@EnableConfigurationProperties({
-  ObservabilityProperties.class,
-  LoggingMaskingProperties.class,
-  HttpLoggingProperties.class
-})
+@EnableConfigurationProperties({LoggingMaskingProperties.class, HttpLoggingProperties.class})
 public class ObservabilityAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  Masking logMasking(
-      LoggingMaskingProperties loggingProperties, ObservabilityProperties observabilityProperties) {
-    var allFields = new ArrayList<String>();
-    if (loggingProperties.fields() != null) {
-      allFields.addAll(loggingProperties.fields());
-    }
-    var legacy = observabilityProperties.masking();
-    if (legacy != null) {
-      if (legacy.additionalSecretFields() != null) {
-        allFields.addAll(legacy.additionalSecretFields());
-      }
-      if (legacy.additionalTokenFields() != null) {
-        allFields.addAll(legacy.additionalTokenFields());
-      }
-      if (legacy.additionalCardFields() != null) {
-        allFields.addAll(legacy.additionalCardFields());
-      }
-    }
-
-    if (allFields.isEmpty()) {
+  Masking logMasking(LoggingMaskingProperties loggingProperties) {
+    var fields = loggingProperties.fields();
+    if (fields == null || fields.isEmpty()) {
       return Masking.empty();
     }
     var maskChar = loggingProperties.maskChar();
     return maskChar == null
-        ? new Masking(MaskingRules.of(allFields))
-        : new Masking(MaskingRules.of(maskChar, allFields));
+        ? new Masking(MaskingRules.of(fields))
+        : new Masking(MaskingRules.of(maskChar, fields));
   }
 
   @Bean

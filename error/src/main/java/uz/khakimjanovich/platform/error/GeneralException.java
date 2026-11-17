@@ -12,14 +12,17 @@ public class GeneralException extends RuntimeException {
 
   @Serial private static final long serialVersionUID = 1L;
 
-  // An exception answers the request it was thrown in; it is never serialized.
   private final transient StatusThrowable status;
   private final transient Object[] params;
   private final transient List<SubError> subErrors = new ArrayList<>();
   private @Nullable Duration retryAfter;
 
   public GeneralException(StatusThrowable status, Object... params) {
-    super(status.getType());
+    this(status, null, params);
+  }
+
+  public GeneralException(StatusThrowable status, @Nullable Throwable cause, Object... params) {
+    super(status.getType(), cause);
     this.status = status;
     this.params = params;
   }

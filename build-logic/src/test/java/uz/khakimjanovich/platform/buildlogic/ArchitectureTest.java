@@ -606,6 +606,369 @@ class ArchitectureTest {
     assertFalse(output.contains("The architecture is broken"), output);
   }
 
+  @Test
+  void fieldInjectionFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import org.springframework.beans.factory.annotation.Autowired;
+        import demo.config.DemoProperties;
+
+        public class DemoService {
+          @Autowired
+          private DemoProperties properties;
+
+          public String host() {
+            return properties.host();
+          }
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-beans' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains("dependencies must be injected via constructors, never fields"), output);
+    assertTrue(output.contains("DemoService.properties"), output);
+  }
+
+  @Test
+  void standardStreamsAccessFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        public class DemoService {
+          public void log(String message) {
+            System.out.println(message);
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains(
+            "production code must use structured logging (SLF4J), never System.out, System.err, or"
+                + " printStackTrace"),
+        output);
+    assertTrue(output.contains("DemoService.log(java.lang.String)"), output);
+  }
+
+  @Test
+  void javaUtilLoggingFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import java.util.logging.Logger;
+
+        public class DemoService {
+          private static final Logger log = Logger.getLogger(DemoService.class.getName());
+
+          public void info(String message) {
+            log.info(message);
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains("production code must use SLF4J, never java.util.logging"), output);
+    assertTrue(output.contains("DemoService"), output);
+  }
+
+  @Test
+  void utilityClassWithoutPrivateConstructorFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/utils/NumberUtils.java",
+        """
+        package demo.utils;
+
+        public final class NumberUtils {
+          public NumberUtils() {}
+
+          public static int add(int a, int b) {
+            return a + b;
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains(
+            "a utility class is final with a private constructor and only static members"),
+        output);
+    assertTrue(output.contains("demo.utils.NumberUtils"), output);
+  }
+
+  @Test
+  void utilityClassWithNonStaticMethodFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/utils/StringUtils.java",
+        """
+        package demo.utils;
+
+        public final class StringUtils {
+          private StringUtils() {}
+
+          public String trim(String text) {
+            return text.strip();
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains(
+            "a utility class is final with a private constructor and only static members"),
+        output);
+    assertTrue(output.contains("demo.utils.StringUtils"), output);
+  }
+
+  @Test
+  void serviceAnnotatedOutsideServicePackageFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/config/DemoService.java",
+        """
+        package demo.config;
+
+        import org.springframework.stereotype.Service;
+
+        @Service
+        public class DemoService {}
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-context' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a service lives in service"), output);
+    assertTrue(output.contains("demo.config.DemoService"), output);
+  }
+
+  @Test
+  void repositoryOutsideRepositoryPackageFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/OrderRepository.java",
+        """
+        package demo.service;
+
+        import org.springframework.stereotype.Repository;
+
+        @Repository
+        public class OrderRepository {}
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-context' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a repository lives in repository"), output);
+    assertTrue(output.contains("demo.service.OrderRepository"), output);
+  }
+
+  @Test
+  void repositoryThatDependsOnServiceFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/repository/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage demo.repository;\n");
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        public class DemoService {
+          public String compute() { return "ok"; }
+        }
+        """);
+    write(
+        "src/main/java/demo/repository/DemoRepository.java",
+        """
+        package demo.repository;
+
+        import demo.service.DemoService;
+
+        public class DemoRepository {
+          private final DemoService service;
+
+          public DemoRepository(DemoService service) {
+            this.service = service;
+          }
+
+          public String find() {
+            return service.compute();
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("a repository never depends on services or controllers"), output);
+    assertTrue(output.contains("demo.repository.DemoRepository"), output);
+  }
+
+  @Test
+  void cyclicDependenciesBetweenSlicesFailTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import demo.workflow.DemoWorkflow;
+
+        public class DemoService {
+          private final DemoWorkflow workflow;
+
+          public DemoService(DemoWorkflow workflow) {
+            this.workflow = workflow;
+          }
+
+          public void start() {
+            workflow.run();
+          }
+        }
+        """);
+    write(
+        "src/main/java/demo/workflow/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage demo.workflow;\n");
+    write(
+        "src/main/java/demo/workflow/DemoWorkflow.java",
+        """
+        package demo.workflow;
+
+        import demo.service.DemoService;
+
+        public class DemoWorkflow {
+          public void run() {}
+
+          public void callService(DemoService service) {
+            service.start();
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("service layers must be free of cyclic dependencies"), output);
+    assertTrue(output.contains("Cycle detected"), output);
+  }
+
+  @Test
+  void controllerWithTransactionalFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/controller/DemoController.java",
+        """
+        package demo.controller;
+
+        import org.springframework.transaction.annotation.Transactional;
+
+        @Transactional
+        public class DemoController {
+          public void handle() {}
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-tx' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains("transactions belong in the service layer, never in controllers"), output);
+    assertTrue(output.contains("demo.controller.DemoController"), output);
+  }
+
+  @Test
+  void repositoryThatDependsOnWebClassesFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/repository/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage demo.repository;\n");
+    write(
+        "src/main/java/demo/repository/DemoRepository.java",
+        """
+        package demo.repository;
+
+        import org.springframework.web.bind.annotation.RequestParam;
+
+        public class DemoRepository {
+          public void search(@RequestParam String term) {}
+        }
+        """);
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.java' }
+        dependencies { implementation 'org.springframework:spring-web' }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(output.contains("repositories must not depend on web layer classes"), output);
+    assertTrue(output.contains("demo.repository.DemoRepository"), output);
+  }
+
+  @Test
+  void serviceThatDependsOnControllerFailsTheBuild() throws IOException {
+    write(
+        "src/main/java/demo/controller/DemoController.java",
+        """
+        package demo.controller;
+
+        public class DemoController {
+          public String status() { return "ok"; }
+        }
+        """);
+    write(
+        "src/main/java/demo/service/DemoService.java",
+        """
+        package demo.service;
+
+        import demo.controller.DemoController;
+
+        public class DemoService {
+          private final DemoController controller;
+
+          public DemoService(DemoController controller) {
+            this.controller = controller;
+          }
+
+          public String check() {
+            return controller.status();
+          }
+        }
+        """);
+
+    var output = runner().buildAndFail().getOutput();
+
+    assertTrue(
+        output.contains("services must never depend on the presentation layer"), output);
+    assertTrue(output.contains("demo.service.DemoService"), output);
+  }
+
   private GradleRunner runner() {
     return GradleRunner.create()
         .withProjectDir(build.toFile())

@@ -39,8 +39,15 @@ generated code is left out. The rules are in `ArchitectureRules`, the same for e
 - nothing calls a controller, and a controller is never its contract's client;
 - a constant (a static final field of a value type: a primitive, a string, a number, a `Duration`, a
   `Pattern`, a `DateTimeFormatter`, a `Set`, `List` or `Map`) lives in a `ConstantUtils` or
-  `*Constants` class, and such a class holds only static final fields. An enum's values,
-  `serialVersionUID` and objects that are not values (a logger, a mapper) are not constants.
+  `*Constants` class, and such a class holds only static final fields and has a private constructor.
+  An enum's values, `serialVersionUID` and objects that are not values (a logger, a mapper) are not constants.
+- a utility class (`*Utils` or `*Util`) is `final`, declares only private constructors, and contains
+  only static methods and static fields.
+- no field injection (`@Autowired`, `@Value`, `@Inject`, `@Resource`): dependencies must be injected
+  via explicit constructor injection.
+- structured logging: production code never calls `System.out`, `System.err`, `printStackTrace()`,
+  or `java.util.logging`; all application logging flows through SLF4J.
+- cycle-free package slices: packages under `uz.khakimjanovich.platform` are free of cyclic dependencies.
 
 - no `Map<String, Object>` (or `Map<String, ?>`) as a field, a parameter or a return type: a
   request body or any other structure is a DTO. A tree whose fields must all be kept as they came
@@ -53,11 +60,20 @@ the Humo and Uzcard adapters:
 
 | What | Package |
 |---|---|
-| `@RestController` | `controller` |
+| `@RestController` / `@Controller` (`*Controller`) | `controller` |
+| `@Service` | `service` |
+| `@Repository` / `*Repository` | `repository` |
 | `@Configuration` | `config` |
 | `@ConfigurationProperties` | `property` |
 | a `*Request`, `*Response` or `*Params` DTO | `model`, data only: no controller, service, client, config, property, repository or mapper |
 | `*ExceptionStatus` | `constant` |
+
+And it maintains strict layer boundaries:
+
+- service layers (`controller`, `service`, `repository`, `config`, `property`, `model`, `client`, `mapper`, `workflow`) are free of cyclic dependencies;
+- controllers never declare `@Transactional`: transaction boundaries live in the service layer;
+- repositories never depend on services, controllers, or webmvc classes (`org.springframework.web..`);
+- services never depend on the presentation layer (`controller`);
 
 And it maps in one place:
 

@@ -10,7 +10,6 @@ import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.pattern.MessageConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
-import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.OutputStreamAppender;
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
 import java.lang.reflect.InvocationTargetException;
@@ -75,14 +74,8 @@ public final class LogMasking {
 
   static ILoggingEvent masked(ILoggingEvent event) {
     var trace = event.getThrowableProxy();
-    // ponytail: exception.type/stacktrace attributes dropped for OTLP; add a masked IThrowableProxy
-    // if dashboards need exception.type.
-    var message =
-        trace == null
-            ? event.getFormattedMessage()
-            : event.getFormattedMessage()
-                + System.lineSeparator()
-                + ThrowableProxyUtil.asString(trace);
+    var maskedTrace = MaskedThrowableProxy.of(trace, masking);
+    var message = event.getFormattedMessage();
     return (ILoggingEvent)
         Proxy.newProxyInstance(
             ILoggingEvent.class.getClassLoader(),
@@ -90,7 +83,8 @@ public final class LogMasking {
             (proxy, method, arguments) ->
                 switch (method.getName()) {
                   case "getFormattedMessage", "getMessage" -> masking.text(message);
-                  case "getArgumentArray", "getThrowableProxy" -> null;
+                  case "getArgumentArray" -> null;
+                  case "getThrowableProxy" -> maskedTrace;
                   default -> {
                     try {
                       yield method.invoke(event, arguments);

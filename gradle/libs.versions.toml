@@ -29,7 +29,7 @@ platform-keycloak = "2.8.0-SNAPSHOT"
 platform-otp = "2.8.0-SNAPSHOT"
 platform-persistence = "1.0.0-SNAPSHOT"
 platform-vault = "2.8.0-SNAPSHOT"
-platform-valkey = "2.8.0-SNAPSHOT"
+platform-valkey = "1.0.0-SNAPSHOT"
 platform-file-store = "2.8.0-SNAPSHOT"
 # INHOUSE PLUGINS END
 errorprone = "2.52.0"
@@ -111,7 +111,7 @@ platform-security = { module = "uz.khakimjanovich:security4j", version.ref = "pl
 platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform-keycloak" }
 platform-persistence = { module = "uz.khakimjanovich:persistence4j", version.ref = "platform-persistence" } # its own repository
 platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "platform-vault" }
-platform-valkey = { module = "uz.khakimjanovich.platform:valkey", version.ref = "platform-valkey" }
+platform-valkey = { module = "uz.khakimjanovich:valkey4j", version.ref = "platform-valkey" } # its own repository
 platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform-observability" }
 platform-masking = { module = "uz.khakimjanovich:masking4j", version.ref = "platform-masking" } # its own repository
 platform-breaker = { module = "uz.khakimjanovich:breaker4j", version.ref = "platform-breaker" } # its own repository

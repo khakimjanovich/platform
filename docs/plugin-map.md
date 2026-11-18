@@ -103,7 +103,7 @@ a consumer needs the new version.
 | 1 | config, masking | **done**: [config4j](https://github.com/khakimjanovich/config4j), [masking4j](https://github.com/khakimjanovich/masking4j); the hub keeps catalog, build-logic and platform.settings (wave 0 stays in the hub) |
 | 2 | outbox, persistence, security | **done**: [persistence4j](https://github.com/khakimjanovich/persistence4j), [outbox4j](https://github.com/khakimjanovich/outbox4j), [security4j](https://github.com/khakimjanovich/security4j) |
 | 3 | error | **done**: [error4j](https://github.com/khakimjanovich/error4j) |
-| 4 | breaker ([breaker4j](https://github.com/khakimjanovich/breaker4j) done), valkey, vault, keycloak, file-store, idempotency, observability | error published; observability↔breaker contract (#7) |
+| 4 | breaker ([breaker4j](https://github.com/khakimjanovich/breaker4j) done), valkey ([valkey4j](https://github.com/khakimjanovich/valkey4j) done), vault, keycloak, file-store, idempotency, observability | error published; observability↔breaker contract (#7) |
 | 5 | otp | valkey published |
 | 6 | `platform` reduced to hub | all libraries out; `release.yml` reworked (#2) |
 

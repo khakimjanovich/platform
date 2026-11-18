@@ -9,7 +9,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [error](https://github.com/khakimjanovich/error4j) (own repository: error4j) | one error format: RFC 9457 problem details with a stable code, in three languages |
 | [config](https://github.com/khakimjanovich/config4j) (own repository: config4j) | every library's own defaults and error definitions, loaded below the app's configuration |
 | [masking](https://github.com/khakimjanovich/masking4j) (own repository: masking4j) | what must never reach a log, hidden the same way everywhere |
-| [breaker](breaker/README.md) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |
+| [breaker](https://github.com/khakimjanovich/breaker4j) (own repository: breaker4j) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |
 | [outbox](https://github.com/khakimjanovich/outbox4j) (own repository: outbox4j) | events written in the module's own transaction, published to Kafka at least once, in order per key |
 | [idempotency](idempotency/README.md) | the first answer to a client's Idempotency-Key, kept with the work so a retry gets it again |
 | [observability](observability/README.md) | logs, traces and metrics, masked, with a request id on every response |

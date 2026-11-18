@@ -20,7 +20,7 @@ platform-build = "2.8.0-SNAPSHOT"
 platform-config = "1.0.0-SNAPSHOT"
 platform-masking = "1.0.0-SNAPSHOT"
 platform-error = "1.0.0-SNAPSHOT"
-platform-breaker = "2.8.0-SNAPSHOT"
+platform-breaker = "1.0.0-SNAPSHOT"
 platform-outbox = "1.0.0-SNAPSHOT"
 platform-idempotency = "2.8.0-SNAPSHOT"
 platform-observability = "2.8.0-SNAPSHOT"
@@ -114,7 +114,7 @@ platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "p
 platform-valkey = { module = "uz.khakimjanovich.platform:valkey", version.ref = "platform-valkey" }
 platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform-observability" }
 platform-masking = { module = "uz.khakimjanovich:masking4j", version.ref = "platform-masking" } # its own repository
-platform-breaker = { module = "uz.khakimjanovich.platform:breaker", version.ref = "platform-breaker" }
+platform-breaker = { module = "uz.khakimjanovich:breaker4j", version.ref = "platform-breaker" } # its own repository
 platform-outbox = { module = "uz.khakimjanovich:outbox4j", version.ref = "platform-outbox" } # its own repository
 platform-idempotency = { module = "uz.khakimjanovich.platform:idempotency", version.ref = "platform-idempotency" }
 platform-config = { module = "uz.khakimjanovich:config4j", version.ref = "platform-config" } # its own repository

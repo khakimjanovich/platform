@@ -32,6 +32,8 @@ fi
 while read -r name version; do
   if [ "$name" = build ]; then
     plan "build-logic-v$version" "-p build-logic publish" build-logic
+  elif [ ! -d "$name" ]; then
+    continue # in its own repository (config4j, …), which releases it; the catalog only pins it
   else
     plan "$name-v$version" ":$name:publish" "$name"
   fi

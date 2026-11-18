@@ -7,10 +7,10 @@ plugins {
 
 dependencies {
     api platform(libs.spring.boot.bom)
-    runtimeOnly project(':config') // loads the files in META-INF/spring/…LibraryDefaults.imports
+    runtimeOnly libs.platform.config // loads the files in META-INF/spring/…LibraryDefaults.imports
     api libs.spring.webmvc
     implementation libs.spring.boot.autoconfigure
-    implementation project(':masking') // error log lines are masked
+    implementation libs.platform.masking // error log lines are masked
     implementation libs.jakarta.validation // a @Validated service's refusal is a 400
     implementation libs.slf4j.api // the trace id, from the logging context
     implementation libs.jackson3.databind // a problem from an exception made without converters

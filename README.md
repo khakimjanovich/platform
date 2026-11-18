@@ -7,8 +7,8 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | Library | What it gives |
 |---|---|
 | [error](error/README.md) | one error format: RFC 9457 problem details with a stable code, in three languages |
-| [config](config/README.md) | every library's own defaults and error definitions, loaded below the app's configuration |
-| [masking](masking/README.md) | what must never reach a log, hidden the same way everywhere |
+| [config](https://github.com/khakimjanovich/config4j) (own repository: config4j) | every library's own defaults and error definitions, loaded below the app's configuration |
+| [masking](https://github.com/khakimjanovich/masking4j) (own repository: masking4j) | what must never reach a log, hidden the same way everywhere |
 | [breaker](breaker/README.md) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |
 | [outbox](outbox/README.md) | events written in the module's own transaction, published to Kafka at least once, in order per key |
 | [idempotency](idempotency/README.md) | the first answer to a client's Idempotency-Key, kept with the work so a retry gets it again |
@@ -23,7 +23,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [build-logic](build-logic/README.md) | the build conventions |
 
 `config` is the platform's base layer, not a module an app wires in: error, file-store, keycloak,
-observability, otp and persistence each depend on it (`runtimeOnly project(':config')`) and list
+observability, otp and persistence each depend on it (`runtimeOnly libs.platform.config`) and list
 their own defaults in `META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports`.
 Adding one of them brings `config` along, the way a library brings its own dependencies. It holds
 no business code and connects no two libraries; the Composition Root rule (an app wires our modules

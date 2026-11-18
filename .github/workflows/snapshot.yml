@@ -21,6 +21,9 @@ jobs:
   snapshot:
     name: snapshot
     runs-on: ubuntu-latest
+    env: # the libraries in their own repositories (settings.gradle)
+      GH_PACKAGES_ACTOR: ${{ github.actor }}
+      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6

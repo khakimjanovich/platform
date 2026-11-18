@@ -1,2 +1,0 @@
-org.springframework.boot.EnvironmentPostProcessor=uz.khakimjanovich.platform.config.LibraryDefaults
-org.springframework.context.ApplicationListener=uz.khakimjanovich.platform.config.RequiredSettings

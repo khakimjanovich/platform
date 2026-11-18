@@ -5,11 +5,29 @@ pluginManagement { includeBuild 'build-logic' }
 rootProject.name = 'platform'
 
 include('versioning')
-include('config', 'masking', 'breaker', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault', 'valkey', 'file-store', 'observability',
+include('breaker', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault', 'valkey', 'file-store', 'observability',
         'outbox', 'idempotency')
 
 // The version catalog is gradle/libs.versions.toml, Gradle's default (read as `libs`), where
 // Dependabot finds it too.
+// Libraries that left for their own repositories (config4j, masking4j, …) come from GitHub Packages, at
+// the version the catalog pins; only from there (exclusiveContent), so a mavenLocal() an init script
+// adds can't stand in for them.
 dependencyResolutionManagement {
-    repositories { mavenCentral() }
+    repositories {
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'platformRegistry'
+                    url = 'https://maven.pkg.github.com/khakimjanovich/*'
+                    credentials {
+                        username = providers.gradleProperty('gpr.user').orElse(providers.environmentVariable('GH_PACKAGES_ACTOR')).getOrElse('')
+                        password = providers.gradleProperty('gpr.key').orElse(providers.environmentVariable('GH_PACKAGES_TOKEN')).getOrElse('')
+                    }
+                }
+            }
+            filter { includeGroup 'uz.khakimjanovich.platform' }
+        }
+        mavenCentral()
+    }
 }

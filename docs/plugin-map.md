@@ -100,7 +100,7 @@ a consumer needs the new version.
 | Wave | Move out | Needs first |
 |---|---|---|
 | 0 | build-logic → `platform-build` | ~~per-artifact versions (#1)~~, ~~release per artifact (#2)~~, ~~alias contract checked (#3)~~: done on `chore/per-library-versions`; baseline tags `<name>-v2.7.0` before it merges |
-| 1 | config, masking | wave 0 |
+| 1 | config, masking | **done**: [config4j](https://github.com/khakimjanovich/config4j), [masking4j](https://github.com/khakimjanovich/masking4j); the hub keeps catalog, build-logic and platform.settings (wave 0 stays in the hub) |
 | 2 | outbox, persistence, security | config published; keycloak fixtures for security IT (or a copy of `demo-realm.json`) |
 | 3 | error | masking and config published; fixtures published (#5) |
 | 4 | breaker, valkey, vault, keycloak, file-store, idempotency, observability | error published; observability↔breaker contract (#7) |

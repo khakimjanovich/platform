@@ -32,3 +32,9 @@ tasks.register('publishSnapshots') {
     snapshotProjects.each { dependsOn "${it}:publishAllPublicationsToGithubPackagesRepository" }
     if (buildLogicSnapshot) dependsOn buildLogicTasks('publishAllPublicationsToGithubPackagesRepository')
 }
+
+// The libraries in their own repositories come in as -SNAPSHOTs while develop moves: take the newest
+// build on every resolution, as platform.settings does for the services.
+subprojects {
+    configurations.configureEach { resolutionStrategy.cacheChangingModulesFor 0, 'seconds' }
+}

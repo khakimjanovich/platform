@@ -103,8 +103,8 @@ a consumer needs the new version.
 | 1 | config, masking | **done**: [config4j](https://github.com/khakimjanovich/config4j), [masking4j](https://github.com/khakimjanovich/masking4j); the hub keeps catalog, build-logic and platform.settings (wave 0 stays in the hub) |
 | 2 | outbox, persistence, security | **done**: [persistence4j](https://github.com/khakimjanovich/persistence4j), [outbox4j](https://github.com/khakimjanovich/outbox4j), [security4j](https://github.com/khakimjanovich/security4j) |
 | 3 | error | **done**: [error4j](https://github.com/khakimjanovich/error4j) |
-| 4 | breaker ([breaker4j](https://github.com/khakimjanovich/breaker4j) done), valkey ([valkey4j](https://github.com/khakimjanovich/valkey4j) done), vault, keycloak, file-store, idempotency, observability | error published; observability↔breaker contract (#7) |
-| 5 | otp | valkey published |
+| 4 | breaker, valkey, vault, keycloak, file-store, idempotency, observability | **done** except file-store: [breaker4j](https://github.com/khakimjanovich/breaker4j), [valkey4j](https://github.com/khakimjanovich/valkey4j), [vault4j](https://github.com/khakimjanovich/vault4j), [keycloak-admin4j](https://github.com/khakimjanovich/keycloak-admin4j), [idempotency4j](https://github.com/khakimjanovich/idempotency4j), [observability4j](https://github.com/khakimjanovich/observability4j) |
+| 5 | otp | **done**: [otp4j](https://github.com/khakimjanovich/otp4j) |
 | 6 | `platform` reduced to hub | all libraries out; `release.yml` reworked (#2) |
 
 In every wave the monorepo keeps building against the published artifact of the extracted library.

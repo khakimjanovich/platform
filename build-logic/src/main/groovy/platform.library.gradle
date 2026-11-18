@@ -61,13 +61,18 @@ publishing {
     publications {
         library(MavenPublication) { from components.java } // with test fixtures, where a library has them
     }
-    // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): a workflow's
-    // token may write only there. Every repository's packages are read through one owner-wide URL.
-    // Credentials are the Gradle properties githubPackagesUsername and githubPackagesPassword.
+    // Only CI publishes. GitHub keeps a package linked to the repository it was first published from and
+    // takes new versions only through that repository's URL: githubPackagesRepository names it for a
+    // library that moved out of the platform (khakimjanovich/platform); a new one publishes to the
+    // repository CI runs in (GITHUB_REPOSITORY). Reading is owner-wide. Credentials are the Gradle
+    // properties githubPackagesUsername and githubPackagesPassword.
+    def packageRepository = providers.gradleProperty('githubPackagesRepository')
+        .orElse(providers.environmentVariable('GITHUB_REPOSITORY'))
+        .getOrElse('khakimjanovich/platform')
     repositories {
         maven {
             name = 'githubPackages'
-            url = "https://maven.pkg.github.com/${providers.environmentVariable('GITHUB_REPOSITORY').getOrElse('khakimjanovich/platform')}"
+            url = "https://maven.pkg.github.com/${packageRepository}"
             credentials(PasswordCredentials)
         }
     }

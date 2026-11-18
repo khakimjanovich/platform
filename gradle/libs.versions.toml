@@ -17,8 +17,8 @@ google-java-format = "1.30.0"
 platform = "2.8.0-SNAPSHOT" # the hub: this catalog's own version; see README.md §Versions
 # INHOUSE PLUGINS START
 platform-build = "2.8.0-SNAPSHOT"
-platform-config = "2.8.0-SNAPSHOT"
-platform-masking = "2.8.0-SNAPSHOT"
+platform-config = "1.0.0-SNAPSHOT"
+platform-masking = "1.0.0-SNAPSHOT"
 platform-error = "2.8.0-SNAPSHOT"
 platform-breaker = "2.8.0-SNAPSHOT"
 platform-outbox = "2.8.0-SNAPSHOT"

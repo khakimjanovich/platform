@@ -64,6 +64,34 @@ class CatalogContractTest {
     assertTrue(output.contains("add platform-newcomer to the catalog's [versions]"), output);
   }
 
+  @Test
+  void aLibraryInItsOwnRepositoryKeepsItsOwnVersion() throws IOException {
+    write(
+        "settings.gradle",
+        """
+        rootProject.name = 'newcomer'
+        dependencyResolutionManagement {
+            repositories { mavenCentral() }
+            versionCatalogs { create('libs') { from(files('%s')) } }
+        }
+        """
+            .formatted(System.getProperty("catalog")));
+    write("gradle.properties", "version=1.2.3-SNAPSHOT");
+    write(
+        "build.gradle",
+        """
+        plugins { id 'platform.library' }
+        tasks.register('printVersion') {
+            def v = version
+            doLast { println "version=$v" }
+        }
+        """);
+
+    var output = runner().withArguments("printVersion").build().getOutput();
+
+    assertTrue(output.contains("version=1.2.3-SNAPSHOT"), output);
+  }
+
   private GradleRunner runner() {
     return GradleRunner.create()
         .withProjectDir(build.toFile())

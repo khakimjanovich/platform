@@ -1,5 +1,5 @@
-// A platform library, with sources, under the platform's group and version: the coordinates the app and
-// the adapters depend on, which Gradle maps to this project when they include the platform build.
+// A platform library, with sources, under the platform's group: the coordinates the services and
+// adapters depend on (uz.khakimjanovich.platform:<name>).
 plugins {
     id 'platform.java'
     id 'maven-publish'
@@ -8,11 +8,14 @@ plugins {
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
 
 group = 'uz.khakimjanovich.platform'
-// Each library releases on its own: its version is `platform-<project name>` in the catalog.
-def ownVersion = "platform-${project.name}"
-version = libs.findVersion(ownVersion)
-    .orElseThrow { new GradleException("No version for library ${project.name}: add ${ownVersion} to the catalog's [versions]") }
-    .requiredVersion
+// Each library releases on its own. In its own repository it sets `version` in gradle.properties and
+// the hub's catalog pins that release; inside the hub its version is `platform-<project name>` there.
+if (version == Project.DEFAULT_VERSION) {
+    def ownVersion = "platform-${project.name}"
+    version = libs.findVersion(ownVersion)
+        .orElseThrow { new GradleException("No version for library ${project.name}: set version in gradle.properties or add ${ownVersion} to the catalog's [versions]") }
+        .requiredVersion
+}
 
 java { withSourcesJar() }
 
@@ -58,12 +61,13 @@ publishing {
     publications {
         library(MavenPublication) { from components.java } // with test fixtures, where a library has them
     }
-    // Only the release workflow publishes. Credentials are the Gradle properties
-    // githubPackagesUsername and githubPackagesPassword; without them `publish` fails.
+    // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): a workflow's
+    // token may write only there. Every repository's packages are read through one owner-wide URL.
+    // Credentials are the Gradle properties githubPackagesUsername and githubPackagesPassword.
     repositories {
         maven {
             name = 'githubPackages'
-            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            url = "https://maven.pkg.github.com/${providers.environmentVariable('GITHUB_REPOSITORY').getOrElse('khakimjanovich/platform')}"
             credentials(PasswordCredentials)
         }
     }

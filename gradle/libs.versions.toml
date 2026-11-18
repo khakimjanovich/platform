@@ -30,7 +30,7 @@ platform-otp = "1.0.0-SNAPSHOT"
 platform-persistence = "1.0.0-SNAPSHOT"
 platform-vault = "1.0.0-SNAPSHOT"
 platform-valkey = "1.0.0-SNAPSHOT"
-platform-file-store = "2.8.0-SNAPSHOT"
+platform-file-store = "1.0.0-SNAPSHOT"
 # INHOUSE PLUGINS END
 errorprone = "2.52.0"
 errorprone-gradle = "5.1.1"
@@ -118,7 +118,7 @@ platform-breaker = { module = "uz.khakimjanovich:breaker4j", version.ref = "plat
 platform-outbox = { module = "uz.khakimjanovich:outbox4j", version.ref = "platform-outbox" } # its own repository
 platform-idempotency = { module = "uz.khakimjanovich:idempotency4j", version.ref = "platform-idempotency" } # its own repository
 platform-config = { module = "uz.khakimjanovich:config4j", version.ref = "platform-config" } # its own repository
-platform-file-store = { module = "uz.khakimjanovich.platform:file-store", version.ref = "platform-file-store" }
+platform-file-store = { module = "uz.khakimjanovich:filestore4j", version.ref = "platform-file-store" } # its own repository
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }

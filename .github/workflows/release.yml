@@ -22,6 +22,9 @@ jobs:
   plan:
     name: plan
     runs-on: ubuntu-latest
+    env: # the libraries in their own repositories (settings.gradle)
+      GH_PACKAGES_ACTOR: ${{ github.actor }}
+      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
       unreleased: ${{ steps.plan.outputs.unreleased }}
     steps:
@@ -40,6 +43,9 @@ jobs:
     needs: plan
     if: needs.plan.outputs.unreleased != ''
     runs-on: ubuntu-latest
+    env: # the libraries in their own repositories (settings.gradle)
+      GH_PACKAGES_ACTOR: ${{ github.actor }}
+      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     env:
       UNRELEASED: ${{ needs.plan.outputs.unreleased }}
     steps:

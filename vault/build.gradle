@@ -10,9 +10,9 @@ plugins {
 dependencies {
     api platform(libs.spring.boot.bom)
     api platform(libs.spring.cloud.bom)
-    runtimeOnly project(':config') // loads the files in META-INF/spring/…LibraryDefaults.imports
+    runtimeOnly libs.platform.config // loads the files in META-INF/spring/…LibraryDefaults.imports
     api project(':error') // VaultTransit's errors
-    implementation project(':masking') // PCI-DSS context and error log masking
+    implementation libs.platform.masking // PCI-DSS context and error log masking
     implementation libs.spring.cloud.starter.vault.config // services use VaultSecrets and VaultTransit, never Vault itself
     implementation libs.spring.boot.autoconfigure
     compileOnly libs.spring.boot.health // the health indicator, when the app has the actuator

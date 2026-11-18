@@ -8,11 +8,11 @@ plugins {
 
 dependencies {
     api platform(libs.spring.boot.bom)
-    runtimeOnly project(':config') // loads the files in META-INF/spring/…LibraryDefaults.imports
+    runtimeOnly libs.platform.config // loads the files in META-INF/spring/…LibraryDefaults.imports
     api libs.starter.opentelemetry
     api libs.opentelemetry.logback.appender
     api libs.starter.restclient
-    api project(":masking")
+    api libs.platform.masking
     implementation libs.spring.boot.autoconfigure
     compileOnly libs.spring.boot.health // health gauges, when the app has the actuator
     compileOnly libs.jakarta.servlet // X-Request-Id, in a web app only

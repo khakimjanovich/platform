@@ -5,7 +5,7 @@ pluginManagement { includeBuild 'build-logic' }
 rootProject.name = 'platform'
 
 include('versioning')
-include('breaker', 'error', 'otp', 'security', 'keycloak', 'vault', 'valkey', 'file-store', 'observability',
+include('breaker', 'error', 'otp', 'keycloak', 'vault', 'valkey', 'file-store', 'observability',
         'idempotency')
 
 // The version catalog is gradle/libs.versions.toml, Gradle's default (read as `libs`), where

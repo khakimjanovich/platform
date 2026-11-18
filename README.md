@@ -13,7 +13,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [outbox](https://github.com/khakimjanovich/outbox4j) (own repository: outbox4j) | events written in the module's own transaction, published to Kafka at least once, in order per key |
 | [idempotency](idempotency/README.md) | the first answer to a client's Idempotency-Key, kept with the work so a retry gets it again |
 | [observability](observability/README.md) | logs, traces and metrics, masked, with a request id on every response |
-| [security](security/README.md) | Keycloak tokens, route rules, public routes, service-to-service tokens |
+| [security](https://github.com/khakimjanovich/security4j) (own repository: security4j) | Keycloak tokens, route rules, public routes, service-to-service tokens |
 | [keycloak](keycloak/README.md) | Keycloak's admin API: users, roles, machine clients |
 | [otp](otp/README.md) | one-time codes in Redis |
 | [persistence](https://github.com/khakimjanovich/persistence4j) (own repository: persistence4j) | each module's own pool, schema, migrations and entity manager |

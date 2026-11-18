@@ -3,10 +3,13 @@ plugins {
     id 'base'
 }
 
+// build-logic's projects: the convention plugins and platform.settings.
+def buildLogicTasks = { String task -> [':', ':settings-plugin:'].collect { gradle.includedBuild('build-logic').task(it + task) } }
+
 def checks = subprojects.findAll { it.buildFile.exists() && it.name != 'versioning' }.collect { "${it.path}:check" }
 tasks.named('check') {
     dependsOn checks
-    dependsOn gradle.includedBuild('build-logic').task(':check')
+    dependsOn buildLogicTasks('check')
 }
 
 def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
@@ -20,14 +23,12 @@ tasks.register('publishLocal') {
     group = 'publishing'
     description = 'Publishes every -SNAPSHOT artifact, the build plugins and the catalog to Maven local.'
     snapshotProjects.each { dependsOn "${it}:publishToMavenLocal" }
-    if (buildLogicSnapshot) dependsOn gradle.includedBuild('build-logic').task(':publishToMavenLocal')
+    if (buildLogicSnapshot) dependsOn buildLogicTasks('publishToMavenLocal')
 }
 
 tasks.register('publishSnapshots') {
     group = 'publishing'
     description = 'Publishes every -SNAPSHOT artifact, the build plugins and the catalog to GitHub Packages.'
     snapshotProjects.each { dependsOn "${it}:publishAllPublicationsToGithubPackagesRepository" }
-    if (buildLogicSnapshot) {
-        dependsOn gradle.includedBuild('build-logic').task(':publishAllPublicationsToGithubPackagesRepository')
-    }
+    if (buildLogicSnapshot) dependsOn buildLogicTasks('publishAllPublicationsToGithubPackagesRepository')
 }

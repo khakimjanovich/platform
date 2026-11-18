@@ -12,7 +12,7 @@ dependencies {
     api libs.spring.jdbc
     api libs.jackson3.databind // the kept answer, as JSON
 
-    integrationTestImplementation project(':persistence') // the module's own beans, as a module builds them
+    integrationTestImplementation libs.platform.persistence // the module's own beans, as a module builds them
     integrationTestImplementation libs.testcontainers.postgresql
     integrationTestImplementation libs.testcontainers.junit
     integrationTestRuntimeOnly libs.postgresql

@@ -92,6 +92,37 @@ class CatalogContractTest {
     assertTrue(output.contains("version=1.2.3-SNAPSHOT"), output);
   }
 
+  @Test
+  void aMovedLibraryOwnsItsCoordinatesAndAnnouncesItsFormerOnes() throws IOException {
+    write(
+        "settings.gradle",
+        """
+        rootProject.name = 'config4j'
+        dependencyResolutionManagement {
+            repositories { mavenCentral() }
+            versionCatalogs { create('libs') { from(files('%s')) } }
+        }
+        """
+            .formatted(System.getProperty("catalog")));
+    write(
+        "gradle.properties",
+        """
+        group=uz.khakimjanovich
+        version=2.8.0-SNAPSHOT
+        formerCoordinates=uz.khakimjanovich.platform:config
+        """);
+    write("build.gradle", "plugins { id 'platform.library' }");
+
+    var output =
+        runner()
+            .withArguments("outgoingVariants", "--variant", "runtimeElements")
+            .build()
+            .getOutput();
+
+    assertTrue(output.contains("uz.khakimjanovich:config4j:2.8.0-SNAPSHOT"), output);
+    assertTrue(output.contains("uz.khakimjanovich.platform:config:2.8.0-SNAPSHOT"), output);
+  }
+
   private GradleRunner runner() {
     return GradleRunner.create()
         .withProjectDir(build.toFile())

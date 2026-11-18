@@ -24,6 +24,8 @@ import org.gradle.api.provider.ProviderFactory;
 public final class PlatformSettingsPlugin implements Plugin<Settings> {
 
   static final String GROUP = "uz.khakimjanovich.platform";
+  // The hub's artifacts and the libraries in their own repositories (uz.khakimjanovich:config4j).
+  static final String GROUPS = "uz\\.khakimjanovich(\\..+)?";
   static final String PLUGIN_GROUPS = "platform\\..*"; // the convention plugins' markers
   static final String REGISTRY = "https://maven.pkg.github.com/khakimjanovich/platform";
 
@@ -145,7 +147,7 @@ public final class PlatformSettingsPlugin implements Plugin<Settings> {
                 .forRepositories(platform.toArray(ArtifactRepository[]::new))
                 .filter(
                     content -> {
-                      content.includeGroup(GROUP);
+                      content.includeGroupByRegex(GROUPS);
                       content.includeGroupByRegex(PLUGIN_GROUPS);
                     }));
   }

@@ -18,6 +18,7 @@ class PlatformSettingsTest {
   @TempDir static Path registry;
   @TempDir static Path mavenLocal;
   @TempDir static Path publisher;
+  @TempDir static Path library;
   @TempDir Path consumer;
 
   @BeforeAll
@@ -39,6 +40,23 @@ class PlatformSettingsTest {
             repositories { maven { url = providers.gradleProperty('repo').get() } }
         }
         """);
+    write(
+        library,
+        "build.gradle",
+        """
+        plugins {
+            id 'java-library'
+            id 'maven-publish'
+        }
+        group = 'uz.khakimjanovich'
+        version = '1.0.0'
+        publishing {
+            publications { lib(MavenPublication) { from components.java } }
+            repositories { maven { url = providers.gradleProperty('repo').get() } }
+        }
+        """);
+    write(library, "settings.gradle", "rootProject.name = 'probe4j'");
+    runner(library, "publish", "-Prepo=" + registry.toUri()).build();
     publish("9.9.9", "registry-release", registry);
     publish("9.9.9-SNAPSHOT", "registry-snapshot", registry);
     publish("9.9.9-SNAPSHOT", "maven-local", mavenLocal);
@@ -63,6 +81,29 @@ class PlatformSettingsTest {
     var output = consumer("local").build().getOutput();
 
     assertTrue(output.contains("origin=maven-local"), output);
+  }
+
+  @Test
+  void aLibraryInItsOwnRepositoryComesFromTheRegistry() throws IOException {
+    write(consumer, "settings.gradle", "plugins { id 'platform.settings' }");
+    write(
+        consumer,
+        "build.gradle",
+        """
+        configurations { probe }
+        dependencies { probe 'uz.khakimjanovich:probe4j:1.0.0' }
+        tasks.register('probe') {
+            def files = configurations.probe
+            doLast { println "resolved=${files.singleFile.name}" }
+        }
+        """);
+
+    var output =
+        runner(consumer, "probe", "-PplatformSource=release", "-PplatformVersion=9.9.9")
+            .build()
+            .getOutput();
+
+    assertTrue(output.contains("resolved=probe4j-1.0.0.jar"), output);
   }
 
   @Test

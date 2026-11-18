@@ -14,6 +14,8 @@ include('breaker', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault
 // the version the catalog pins; only from there (exclusiveContent), so a mavenLocal() an init script
 // adds can't stand in for them.
 dependencyResolutionManagement {
+    // Settings repositories win over any a project or an init script adds (a mavenLocal() everywhere).
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
     repositories {
         exclusiveContent {
             forRepository {

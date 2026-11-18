@@ -7,7 +7,12 @@ plugins {
 
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
 
-group = 'uz.khakimjanovich.platform'
+// Inside the hub a library is uz.khakimjanovich.platform:<name>. In its own repository it owns its
+// package: `group` and the project name in its gradle.properties and settings (uz.khakimjanovich:config4j),
+// since GitHub lets only the repository a package is linked to publish it.
+if (!providers.gradleProperty('group').isPresent()) {
+    group = 'uz.khakimjanovich.platform'
+}
 // Each library releases on its own. In its own repository it sets `version` in gradle.properties and
 // the hub's catalog pins that release; inside the hub its version is `platform-<project name>` there.
 if (version == Project.DEFAULT_VERSION) {
@@ -18,6 +23,21 @@ if (version == Project.DEFAULT_VERSION) {
 }
 
 java { withSourcesJar() }
+
+// A library that moved to new coordinates still announces its former ones (formerCoordinates, e.g.
+// uz.khakimjanovich.platform:config) as a capability: a build that would also get the old artifact fails
+// on the conflict instead of loading both.
+def formerCoordinates = providers.gradleProperty('formerCoordinates')
+if (formerCoordinates.isPresent()) {
+    ['apiElements', 'runtimeElements'].each { name ->
+        configurations.named(name) {
+            outgoing {
+                capability("${project.group}:${project.name}:${project.version}")
+                capability("${formerCoordinates.get()}:${project.version}")
+            }
+        }
+    }
+}
 
 // A library is one flat package, its public API: verifyArchitecture leaves out a service's package rules.
 tasks.named('verifyArchitecture') { serviceLayout.set(false) }
@@ -61,14 +81,10 @@ publishing {
     publications {
         library(MavenPublication) { from components.java } // with test fixtures, where a library has them
     }
-    // Only CI publishes. GitHub keeps a package linked to the repository it was first published from and
-    // takes new versions only through that repository's URL: githubPackagesRepository names it for a
-    // library that moved out of the platform (khakimjanovich/platform); a new one publishes to the
-    // repository CI runs in (GITHUB_REPOSITORY). Reading is owner-wide. Credentials are the Gradle
-    // properties githubPackagesUsername and githubPackagesPassword.
-    def packageRepository = providers.gradleProperty('githubPackagesRepository')
-        .orElse(providers.environmentVariable('GITHUB_REPOSITORY'))
-        .getOrElse('khakimjanovich/platform')
+    // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): GitHub's Maven
+    // registry lets only that repository's token write them. Reading is owner-wide. Credentials are the
+    // Gradle properties githubPackagesUsername and githubPackagesPassword.
+    def packageRepository = providers.environmentVariable('GITHUB_REPOSITORY').getOrElse('khakimjanovich/platform')
     repositories {
         maven {
             name = 'githubPackages'

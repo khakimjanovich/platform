@@ -10,7 +10,7 @@ include('breaker', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault
 
 // The version catalog is gradle/libs.versions.toml, Gradle's default (read as `libs`), where
 // Dependabot finds it too.
-// Libraries that left for their own repositories (config4j, masking4j, …) come from GitHub Packages, at
+// Libraries that left for their own repositories (uz.khakimjanovich:config4j, …) come from GitHub Packages, at
 // the version the catalog pins; only from there (exclusiveContent), so a mavenLocal() an init script
 // adds can't stand in for them.
 dependencyResolutionManagement {
@@ -26,7 +26,7 @@ dependencyResolutionManagement {
                     }
                 }
             }
-            filter { includeGroup 'uz.khakimjanovich.platform' }
+            filter { includeGroupByRegex 'uz\\.khakimjanovich(\\..+)?' }
         }
         mavenCentral()
     }

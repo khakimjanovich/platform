@@ -6,7 +6,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 
 | Library | What it gives |
 |---|---|
-| [error](error/README.md) | one error format: RFC 9457 problem details with a stable code, in three languages |
+| [error](https://github.com/khakimjanovich/error4j) (own repository: error4j) | one error format: RFC 9457 problem details with a stable code, in three languages |
 | [config](https://github.com/khakimjanovich/config4j) (own repository: config4j) | every library's own defaults and error definitions, loaded below the app's configuration |
 | [masking](https://github.com/khakimjanovich/masking4j) (own repository: masking4j) | what must never reach a log, hidden the same way everywhere |
 | [breaker](breaker/README.md) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |

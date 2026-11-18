@@ -19,7 +19,7 @@ platform = "2.8.0-SNAPSHOT" # the hub: this catalog's own version; see README.md
 platform-build = "2.8.0-SNAPSHOT"
 platform-config = "1.0.0-SNAPSHOT"
 platform-masking = "1.0.0-SNAPSHOT"
-platform-error = "2.8.0-SNAPSHOT"
+platform-error = "1.0.0-SNAPSHOT"
 platform-breaker = "2.8.0-SNAPSHOT"
 platform-outbox = "1.0.0-SNAPSHOT"
 platform-idempotency = "2.8.0-SNAPSHOT"
@@ -105,7 +105,7 @@ jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 
-platform-error = { module = "uz.khakimjanovich.platform:error", version.ref = "platform-error" }
+platform-error = { module = "uz.khakimjanovich:error4j", version.ref = "platform-error" } # its own repository
 platform-otp = { module = "uz.khakimjanovich.platform:otp", version.ref = "platform-otp" }
 platform-security = { module = "uz.khakimjanovich:security4j", version.ref = "platform-security" } # its own repository
 platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform-keycloak" }

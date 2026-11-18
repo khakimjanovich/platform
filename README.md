@@ -1,8 +1,8 @@
 # platform
 
-The libraries every service builds on, in one Gradle build. The app and each
-adapter include it (`includeBuild`), so Gradle builds these projects in place of their
-`uz.khakimjanovich.platform:*` coordinates; nothing is published to run them.
+The libraries every service builds on, in one Gradle build, published to GitHub Packages as
+`uz.khakimjanovich.platform:*`. The services and adapters take them from there through
+`platform.settings`: this machine's or develop's snapshots, or main's releases (§Building on the platform).
 
 | Library | What it gives |
 |---|---|
@@ -71,52 +71,70 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
   workflow runs both again and publishes nothing if either fails. To release, drop `-SNAPSHOT` from the
   versions that changed; an unchanged library goes back to its last release.
 - Locally, `./gradlew publishLocal` puts the same snapshot set in `~/.m2` and overwrites it on each run,
-  with no version bump. A build on the platform reads snapshots from Maven local first, then from the
-  registry (a GitHub token with `read:packages` as `gpr.user` / `gpr.key` in `~/.gradle/gradle.properties`):
+  with no version bump.
 
-  ```groovy
-  // settings.gradle; gradle.properties: platformVersion=2.8.0-SNAPSHOT
-  pluginManagement {
-      repositories {
-          mavenLocal { mavenContent { snapshotsOnly() } }
-          maven {
-              url = 'https://maven.pkg.github.com/khakimjanovich/platform'
-              credentials {
-                  username = providers.gradleProperty('gpr.user').getOrElse('')
-                  password = providers.gradleProperty('gpr.key').getOrElse('')
-              }
-              content { includeGroupByRegex 'platform\\..*' } // the build plugins' markers
-          }
-          mavenCentral()
-          gradlePluginPortal()
-      }
-  }
-  dependencyResolutionManagement {
-      repositories {
-          mavenLocal {
-              mavenContent { snapshotsOnly() }
-              content { includeGroup 'uz.khakimjanovich.platform' }
-          }
-          maven {
-              url = 'https://maven.pkg.github.com/khakimjanovich/platform'
-              credentials {
-                  username = providers.gradleProperty('gpr.user').getOrElse('')
-                  password = providers.gradleProperty('gpr.key').getOrElse('')
-              }
-              content { includeGroup 'uz.khakimjanovich.platform' }
-          }
-          mavenCentral()
-      }
-      versionCatalogs {
-          create('libs') {
-              from("uz.khakimjanovich.platform:versioning:${providers.gradleProperty('platformVersion').get()}")
-          }
-      }
-  }
-  // build.gradle
-  plugins { id 'platform.library' version '2.8.0-SNAPSHOT' }
-  ```
 - Raise `platform` only when a consumer needs the new set; libraries can release many times in between.
   The contracts build pins the catalog; the services pin the libraries the same way, or build them from
   source with `--include-build`.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).
+
+## Building on the platform
+
+A service, adapter or other repository takes the platform through one settings plugin,
+`platform.settings` (build-logic's `settings-plugin`), from one of three sources:
+
+| `platformSource` | Takes the platform from | Version | Use |
+|---|---|---|---|
+| `local` | `~/.m2` (`./gradlew publishLocal` here), releases from the registry | `platformVersion` + `-SNAPSHOT` | trying platform changes before pushing them |
+| `snapshot` | the registry: develop's snapshots | `platformVersion` + `-SNAPSHOT` | develop, the dev server |
+| `release` | the registry: main's releases only | `platformVersion` | main, production |
+
+```groovy
+// settings.gradle
+pluginManagement {
+    repositories {
+        maven {
+            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            credentials {
+                username = providers.environmentVariable('GH_PACKAGES_ACTOR').getOrElse('')
+                password = providers.environmentVariable('GH_PACKAGES_TOKEN').getOrElse('')
+            }
+            content { includeGroupByRegex 'platform\\..*|uz\\.khakimjanovich\\.platform' }
+        }
+        gradlePluginPortal()
+    }
+}
+plugins { id 'platform.settings' version '2.8.0' }
+```
+
+```properties
+# gradle.properties: the platform release, without -SNAPSHOT, and where to take it from.
+# CI overrides the source per branch: PLATFORM_SOURCE=release on main.
+platformVersion=2.8.0
+platformSource=snapshot
+```
+
+```groovy
+// build.gradle: the convention plugins come from the catalog, at no version of the build's own
+plugins { alias(libs.plugins.platform.module) }
+dependencies { implementation libs.platform.error }
+```
+
+What the plugin does:
+
+- The platform's artifacts come only from its repositories (`exclusiveContent`): a `mavenLocal()` that an
+  init script adds can't hand a snapshot build a stale local copy. Settings repositories win over a
+  project's (`PREFER_SETTINGS`); Maven Central is added for everything else.
+- The catalog is imported as `libs`; its `[plugins]` pin the convention plugins at `platform-build`.
+- `snapshot`: Gradle caches a `-SNAPSHOT` for 24 hours, and what settings resolve (the catalog, the
+  plugins) can't be told otherwise. So the plugin reads the registry's `maven-metadata.xml` on every build
+  and pins the newest build's unique version (`2.8.0-20261117.152915-1`); the libraries are checked on
+  every resolution (`cacheChangingModulesFor 0`). A clean build therefore always runs on what develop last
+  published. If the registry can't be read (offline, `--offline`), Gradle's cached snapshot is used, with a
+  warning.
+- `release` refuses a `platformVersion` with `-SNAPSHOT`; so do `local` and `snapshot`, which add it.
+- Credentials: `GH_PACKAGES_ACTOR` / `GH_PACKAGES_TOKEN`, or `gpr.user` / `gpr.key` in
+  `~/.gradle/gradle.properties` (a token with `read:packages`).
+
+Until `platform.settings` 2.8.0 is released, take it at `2.8.0-SNAPSHOT` (from the registry, or with
+`mavenLocal()` in `pluginManagement.repositories` after `./gradlew publishLocal`).

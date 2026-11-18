@@ -10,12 +10,16 @@ version = libs.versions.platform.build.get()
 
 // Only the release workflow publishes. Credentials are the Gradle properties
 // githubPackagesUsername and githubPackagesPassword; without them `publish` fails.
-publishing {
-    repositories {
-        maven {
-            name = 'githubPackages'
-            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
-            credentials(PasswordCredentials)
+allprojects {
+    pluginManager.withPlugin('maven-publish') {
+        publishing {
+            repositories {
+                maven {
+                    name = 'githubPackages'
+                    url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+                    credentials(PasswordCredentials)
+                }
+            }
         }
     }
 }

@@ -1,5 +1,9 @@
 rootProject.name = 'build-logic'
 
+// platform.settings in its own jar: a build applies it before the convention plugins, so it must not
+// carry them (they would already be on the classpath, at no version a build can ask for).
+include('settings-plugin')
+
 // Convention plugins shared by every build on the platform: platform libraries, the app's modules and the adapters.
 dependencyResolutionManagement {
     // The plugins these conventions apply: Spotless from Maven Central, Error

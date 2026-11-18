@@ -1,5 +1,5 @@
-// The platform: every library in one build. The app and the adapters include it
-// (includeBuild), and Gradle puts these projects in place of uz.khakimjanovich.platform:* dependencies.
+// The platform: every library in one build, published as uz.khakimjanovich.platform:*. The services
+// and adapters take it through platform.settings (README.md §Building on the platform).
 pluginManagement { includeBuild 'build-logic' }
 
 rootProject.name = 'platform'

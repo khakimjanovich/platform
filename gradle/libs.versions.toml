@@ -136,5 +136,11 @@ nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 
 [plugins]
+# The platform's convention plugins at platform-build: a build on the platform applies them with
+# alias(libs.plugins.platform.java) and writes no version of its own.
+platform-java = { id = "platform.java", version.ref = "platform-build" }
+platform-library = { id = "platform.library", version.ref = "platform-build" }
+platform-module = { id = "platform.module", version.ref = "platform-build" }
+platform-integration-test = { id = "platform.integration-test", version.ref = "platform-build" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator" }

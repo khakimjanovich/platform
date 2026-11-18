@@ -11,7 +11,7 @@ dependencies {
     api libs.spring.jdbc
     api libs.micrometer.tracing // the relay sends each event inside the trace that wrote it
 
-    integrationTestImplementation project(':persistence') // the module's own beans, as a module builds them
+    integrationTestImplementation libs.platform.persistence // the module's own beans, as a module builds them
     integrationTestImplementation libs.liquibase.core
     integrationTestImplementation libs.testcontainers.postgresql
     integrationTestImplementation libs.testcontainers.kafka

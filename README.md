@@ -16,7 +16,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [security](security/README.md) | Keycloak tokens, route rules, public routes, service-to-service tokens |
 | [keycloak](keycloak/README.md) | Keycloak's admin API: users, roles, machine clients |
 | [otp](otp/README.md) | one-time codes in Redis |
-| [persistence](persistence/README.md) | each module's own pool, schema, migrations and entity manager |
+| [persistence](https://github.com/khakimjanovich/persistence4j) (own repository: persistence4j) | each module's own pool, schema, migrations and entity manager |
 | [vault](vault/README.md) | secrets from Vault, Vault as the source of every secret, and values sealed with Vault Transit |
 | [valkey](valkey/README.md) | Valkey key names inside the app's ACL prefix, counters and limits with expiry |
 | [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |

@@ -46,7 +46,6 @@ jobs:
     env: # the libraries in their own repositories (settings.gradle)
       GH_PACKAGES_ACTOR: ${{ github.actor }}
       GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    env:
       UNRELEASED: ${{ needs.plan.outputs.unreleased }}
     steps:
       - uses: actions/checkout@v7

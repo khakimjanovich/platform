@@ -11,7 +11,7 @@ dependencies {
     api platform(libs.spring.boot.bom)
     api platform(libs.spring.cloud.bom)
     runtimeOnly libs.platform.config // loads the files in META-INF/spring/…LibraryDefaults.imports
-    api project(':error') // VaultTransit's errors
+    api libs.platform.error // VaultTransit's errors
     implementation libs.platform.masking // PCI-DSS context and error log masking
     implementation libs.spring.cloud.starter.vault.config // services use VaultSecrets and VaultTransit, never Vault itself
     implementation libs.spring.boot.autoconfigure
@@ -19,7 +19,7 @@ dependencies {
     implementation libs.starter.validation // the properties are checked at startup
 
     testImplementation libs.spring.boot.health
-    testImplementation testFixtures(project(':error'))
+    testImplementation testFixtures(libs.platform.error)
     integrationTestImplementation libs.spring.boot.health
     integrationTestImplementation libs.testcontainers.core
     integrationTestImplementation libs.testcontainers.junit

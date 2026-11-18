@@ -10,7 +10,7 @@ dependencies {
     api platform(libs.spring.boot.bom)
     runtimeOnly libs.platform.config // loads the files in META-INF/spring/…LibraryDefaults.imports
     api libs.spring.web
-    api project(':error') // failures are GeneralExceptions with their own codes
+    api libs.platform.error // failures are GeneralExceptions with their own codes
     implementation libs.spring.security.oauth2.client
     implementation libs.spring.boot.autoconfigure
     compileOnly libs.spring.boot.health // the health indicator, when the app has the actuator

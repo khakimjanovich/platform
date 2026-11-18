@@ -10,7 +10,7 @@ dependencies {
     runtimeOnly libs.platform.config // loads the files in META-INF/spring/…LibraryDefaults.imports
     api platform(libs.aws.sdk.bom)
     api libs.spring.web
-    api project(":error")
+    api libs.platform.error
     implementation libs.spring.boot.autoconfigure
     implementation libs.starter.validation // the properties are checked at startup
     implementation libs.aws.s3

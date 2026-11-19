@@ -18,6 +18,7 @@ dependencies {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     // The fixture builds read the same catalog.
-    systemProperty 'catalog', file('../../gradle/libs.versions.toml').absolutePath
-    inputs.file('../../gradle/libs.versions.toml')
+    def catalog = rootProject.file('gradle/libs.versions.toml')
+    systemProperty 'catalog', catalog.absolutePath
+    inputs.file(catalog)
 }

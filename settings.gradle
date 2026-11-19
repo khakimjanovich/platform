@@ -1,7 +1,17 @@
 // The hub: the version catalog and the Gradle plugins every <lib>4j repository and service builds with
-// (README.md).
-includeBuild 'gradle-plugins'
-
+// (README.md). gradle/libs.versions.toml is Gradle's default catalog, read here as `libs`.
 rootProject.name = 'platform'
 
-include('version-catalog')
+include('version-catalog', 'gradle-conventions', 'gradle-settings')
+project(':gradle-conventions').projectDir = file('gradle-plugins/conventions')
+project(':gradle-settings').projectDir = file('gradle-plugins/settings')
+
+dependencyResolutionManagement {
+    // The plugins the conventions apply: Spotless from Maven Central, Error Prone's only from the
+    // Gradle Plugin Portal. Settings win over repositories a machine's init script adds.
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}

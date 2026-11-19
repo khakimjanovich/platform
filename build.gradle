@@ -1,21 +1,19 @@
-// The hub's three artifacts at one version (`platform` in the catalog): version-catalog and the two
-// plugin artifacts of gradle-plugins. `check` and `publish` here cover all of them.
-plugins {
-    id 'base'
-}
+// The hub's three artifacts at one version (`platform` in the catalog); `./gradlew check` and
+// `./gradlew publish` cover all of them.
+subprojects {
+    group = 'uz.khakimjanovich'
+    version = libs.versions.platform.get()
 
-def plugins = { String task -> [':gradle-conventions:', ':gradle-settings:'].collect { gradle.includedBuild('gradle-plugins').task(it + task) } }
-
-tasks.named('check') { dependsOn plugins('check') }
-
-tasks.register('publishToMavenLocal') {
-    group = 'publishing'
-    description = 'Publishes the catalog and the plugins to Maven local.'
-    dependsOn ':version-catalog:publishToMavenLocal', plugins('publishToMavenLocal')
-}
-
-tasks.register('publish') {
-    group = 'publishing'
-    description = 'Publishes the catalog and the plugins to GitHub Packages.'
-    dependsOn ':version-catalog:publish', plugins('publish')
+    pluginManager.withPlugin('maven-publish') {
+        publishing {
+            // Credentials are the Gradle properties githubPackagesUsername and githubPackagesPassword.
+            repositories {
+                maven {
+                    name = 'githubPackages'
+                    url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+                    credentials(PasswordCredentials)
+                }
+            }
+        }
+    }
 }

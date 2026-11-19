@@ -1,4 +1,4 @@
-package uz.khakimjanovich.gradle.settings;
+package io.github.org4j.gradle.settings;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,7 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class PlatformSettingsTest {
+class Org4jSettingsTest {
 
   // Each catalog says where it came from, so a test sees which one the source picked.
   @TempDir static Path registry;
@@ -32,7 +32,7 @@ class PlatformSettingsTest {
             id 'version-catalog'
             id 'maven-publish'
         }
-        group = 'uz.khakimjanovich'
+        group = 'io.github.org4j'
         version = providers.gradleProperty('v').get()
         catalog { versionCatalog { version('origin', providers.gradleProperty('origin').get()) } }
         publishing {
@@ -48,7 +48,7 @@ class PlatformSettingsTest {
             id 'java-library'
             id 'maven-publish'
         }
-        group = 'uz.khakimjanovich'
+        group = 'io.github.org4j'
         version = '1.0.0'
         publishing {
             publications { lib(MavenPublication) { from components.java } }
@@ -71,7 +71,7 @@ class PlatformSettingsTest {
 
   @Test
   void aSnapshotVersionIsRefused() throws IOException {
-    var output = consumer("release", "-PplatformVersion=9.x-SNAPSHOT").buildAndFail().getOutput();
+    var output = consumer("release", "-Porg4jVersion=9.x-SNAPSHOT").buildAndFail().getOutput();
 
     assertTrue(output.contains("write a release, X.Y.Z"), output);
   }
@@ -85,13 +85,13 @@ class PlatformSettingsTest {
 
   @Test
   void aLibraryInItsOwnRepositoryComesFromTheRegistry() throws IOException {
-    write(consumer, "settings.gradle", "plugins { id 'uz.khakimjanovich.settings' }");
+    write(consumer, "settings.gradle", "plugins { id 'io.github.org4j.settings' }");
     write(
         consumer,
         "build.gradle",
         """
         configurations { probe }
-        dependencies { probe 'uz.khakimjanovich:probe4j:1.0.0' }
+        dependencies { probe 'io.github.org4j:probe4j:1.0.0' }
         tasks.register('probe') {
             def files = configurations.probe
             doLast { println "resolved=${files.singleFile.name}" }
@@ -99,7 +99,7 @@ class PlatformSettingsTest {
         """);
 
     var output =
-        runner(consumer, "probe", "-PplatformSource=release", "-PplatformVersion=9.9.9")
+        runner(consumer, "probe", "-Porg4jSource=release", "-Porg4jVersion=9.9.9")
             .build()
             .getOutput();
 
@@ -122,16 +122,16 @@ class PlatformSettingsTest {
 
   @Test
   void aBuildWithoutAVersionIsToldToSetIt() throws IOException {
-    write(consumer, "settings.gradle", "plugins { id 'uz.khakimjanovich.settings' }");
+    write(consumer, "settings.gradle", "plugins { id 'io.github.org4j.settings' }");
     write(consumer, "build.gradle", "");
 
-    var output = runner(consumer, "help", "-PplatformSource=release").buildAndFail().getOutput();
+    var output = runner(consumer, "help", "-Porg4jSource=release").buildAndFail().getOutput();
 
-    assertTrue(output.contains("platformVersion is not set"), output);
+    assertTrue(output.contains("org4jVersion is not set"), output);
   }
 
   private GradleRunner consumer(String source, String... extra) throws IOException {
-    write(consumer, "settings.gradle", "plugins { id 'uz.khakimjanovich.settings' }");
+    write(consumer, "settings.gradle", "plugins { id 'io.github.org4j.settings' }");
     write(
         consumer,
         "build.gradle",
@@ -141,8 +141,8 @@ class PlatformSettingsTest {
             doLast { println "origin=$origin" }
         }
         """);
-    var arguments = new ArrayList<>(List.of("origin", "-PplatformSource=" + source));
-    arguments.add("-PplatformVersion=9.9.9");
+    var arguments = new ArrayList<>(List.of("origin", "-Porg4jSource=" + source));
+    arguments.add("-Porg4jVersion=9.9.9");
     arguments.addAll(List.of(extra));
     return runner(consumer, arguments.toArray(String[]::new));
   }
@@ -159,7 +159,7 @@ class PlatformSettingsTest {
 
   private static GradleRunner runner(Path project, String... arguments) {
     var all = new ArrayList<>(List.of(arguments));
-    all.add("-PplatformRegistry=" + registry.toUri());
+    all.add("-Porg4jRegistry=" + registry.toUri());
     all.add("-Dmaven.repo.local=" + mavenLocal); // mavenLocal() reads this instead of ~/.m2
     return GradleRunner.create()
         .withProjectDir(project.toFile())

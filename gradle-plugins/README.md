@@ -1,28 +1,28 @@
 # gradle-plugins
 
-The conventions every build on the platform applies, as Gradle convention plugins, so a module's or library's
+The conventions every build on org4j applies, as Gradle convention plugins, so a module's or library's
 build file says only what is particular to it.
 
 | Plugin | For | What it gives |
 |---|---|---|
-| `uz.khakimjanovich.java` | every Java project | Java from the catalog, the Spring Boot BOM, Lombok, JUnit, `-parameters`, google-java-format checked by `check`, every javac warning an error (`-Xlint:all -Werror`), Error Prone's default checks, JSpecify and NullAway (an error), every `src/main` package `@NullMarked` (`verifyNullMarked`), no workaround markers (`verifyNoWorkarounds`), one architecture (`verifyArchitecture`, see below), platform first (`verifyPlatformFirst`, see below) |
-| `uz.khakimjanovich.library` | platform libraries | `uz.khakimjanovich.java`, the platform's group and version, sources, configuration metadata |
-| `uz.khakimjanovich.module` | the app and its modules | `uz.khakimjanovich.java`, the Spring Modulith BOM, integration tests |
-| `uz.khakimjanovich.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
-| `uz.khakimjanovich.settings` | a build on the platform (settings plugin, its own jar: `gradle-settings`) | the platform from `release` or `local`, its catalog as `libs` (README.md §Building on the platform) |
+| `io.github.org4j.java` | every Java project | Java from the catalog, the Spring Boot BOM, Lombok, JUnit, `-parameters`, google-java-format checked by `check`, every javac warning an error (`-Xlint:all -Werror`), Error Prone's default checks, JSpecify and NullAway (an error), every `src/main` package `@NullMarked` (`verifyNullMarked`), no workaround markers (`verifyNoWorkarounds`), one architecture (`verifyArchitecture`, see below), platform first (`verifyOrg4jFirst`, see below) |
+| `io.github.org4j.library` | org4j libraries | `io.github.org4j.java`, org4j's group and version, sources, configuration metadata |
+| `io.github.org4j.module` | the app and its modules | `io.github.org4j.java`, the Spring Modulith BOM, integration tests |
+| `io.github.org4j.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
+| `io.github.org4j.settings` | a build on org4j (settings plugin, its own jar: `gradle-settings`) | org4j from `release` or `local`, its catalog as `libs` (README.md §Building on org4j) |
 
 Versions come from `gradle/libs.versions.toml`, the one catalog. A build that applies these plugins
-needs it as `libs` (published as `uz.khakimjanovich:version-catalog`): `uz.khakimjanovich.java` checks up
-front for every alias the plugins read and names any that is missing, and `uz.khakimjanovich.library` takes the
-library's version from its `gradle.properties`. The plugins carry the hub version (`platform`).
+needs it as `libs` (published as `io.github.org4j:version-catalog`): `io.github.org4j.java` checks up
+front for every alias the plugins read and names any that is missing, and `io.github.org4j.library` takes the
+library's version from its `gradle.properties`. The plugins carry the org4j version (`org4j`).
 The contract plugin moved with
 the contracts to [khakimjanovich/contracts](https://github.com/khakimjanovich/contracts).
 
 ## No workarounds
 
-A problem in a repository we own (platform, contracts, the services) is fixed there and released; one
+A problem in a repository we own (org4j, contracts, the services) is fixed there and released; one
 outside (a library's API, a scheme's quirk) is isolated in one place with a comment naming it. `check`
-fails on what marks a workaround instead (`verifyNoWorkarounds`, in `uz.khakimjanovich.java`):
+fails on what marks a workaround instead (`verifyNoWorkarounds`, in `io.github.org4j.java`):
 
 - in `src/main` and the build file: a comment saying `TODO`, `FIXME`, `HACK`, `XXX`, "workaround",
   "for now" or "temporary fix" (and the like: "temporary token" is a domain word, not a marker);
@@ -35,7 +35,7 @@ debt ledger; it is allowed. An open question goes to the backlog, not into the c
 
 ## One architecture
 
-`check` runs `verifyArchitecture` (in `uz.khakimjanovich.java`) on the classes compiled from `src/main/java`;
+`check` runs `verifyArchitecture` (in `io.github.org4j.java`) on the classes compiled from `src/main/java`;
 generated code is left out. The rules are in `ArchitectureRules`, the same for every service:
 
 - a controller calls services: never a repository, a service implementation, an entity, a mapper,
@@ -54,7 +54,7 @@ generated code is left out. The rules are in `ArchitectureRules`, the same for e
   or `java.util.logging`; all application logging flows through SLF4J.
 - test isolation: test frameworks (`org.junit`, `org.mockito`, `org.assertj`) never leak into `src/main`.
 - non-blocking: production code never calls `Thread.sleep`.
-- cycle-free package slices: packages under `uz.khakimjanovich` are free of cyclic dependencies.
+- cycle-free package slices: packages under `io.github.org4j` are free of cyclic dependencies.
 
 - no `Map<String, Object>` (or `Map<String, ?>`) as a field, a parameter or a return type: a
   request body or any other structure is a DTO. A tree whose fields must all be kept as they came
@@ -102,23 +102,23 @@ And it throws one kind of error: outside `config` and `property` (which fail at 
 request) the only throwable a class creates is `GeneralException` or a subclass of it, a problem
 detail with a stable code. A case that cannot happen (no SHA-256, a cipher that fails) is
 `GeneralException(ErrorExceptionStatus.INTERNAL_ERROR)`. A private constructor's guard (Lombok's
-`@UtilityClass`) and what the compiler puts in an exhaustive `switch` (`MatchException`) pass. A library (`uz.khakimjanovich.library`) keeps its own
+`@UtilityClass`) and what the compiler puts in an exhaustive `switch` (`MatchException`) pass. A library (`io.github.org4j.library`) keeps its own
 exceptions; the service maps them.
 
 A project without a layer (a library with no controller) passes the rules about it.
 
-## Platform first
+## org4j first
 
-`check` runs `verifyPlatformFirst` (in `uz.khakimjanovich.java`, off in `uz.khakimjanovich.library`): a service that
-declares a library the platform already wraps fails, with the platform library to use instead.
+`check` runs `verifyOrg4jFirst` (in `io.github.org4j.java`, off in `io.github.org4j.library`): a service that
+declares a library org4j already wraps fails, with org4j library to use instead.
 
 | Declared directly | Use |
 |---|---|
-| `spring-boot-starter-data-redis`, `spring-data-redis`, Lettuce, Jedis, Redisson | `libs.valkey4j` (`ValkeyKeys`) |
-| Spring Vault, `spring-cloud-starter-vault-config` | `libs.vault4j` (`VaultSecrets`, `VaultTransit`) |
-| `keycloak-admin-client` | `libs.keycloak.admin4j` (`KeycloakAdmin`) |
-| `HikariCP`, `liquibase-core` | `libs.persistence4j` (`@EnableModulePersistence`) |
+| `spring-boot-starter-data-redis`, `spring-data-redis`, Lettuce, Jedis, Redisson | `libs.valkey` (`ValkeyKeys`) |
+| Spring Vault, `spring-cloud-starter-vault-config` | `libs.vault` (`VaultSecrets`, `VaultTransit`) |
+| `keycloak-admin-client` | `libs.keycloak.admin` (`KeycloakAdmin`) |
+| `HikariCP`, `liquibase-core` | `libs.persistence` (`@EnableModulePersistence`) |
 
-Only what the build declares counts: what a platform library brings with it is fine. In the code,
+Only what the build declares counts: what an org4j library brings with it is fine. In the code,
 `verifyArchitecture` refuses a module's own `HikariDataSource`, `SpringLiquibase` or
 `LocalContainerEntityManagerFactoryBean`: `@EnableModulePersistence` builds them.

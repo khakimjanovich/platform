@@ -1,4 +1,4 @@
-// The convention plugins: uz.khakimjanovich.java, .library, .module and .integration-test.
+// The convention plugins: io.github.org4j.java, .library, .module and .integration-test.
 plugins {
     id 'groovy-gradle-plugin'
     id 'maven-publish'

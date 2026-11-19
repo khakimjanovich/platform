@@ -1,9 +1,9 @@
-// The hub's three artifacts at one version: the line in the catalog (`platform`, 1.x-SNAPSHOT) on a
+// The hub's three artifacts at one version: the line in the catalog (`org4j`, 1.x-SNAPSHOT) on a
 // branch, X.Y.Z from -PreleaseVersion when a tag releases. `./gradlew check` and `publish` cover all three.
-def hubVersion = providers.gradleProperty('releaseVersion').orElse(libs.versions.platform).get()
+def hubVersion = providers.gradleProperty('releaseVersion').orElse(libs.versions.org4j).get()
 
 subprojects {
-    group = 'uz.khakimjanovich'
+    group = 'io.github.org4j'
     version = hubVersion
 
     pluginManager.withPlugin('maven-publish') {
@@ -12,7 +12,7 @@ subprojects {
             repositories {
                 maven {
                     name = 'githubPackages'
-                    url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+                    url = 'https://maven.pkg.github.com/org4j/gradle'
                     credentials(PasswordCredentials)
                 }
             }

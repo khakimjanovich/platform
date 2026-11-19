@@ -1,4 +1,4 @@
-package uz.khakimjanovich.gradle.conventions;
+package io.github.org4j.gradle.conventions;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,12 +11,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-class PlatformFirstTest {
+class Org4jFirstTest {
 
   @TempDir Path build;
 
   @BeforeEach
-  void aBuildOnThePlatform() throws IOException {
+  void aBuildOnOrg4j() throws IOException {
     write("gradle.properties", "version=0.0.0");
     write(
         "settings.gradle",
@@ -35,7 +35,7 @@ class PlatformFirstTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies {
             implementation 'org.springframework.boot:spring-boot-starter-data-redis'
             runtimeOnly 'io.lettuce:lettuce-core'
@@ -46,44 +46,44 @@ class PlatformFirstTest {
 
     assertTrue(
         output.contains(
-            "org.springframework.boot:spring-boot-starter-data-redis: use libs.valkey4j"),
+            "org.springframework.boot:spring-boot-starter-data-redis: use libs.valkey"),
         output);
-    assertTrue(output.contains("io.lettuce:lettuce-core: use libs.valkey4j"), output);
+    assertTrue(output.contains("io.lettuce:lettuce-core: use libs.valkey"), output);
   }
 
   @Test
-  void aServiceOnThePlatformsLibrariesPasses() throws IOException {
+  void aServiceOnOrg4jsLibrariesPasses() throws IOException {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-web' }
         """);
 
     var output = runner().build().getOutput();
 
-    assertFalse(output.contains("but the platform provides it"), output);
+    assertFalse(output.contains("but org4j provides it"), output);
   }
 
   @Test
-  void aPlatformLibraryDeclaresWhatItWraps() throws IOException {
+  void anOrg4jLibraryDeclaresWhatItWraps() throws IOException {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.library' }
+        plugins { id 'io.github.org4j.library' }
         dependencies { api 'org.springframework.boot:spring-boot-starter-data-redis' }
         """);
 
     var output = runner().build().getOutput();
 
-    assertFalse(output.contains("but the platform provides it"), output);
+    assertFalse(output.contains("but org4j provides it"), output);
   }
 
   private GradleRunner runner() {
     return GradleRunner.create()
         .withProjectDir(build.toFile())
         .withPluginClasspath()
-        .withArguments("verifyPlatformFirst");
+        .withArguments("verifyOrg4jFirst");
   }
 
   private void write(String path, String text) throws IOException {

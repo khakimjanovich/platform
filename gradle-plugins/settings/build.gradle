@@ -1,4 +1,4 @@
-// uz.khakimjanovich.settings: where a build takes the platform from (local, snapshot or release).
+// io.github.org4j.settings: where a build takes org4j from (local, snapshot or release).
 plugins {
     id 'java-gradle-plugin'
     id 'maven-publish'
@@ -7,8 +7,8 @@ plugins {
 gradlePlugin {
     plugins {
         settings {
-            id = 'uz.khakimjanovich.settings'
-            implementationClass = 'uz.khakimjanovich.gradle.settings.PlatformSettingsPlugin'
+            id = 'io.github.org4j.settings'
+            implementationClass = 'io.github.org4j.gradle.settings.Org4jSettingsPlugin'
         }
     }
 }

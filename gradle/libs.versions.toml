@@ -14,9 +14,9 @@ spotless = "8.11.0"
 wiremock = "3.13.2"
 aws-sdk = "2.59.0"
 google-java-format = "1.30.0"
-# The hub and every <lib>4j library share this version. On a branch it is the line (1.x-SNAPSHOT,
+# The hub and every <library> library share this version. On a branch it is the line (1.x-SNAPSHOT,
 # local builds only); a release tag vX.Y.Z publishes the catalog with X.Y.Z here (README.md §Versions).
-platform = "1.x-SNAPSHOT"
+org4j = "1.x-SNAPSHOT"
 errorprone = "2.52.0"
 errorprone-gradle = "5.1.1"
 nullaway = "0.14.3"
@@ -90,20 +90,20 @@ jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 
-error4j = { module = "uz.khakimjanovich:error4j", version.ref = "platform" }
-otp4j = { module = "uz.khakimjanovich:otp4j", version.ref = "platform" }
-security4j = { module = "uz.khakimjanovich:security4j", version.ref = "platform" }
-keycloak-admin4j = { module = "uz.khakimjanovich:keycloak-admin4j", version.ref = "platform" }
-persistence4j = { module = "uz.khakimjanovich:persistence4j", version.ref = "platform" }
-vault4j = { module = "uz.khakimjanovich:vault4j", version.ref = "platform" }
-valkey4j = { module = "uz.khakimjanovich:valkey4j", version.ref = "platform" }
-observability4j = { module = "uz.khakimjanovich:observability4j", version.ref = "platform" }
-masking4j = { module = "uz.khakimjanovich:masking4j", version.ref = "platform" }
-breaker4j = { module = "uz.khakimjanovich:breaker4j", version.ref = "platform" }
-outbox4j = { module = "uz.khakimjanovich:outbox4j", version.ref = "platform" }
-idempotency4j = { module = "uz.khakimjanovich:idempotency4j", version.ref = "platform" }
-config4j = { module = "uz.khakimjanovich:config4j", version.ref = "platform" }
-filestore4j = { module = "uz.khakimjanovich:filestore4j", version.ref = "platform" }
+error = { module = "io.github.org4j:error", version.ref = "org4j" }
+otp = { module = "io.github.org4j:otp", version.ref = "org4j" }
+security = { module = "io.github.org4j:security", version.ref = "org4j" }
+keycloak-admin = { module = "io.github.org4j:keycloak-admin", version.ref = "org4j" }
+persistence = { module = "io.github.org4j:persistence", version.ref = "org4j" }
+vault = { module = "io.github.org4j:vault", version.ref = "org4j" }
+valkey = { module = "io.github.org4j:valkey", version.ref = "org4j" }
+observability = { module = "io.github.org4j:observability", version.ref = "org4j" }
+masking = { module = "io.github.org4j:masking", version.ref = "org4j" }
+breaker = { module = "io.github.org4j:breaker", version.ref = "org4j" }
+outbox = { module = "io.github.org4j:outbox", version.ref = "org4j" }
+idempotency = { module = "io.github.org4j:idempotency", version.ref = "org4j" }
+config = { module = "io.github.org4j:config", version.ref = "org4j" }
+filestore = { module = "io.github.org4j:filestore", version.ref = "org4j" }
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }
@@ -123,9 +123,9 @@ jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 [plugins]
 # The convention plugins at the hub version: a build applies them with
 # alias(libs.plugins.conventions.java) and writes no version of its own.
-conventions-java = { id = "uz.khakimjanovich.java", version.ref = "platform" }
-conventions-library = { id = "uz.khakimjanovich.library", version.ref = "platform" }
-conventions-module = { id = "uz.khakimjanovich.module", version.ref = "platform" }
-conventions-integration-test = { id = "uz.khakimjanovich.integration-test", version.ref = "platform" }
+conventions-java = { id = "io.github.org4j.java", version.ref = "org4j" }
+conventions-library = { id = "io.github.org4j.library", version.ref = "org4j" }
+conventions-module = { id = "io.github.org4j.module", version.ref = "org4j" }
+conventions-integration-test = { id = "io.github.org4j.integration-test", version.ref = "org4j" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator" }

@@ -11,13 +11,13 @@ tag=v$version
 root=$(cd "$(dirname "$0")/../.." && pwd)
 
 waves=(
-  "platform"
-  "config4j masking4j"
-  "error4j persistence4j"
-  "breaker4j valkey4j vault4j filestore4j outbox4j idempotency4j"
-  "observability4j"
-  "keycloak-admin4j"
-  "security4j otp4j"
+  "gradle"
+  "config masking"
+  "error persistence"
+  "breaker valkey vault filestore outbox idempotency"
+  "observability"
+  "keycloak-admin"
+  "security otp"
 )
 
 release() {
@@ -32,12 +32,12 @@ release() {
   git tag "$tag" "$sha"
   git push -q origin "refs/tags/$tag"
   for _ in $(seq 1 60); do
-    id=$(gh run list -R "khakimjanovich/$repo" -b "$tag" -L 1 --json databaseId -q '.[0].databaseId' 2> /dev/null || true)
+    id=$(gh run list -R "org4j/$repo" -b "$tag" -L 1 --json databaseId -q '.[0].databaseId' 2> /dev/null || true)
     [ -n "$id" ] && break
     sleep 5
   done
   [ -n "$id" ] || { echo "$repo: no release run for $tag" >&2; return 1; }
-  if gh run watch "$id" -R "khakimjanovich/$repo" --exit-status > /dev/null 2>&1; then
+  if gh run watch "$id" -R "org4j/$repo" --exit-status > /dev/null 2>&1; then
     echo "$repo: $tag released"
   else
     echo "$repo: release run $id failed" >&2

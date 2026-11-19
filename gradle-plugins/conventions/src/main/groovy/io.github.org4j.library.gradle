@@ -1,14 +1,14 @@
-// A library with sources, published as uz.khakimjanovich:<name> (config4j, error4j, …).
+// A library with sources, published as io.github.org4j:<name> (config, error, …).
 plugins {
-    id 'uz.khakimjanovich.java'
+    id 'io.github.org4j.java'
     id 'maven-publish'
 }
 
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
 
-// A library is uz.khakimjanovich:<name> unless its gradle.properties sets another `group`.
+// A library is io.github.org4j:<name> unless its gradle.properties sets another `group`.
 if (!providers.gradleProperty('group').isPresent()) {
-    group = 'uz.khakimjanovich'
+    group = 'io.github.org4j'
 }
 // Each library releases on its own: its repository sets `version` in gradle.properties, and the hub's
 // catalog pins that release.
@@ -36,8 +36,8 @@ if (formerCoordinates.isPresent()) {
 // A library is one flat package, its public API: verifyArchitecture leaves out a service's package rules.
 tasks.named('verifyArchitecture') { serviceLayout.set(false) }
 
-// A library is where the platform declares what it wraps (Redis, Vault, Hikari…): verifyPlatformFirst is for its users.
-tasks.named('verifyPlatformFirst') { platformLibrary.set(true) }
+// A library is where org4j declares what it wraps (Redis, Vault, Hikari…): verifyOrg4jFirst is for its users.
+tasks.named('verifyOrg4jFirst') { org4jLibrary.set(true) }
 
 // Never incremental: the configuration processor writes the metadata only from the sources it
 // compiles, so recompiling one class dropped every other property's description, and the build
@@ -78,7 +78,7 @@ publishing {
     // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): GitHub's Maven
     // registry lets only that repository's token write them. Reading is owner-wide. Credentials are the
     // Gradle properties githubPackagesUsername and githubPackagesPassword.
-    def packageRepository = providers.environmentVariable('GITHUB_REPOSITORY').getOrElse('khakimjanovich/platform')
+    def packageRepository = providers.environmentVariable('GITHUB_REPOSITORY').getOrElse("org4j/${project.name}")
     repositories {
         maven {
             name = 'githubPackages'

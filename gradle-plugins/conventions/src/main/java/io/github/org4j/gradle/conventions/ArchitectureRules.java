@@ -1,4 +1,4 @@
-package uz.khakimjanovich.gradle.conventions;
+package io.github.org4j.gradle.conventions;
 
 import static com.tngtech.archunit.base.DescribedPredicate.describe;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
@@ -173,7 +173,7 @@ public final class ArchitectureRules {
               .because("production code must use SLF4J, never java.util.logging")
               .allowEmptyShould(true),
           slices()
-              .matching("uz.khakimjanovich.(*)..")
+              .matching("io.github.org4j.(*)..")
               .should()
               .beFreeOfCycles()
               .because("packages must be free of cyclic dependencies")
@@ -222,7 +222,7 @@ public final class ArchitectureRules {
           "com.fasterxml.jackson.databind.node.ArrayNode",
           "com.fasterxml.jackson.databind.node.JsonNodeFactory");
 
-  private static final String GENERAL_EXCEPTION = "uz.khakimjanovich.error4j.GeneralException";
+  private static final String GENERAL_EXCEPTION = "io.github.org4j.error.GeneralException";
 
   private static final Set<String> COMPILER_THROWABLES =
       Set.of("java.lang.MatchException", "java.lang.IncompatibleClassChangeError");
@@ -468,7 +468,7 @@ public final class ArchitectureRules {
                       "a module's pool, migrations or entity manager (HikariDataSource,"
                           + " SpringLiquibase, LocalContainerEntityManagerFactoryBean)",
                       (JavaClass c) -> MODULE_PERSISTENCE.contains(c.getName())))
-              .because("@EnableModulePersistence builds them from the platform")
+              .because("@EnableModulePersistence builds them from org4j")
               .allowEmptyShould(true));
 
   private ArchitectureRules() {}

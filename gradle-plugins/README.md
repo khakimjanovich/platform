@@ -9,7 +9,7 @@ build file says only what is particular to it.
 | `uz.khakimjanovich.library` | platform libraries | `uz.khakimjanovich.java`, the platform's group and version, sources, configuration metadata |
 | `uz.khakimjanovich.module` | the app and its modules | `uz.khakimjanovich.java`, the Spring Modulith BOM, integration tests |
 | `uz.khakimjanovich.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
-| `uz.khakimjanovich.settings` | a build on the platform (settings plugin, its own jar: `gradle-settings`) | the platform from `local`, `snapshot` or `release`, its catalog as `libs`, the newest snapshot on every build (README.md §Building on the platform) |
+| `uz.khakimjanovich.settings` | a build on the platform (settings plugin, its own jar: `gradle-settings`) | the platform from `release` or `local`, its catalog as `libs` (README.md §Building on the platform) |
 
 Versions come from `gradle/libs.versions.toml`, the one catalog. A build that applies these plugins
 needs it as `libs` (published as `uz.khakimjanovich:version-catalog`): `uz.khakimjanovich.java` checks up

@@ -547,12 +547,12 @@ class ArchitectureTest {
             versionCatalogs {
                 create('libs') {
                     from(files('%s'))
-                    version('platform-demo-lib', '0.0.0')
                 }
             }
         }
         """
             .formatted(System.getProperty("catalog")));
+    write("gradle.properties", "version=0.0.0");
     write("build.gradle", "plugins { id 'platform.library' }\n");
     write(
         "src/main/java/demo/service/JobRequest.java",

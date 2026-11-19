@@ -23,7 +23,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [build-logic](build-logic/README.md) | the build conventions |
 
 `config` is the platform's base layer, not a module an app wires in: error, file-store, keycloak,
-observability, otp and persistence each depend on it (`runtimeOnly libs.platform.config`) and list
+observability, otp and persistence each depend on it (`runtimeOnly libs.config4j`) and list
 their own defaults in `META-INF/spring/uz.khakimjanovich.config4j.LibraryDefaults.imports`.
 Adding one of them brings `config` along, the way a library brings its own dependencies. It holds
 no business code and connects no two libraries; the Composition Root rule (an app wires our modules
@@ -47,7 +47,7 @@ image tags as the local stack (each library's `src/integrationTest/resources/ima
 ## Versions
 
 - Every artifact has its own version in `gradle/libs.versions.toml` (the catalog every build reads),
-  following Semantic Versioning 2.0: each library `platform-<lib>`, the build plugins `platform-build`,
+  following Semantic Versioning 2.0: each library `<lib>4j`, the build plugins `platform-build`,
   and the catalog itself `platform`, the hub, which pins the set of versions checked together.
 - While 0.x: breaking changes and additions bump the minor, fixes the patch. From 1.0: breaking →
   major, additions → minor, fixes → patch. Breaking means removing or changing a public class,
@@ -117,7 +117,7 @@ platformSource=snapshot
 ```groovy
 // build.gradle: the convention plugins come from the catalog, at no version of the build's own
 plugins { alias(libs.plugins.platform.module) }
-dependencies { implementation libs.platform.error }
+dependencies { implementation libs.error4j }
 ```
 
 What the plugin does:

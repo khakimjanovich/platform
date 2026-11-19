@@ -14,9 +14,9 @@ spotless = "8.11.0"
 wiremock = "3.13.2"
 aws-sdk = "2.59.0"
 google-java-format = "1.30.0"
-platform = "2.8.0" # the hub: this catalog's own version; see README.md §Versions
+platform = "2.9.0-SNAPSHOT" # the hub: this catalog's own version; see README.md §Versions
 # INHOUSE PLUGINS START
-platform-build = "2.8.0"
+platform-build = "2.9.0-SNAPSHOT"
 platform-config = "1.0.0"
 platform-masking = "1.0.0"
 platform-error = "1.0.0"

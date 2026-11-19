@@ -180,11 +180,13 @@ public final class PlatformSettingsPlugin implements Plugin<Settings> {
     return source == Source.RELEASE ? bare : bare + "-SNAPSHOT";
   }
 
+  // The variable wins: CI sets PLATFORM_SOURCE=release on main over the platformSource=snapshot a
+  // repository keeps in gradle.properties, as its settings.gradle does for this plugin's own version.
   private static String read(
       ProviderFactory providers, String property, String variable, String fallback) {
     return providers
-        .gradleProperty(property)
-        .orElse(providers.environmentVariable(variable))
+        .environmentVariable(variable)
+        .orElse(providers.gradleProperty(property))
         .getOrElse(fallback)
         .trim();
   }

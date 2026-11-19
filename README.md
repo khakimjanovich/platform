@@ -19,7 +19,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [persistence](https://github.com/khakimjanovich/persistence4j) (own repository: persistence4j) | each module's own pool, schema, migrations and entity manager |
 | [vault](https://github.com/khakimjanovich/vault4j) (own repository: vault4j) | secrets from Vault, Vault as the source of every secret, and values sealed with Vault Transit |
 | [valkey](https://github.com/khakimjanovich/valkey4j) (own repository: valkey4j) | Valkey key names inside the app's ACL prefix, counters and limits with expiry |
-| [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |
+| [file-store](https://github.com/khakimjanovich/filestore4j) (own repository: filestore4j) | files in S3 buckets, typed from their bytes |
 | [build-logic](build-logic/README.md) | the build conventions |
 
 `config` is the platform's base layer, not a module an app wires in: error, file-store, keycloak,

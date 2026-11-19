@@ -28,50 +28,56 @@ Each builds with [library.yml](.github/workflows/library.yml), the reusable work
 
 ## Versions
 
-- One version for the hub: `platform` in `gradle/libs.versions.toml`, following Semantic Versioning
-  2.0. Breaking means removing or changing a catalog alias, a plugin id or what a plugin enforces.
-- `develop` carries `X.Y.Z-SNAPSHOT`, republished on every push (`snapshot.yml`) until `X.Y.Z` is
-  released; no other snapshot line starts before that.
-- `main` carries releases only. A merge publishes `X.Y.Z` once, tags it `vX.Y.Z` and makes a GitHub
-  release (`release.yml`). Into `main`, the `release gate` fails while any catalog version is a
-  `-SNAPSHOT` (`.github/scripts/no-snapshots.sh`) or the hub changed since the tag of its version
-  (`.github/scripts/release-plan.sh`).
+The model follows Laravel's: release branches, tags, one version for the whole set.
+
+- One version for the hub and all 14 libraries: `platform` in `gradle/libs.versions.toml`, following
+  Semantic Versioning 2.0. Release `1.2.0` is the tag `v1.2.0` in all 15 repositories.
+- Branches: `1.x` holds the current major and is the default branch; `main` holds the next major.
+  Once a year, `main` becomes the next `X.x` and releases `X.0.0`.
+- On a branch the version is the line, `1.x-SNAPSHOT`. It is never published; it exists for local
+  builds (`./gradlew publishToMavenLocal`, `platformSource=local`).
+- A push or a pull request runs `check` only (`build.yml`). Nothing is published from a branch.
+- A tag `vX.Y.Z` on `X.x` publishes `X.Y.Z` once, with a GitHub release (`release.yml`,
+  `.github/scripts/release-version.sh`). The published catalog must hold no `-SNAPSHOT`.
+- A release builds on releases only: the hub first, then the libraries in their dependency order.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).
 
 ## Building on the platform
 
-A service, adapter or other repository takes the platform through one settings plugin,
-`uz.khakimjanovich.settings` (`gradle-plugins/settings`), from one of three sources:
+A library, service or adapter takes the platform through one settings plugin,
+`uz.khakimjanovich.settings` (`gradle-plugins/settings`), from one of two sources:
 
 | `platformSource` | Takes the platform from | Version | Use |
 |---|---|---|---|
-| `local` | `~/.m2` (`./gradlew publishToMavenLocal` here), releases from the registry | `platformVersion` + `-SNAPSHOT` | trying platform changes before pushing them |
-| `snapshot` | the registry: develop's snapshots | `platformVersion` + `-SNAPSHOT` | develop, the dev server |
-| `release` | the registry: main's releases only | `platformVersion` | main, production |
+| `release` | the registry, releases only | `platformVersion` (`1.0.0`) | CI, every release, production |
+| `local` | `~/.m2` (`./gradlew publishToMavenLocal` here and in the libraries) | the line (`1.x-SNAPSHOT`) | trying unreleased changes on this machine |
 
 ```groovy
 // settings.gradle
 pluginManagement {
+    def platformVersion = providers.gradleProperty('platformVersion').get()
+    def platformSource = providers.environmentVariable('PLATFORM_SOURCE').orElse(providers.gradleProperty('platformSource')).get()
     repositories {
+        if (platformSource == 'local') mavenLocal()
         maven {
             url = 'https://maven.pkg.github.com/khakimjanovich/*'
             credentials {
-                username = providers.environmentVariable('GH_PACKAGES_ACTOR').getOrElse('')
-                password = providers.environmentVariable('GH_PACKAGES_TOKEN').getOrElse('')
+                username = providers.gradleProperty('gpr.user').orElse(providers.environmentVariable('GH_PACKAGES_ACTOR')).getOrElse('')
+                password = providers.gradleProperty('gpr.key').orElse(providers.environmentVariable('GH_PACKAGES_TOKEN')).getOrElse('')
             }
             content { includeGroupByRegex 'uz\\.khakimjanovich(\\..+)?' }
         }
         gradlePluginPortal()
     }
+    plugins { id 'uz.khakimjanovich.settings' version(platformSource == 'local' ? "${platformVersion.tokenize('.')[0]}.x-SNAPSHOT" : platformVersion) }
 }
-plugins { id 'uz.khakimjanovich.settings' version '1.0.0' }
+plugins { id 'uz.khakimjanovich.settings' }
 ```
 
 ```properties
-# gradle.properties: the platform release, without -SNAPSHOT, and where to take it from.
-# CI overrides the source per branch: PLATFORM_SOURCE=release on main.
+# gradle.properties: the hub release to build on, and where to take it from.
 platformVersion=1.0.0
-platformSource=snapshot
+platformSource=release
 ```
 
 ```groovy
@@ -83,17 +89,11 @@ dependencies { implementation libs.error4j }
 What the plugin does:
 
 - The platform's artifacts come only from its repositories (`exclusiveContent`): a `mavenLocal()` that an
-  init script adds can't hand a snapshot build a stale local copy. Settings repositories win over a
+  init script adds can't stand in for a release, and the registry hands out releases only. Settings repositories win over a
   project's (`PREFER_SETTINGS`); Maven Central is added for everything else.
 - The catalog is imported as `libs`; its `[plugins]` pin the convention plugins at the hub version.
-- `snapshot`: Gradle caches a `-SNAPSHOT` for 24 hours, and what settings resolve (the catalog, the
-  plugins) can't be told otherwise. So the plugin reads the registry's `maven-metadata.xml` on every build
-  and pins the newest build's unique version (`1.0.0-20261117.152915-1`); the libraries are checked on
-  every resolution (`cacheChangingModulesFor 0`). A clean build therefore always runs on what develop last
-  published. If the registry can't be read (offline, `--offline`), Gradle's cached snapshot is used, with a
-  warning.
-- `release` refuses a `platformVersion` with `-SNAPSHOT`; so do `local` and `snapshot`, which add it.
-- `PLATFORM_SOURCE` and the other variables win over `gradle.properties`, so CI can switch the source.
+- `platformVersion` must be a release, `X.Y.Z`; `local` takes its line, `X.x-SNAPSHOT`.
+- `PLATFORM_SOURCE` and the other variables win over `gradle.properties`, so a release build can force `release`.
 - Credentials: `GH_PACKAGES_ACTOR` / `GH_PACKAGES_TOKEN`, or `gpr.user` / `gpr.key` in
   `~/.gradle/gradle.properties` (a token with `read:packages`).
 

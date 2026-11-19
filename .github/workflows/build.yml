@@ -1,10 +1,10 @@
-# The hub's checks: the plugins' tests on real builds. A push to develop is checked by snapshot.yml,
-# which then publishes the snapshot; only main releases (release.yml).
+# The hub's checks: the plugins' tests on real builds. Nothing is published from a branch; a release
+# tag publishes (release.yml).
 name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, "*.x"]
     paths-ignore: ["**/*.md", "LICENSE", "docs/**"]
   pull_request:
     paths-ignore: ["**/*.md", "LICENSE", "docs/**"]

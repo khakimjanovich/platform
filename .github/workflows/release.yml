@@ -1,15 +1,13 @@
-# A merge to main releases the hub: the catalog and both plugin artifacts at the catalog's `platform`
-# version, once, tagged v<version> with a GitHub release. It fails, publishing nothing, on a -SNAPSHOT
-# version or on a hub changed since the tag of its version (.github/scripts). Snapshots come from
-# develop (snapshot.yml).
+# A tag vX.Y.Z on branch X.x releases the hub: the catalog and both plugin artifacts at X.Y.Z, once,
+# with a GitHub release. The catalog it publishes must hold no -SNAPSHOT version.
 name: release
 
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
 
 permissions:
-  contents: write # the tag and the GitHub release
+  contents: write # the GitHub release
   packages: write
 
 concurrency:
@@ -23,31 +21,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # the release tags
-      - run: .github/scripts/no-snapshots.sh
-      - id: plan
+          fetch-depth: 0 # the X.x branch the tag must be on
+      - id: version
         run: |
-          tag=$(.github/scripts/release-plan.sh)
-          echo "${tag:-nothing to release}"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-      - if: steps.plan.outputs.tag != ''
-        uses: actions/setup-java@v6
+          line=$(sed -n 's/^platform = "\([^"]*\)".*/\1/p' gradle/libs.versions.toml)
+          echo "version=$(.github/scripts/release-version.sh "$GITHUB_REF_NAME" "$line")" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
-      - if: steps.plan.outputs.tag != ''
-        uses: gradle/actions/setup-gradle@v6
-      - if: steps.plan.outputs.tag != ''
-        run: ./gradlew check
-      - name: Publish and tag
-        if: steps.plan.outputs.tag != ''
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew check :version-catalog:generateCatalogAsToml -PreleaseVersion=${{ steps.version.outputs.version }}
+      - name: No snapshot in the catalog
+        run: |
+          if grep -n 'SNAPSHOT' version-catalog/build/version-catalog/libs.versions.toml; then
+            echo "a release catalog takes releases only" >&2
+            exit 1
+          fi
+      - name: Publish
         env:
-          TAG: ${{ steps.plan.outputs.tag }}
           ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
           ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          ./gradlew publish
-          git tag "$TAG" "$GITHUB_SHA"
-          git push origin "refs/tags/$TAG"
-          gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes
+          ./gradlew publish -PreleaseVersion=${{ steps.version.outputs.version }}
+          gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes

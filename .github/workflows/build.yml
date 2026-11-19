@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   check:
-    name: platform check
+    name: check
     runs-on: ubuntu-latest
     env: # the libraries in their own repositories (settings.gradle)
       GH_PACKAGES_ACTOR: ${{ github.actor }}

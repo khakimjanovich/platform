@@ -40,6 +40,7 @@ The model follows Laravel's: release branches, tags, one version for the whole s
 - A tag `vX.Y.Z` on `X.x` publishes `X.Y.Z` once, with a GitHub release (`release.yml`,
   `.github/scripts/release-version.sh`). The published catalog must hold no `-SNAPSHOT`.
 - A release builds on releases only: the hub first, then the libraries in their dependency order.
+  `scripts/release-train.sh X.Y.Z` tags and waits for all 15, wave by wave.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).
 
 ## Building on the platform

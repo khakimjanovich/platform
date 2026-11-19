@@ -5,9 +5,9 @@
 #   jobs: { library: { uses: khakimjanovich/platform/.github/workflows/library.yml@1.x } }
 #
 # A branch or a pull request: ./gradlew check on the hub release in gradle.properties; nothing is
-# published. A tag vX.Y.Z on branch X.x: the release, X.Y.Z, built on releases only
+# published. A tag vX.Y.Z on branch X.x: the release X.Y.Z, built on hub X.Y.Z and its releases only
 # (PLATFORM_SOURCE=release), published once with a GitHub release. The hub and every library share
-# X.Y.Z; gradle.properties keeps the line (version=1.x-SNAPSHOT).
+# X.Y.Z, so the hub releases first; gradle.properties keeps the line (version=1.x-SNAPSHOT).
 name: library
 
 on:
@@ -51,7 +51,7 @@ jobs:
         run: |
           line=$(sed -n 's/^version=//p' gradle.properties)
           version=$(.platform/.github/scripts/release-version.sh "$GITHUB_REF_NAME" "$line")
-          ./gradlew check publish -Pversion="$version"
+          ./gradlew check publish -Pversion="$version" -PplatformVersion="$version"
           gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
 
       - name: Keep test reports of failed run

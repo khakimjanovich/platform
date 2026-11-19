@@ -459,12 +459,12 @@ class ArchitectureTest {
   void aServiceMayThrowItsOwnGeneralException() throws IOException {
     // A stand-in for the error library's class, with the same name.
     write(
-        "src/main/java/uz/khakimjanovich/platform/error/package-info.java",
-        "@org.jspecify.annotations.NullMarked\npackage uz.khakimjanovich.platform.error;\n");
+        "src/main/java/uz/khakimjanovich/error4j/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage uz.khakimjanovich.error4j;\n");
     write(
-        "src/main/java/uz/khakimjanovich/platform/error/GeneralException.java",
+        "src/main/java/uz/khakimjanovich/error4j/GeneralException.java",
         """
-        package uz.khakimjanovich.platform.error;
+        package uz.khakimjanovich.error4j;
 
         public class GeneralException extends RuntimeException {
           private static final long serialVersionUID = 1L;
@@ -479,7 +479,7 @@ class ArchitectureTest {
         """
         package demo.service;
 
-        import uz.khakimjanovich.platform.error.GeneralException;
+        import uz.khakimjanovich.error4j.GeneralException;
 
         public class EmailTaken extends GeneralException {
           private static final long serialVersionUID = 1L;
@@ -494,7 +494,7 @@ class ArchitectureTest {
         """
         package demo.service;
 
-        import uz.khakimjanovich.platform.error.GeneralException;
+        import uz.khakimjanovich.error4j.GeneralException;
 
         public class DemoService {
           public void register(boolean taken, boolean down) {

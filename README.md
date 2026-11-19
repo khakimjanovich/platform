@@ -24,7 +24,7 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 
 `config` is the platform's base layer, not a module an app wires in: error, file-store, keycloak,
 observability, otp and persistence each depend on it (`runtimeOnly libs.platform.config`) and list
-their own defaults in `META-INF/spring/uz.khakimjanovich.platform.config.LibraryDefaults.imports`.
+their own defaults in `META-INF/spring/uz.khakimjanovich.config4j.LibraryDefaults.imports`.
 Adding one of them brings `config` along, the way a library brings its own dependencies. It holds
 no business code and connects no two libraries; the Composition Root rule (an app wires our modules
 together) is about the others.

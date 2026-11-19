@@ -1,4 +1,4 @@
-package uz.khakimjanovich.gradle.conventions;
+package io.github.org4j.gradle.conventions;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,7 +16,7 @@ class ArchitectureTest {
   @TempDir Path build;
 
   @BeforeEach
-  void aBuildOnPlatformJava() throws IOException {
+  void aBuildOnOrg4jJava() throws IOException {
     write(
         "settings.gradle",
         """
@@ -26,7 +26,7 @@ class ArchitectureTest {
         }
         """
             .formatted(System.getProperty("catalog")));
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.java' }\n");
+    write("build.gradle", "plugins { id 'io.github.org4j.java' }\n");
     for (var pkg : new String[] {"controller", "service", "config", "utils"}) {
       write(
           "src/main/java/demo/" + pkg + "/package-info.java",
@@ -138,7 +138,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework.boot:spring-boot' }
         """);
 
@@ -168,7 +168,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'tools.jackson.core:jackson-databind' }
         """);
 
@@ -199,7 +199,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'tools.jackson.core:jackson-databind' }
         """);
 
@@ -233,7 +233,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-web' }
         """);
 
@@ -266,7 +266,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-web' }
         """);
 
@@ -297,7 +297,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-core' }
         """);
 
@@ -353,7 +353,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'tools.jackson.core:jackson-databind' }
         """);
 
@@ -381,13 +381,13 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'com.zaxxer:HikariCP' }
         """);
 
     var output = runner().buildAndFail().getOutput();
 
-    assertTrue(output.contains("@EnableModulePersistence builds them from the platform"), output);
+    assertTrue(output.contains("@EnableModulePersistence builds them from org4j"), output);
     assertTrue(output.contains("demo.config.DemoPersistenceConfig"), output);
   }
 
@@ -459,12 +459,12 @@ class ArchitectureTest {
   void aServiceMayThrowItsOwnGeneralException() throws IOException {
     // A stand-in for the error library's class, with the same name.
     write(
-        "src/main/java/uz/khakimjanovich/error4j/package-info.java",
-        "@org.jspecify.annotations.NullMarked\npackage uz.khakimjanovich.error4j;\n");
+        "src/main/java/io/github/org4j/error/package-info.java",
+        "@org.jspecify.annotations.NullMarked\npackage io.github.org4j.error;\n");
     write(
-        "src/main/java/uz/khakimjanovich/error4j/GeneralException.java",
+        "src/main/java/io/github/org4j/error/GeneralException.java",
         """
-        package uz.khakimjanovich.error4j;
+        package io.github.org4j.error;
 
         public class GeneralException extends RuntimeException {
           private static final long serialVersionUID = 1L;
@@ -479,7 +479,7 @@ class ArchitectureTest {
         """
         package demo.service;
 
-        import uz.khakimjanovich.error4j.GeneralException;
+        import io.github.org4j.error.GeneralException;
 
         public class EmailTaken extends GeneralException {
           private static final long serialVersionUID = 1L;
@@ -494,7 +494,7 @@ class ArchitectureTest {
         """
         package demo.service;
 
-        import uz.khakimjanovich.error4j.GeneralException;
+        import io.github.org4j.error.GeneralException;
 
         public class DemoService {
           public void register(boolean taken, boolean down) {
@@ -553,7 +553,7 @@ class ArchitectureTest {
         """
             .formatted(System.getProperty("catalog")));
     write("gradle.properties", "version=0.0.0");
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.library' }\n");
+    write("build.gradle", "plugins { id 'io.github.org4j.library' }\n");
     write(
         "src/main/java/demo/service/JobRequest.java",
         "package demo.service;\n\npublic record JobRequest(String jobId) {}\n");
@@ -633,7 +633,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-beans' }
         """);
 
@@ -758,7 +758,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-context' }
         """);
 
@@ -783,7 +783,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-context' }
         """);
 
@@ -896,7 +896,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-tx' }
         """);
 
@@ -926,7 +926,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.springframework:spring-web' }
         """);
 
@@ -979,7 +979,7 @@ class ArchitectureTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         dependencies { implementation 'org.junit.jupiter:junit-jupiter-api' }
         """);
     write(

@@ -1,4 +1,4 @@
-package uz.khakimjanovich.gradle.conventions;
+package io.github.org4j.gradle.conventions;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,7 +16,7 @@ class CatalogContractTest {
   @Test
   void aBuildWithoutTheCatalogIsToldToImportIt() throws IOException {
     write("settings.gradle", "dependencyResolutionManagement { repositories { mavenCentral() } }");
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.java' }");
+    write("build.gradle", "plugins { id 'io.github.org4j.java' }");
 
     var output = runner().buildAndFail().getOutput();
 
@@ -38,7 +38,7 @@ class CatalogContractTest {
             versionCatalogs { create('libs') { from(files('libs.versions.toml')) } }
         }
         """);
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.java' }");
+    write("build.gradle", "plugins { id 'io.github.org4j.java' }");
 
     var output = runner().buildAndFail().getOutput();
 
@@ -57,7 +57,7 @@ class CatalogContractTest {
         }
         """
             .formatted(System.getProperty("catalog")));
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.library' }");
+    write("build.gradle", "plugins { id 'io.github.org4j.library' }");
 
     var output = runner().buildAndFail().getOutput();
 
@@ -80,7 +80,7 @@ class CatalogContractTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.library' }
+        plugins { id 'io.github.org4j.library' }
         tasks.register('printVersion') {
             def v = version
             doLast { println "version=$v" }
@@ -97,7 +97,7 @@ class CatalogContractTest {
     write(
         "settings.gradle",
         """
-        rootProject.name = 'config4j'
+        rootProject.name = 'config'
         dependencyResolutionManagement {
             repositories { mavenCentral() }
             versionCatalogs { create('libs') { from(files('%s')) } }
@@ -107,11 +107,11 @@ class CatalogContractTest {
     write(
         "gradle.properties",
         """
-        group=uz.khakimjanovich
+        group=io.github.org4j
         version=2.8.0-SNAPSHOT
         formerCoordinates=uz.khakimjanovich.platform:config
         """);
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.library' }");
+    write("build.gradle", "plugins { id 'io.github.org4j.library' }");
 
     var output =
         runner()
@@ -119,7 +119,7 @@ class CatalogContractTest {
             .build()
             .getOutput();
 
-    assertTrue(output.contains("uz.khakimjanovich:config4j:2.8.0-SNAPSHOT"), output);
+    assertTrue(output.contains("io.github.org4j:config:2.8.0-SNAPSHOT"), output);
     assertTrue(output.contains("uz.khakimjanovich.platform:config:2.8.0-SNAPSHOT"), output);
   }
 

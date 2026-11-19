@@ -24,7 +24,7 @@ jobs:
           fetch-depth: 0 # the X.x branch the tag must be on
       - id: version
         run: |
-          line=$(sed -n 's/^platform = "\([^"]*\)".*/\1/p' gradle/libs.versions.toml)
+          line=$(sed -n 's/^org4j = "\([^"]*\)".*/\1/p' gradle/libs.versions.toml)
           echo "version=$(.github/scripts/release-version.sh "$GITHUB_REF_NAME" "$line")" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-java@v6
         with:

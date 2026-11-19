@@ -1,12 +1,12 @@
-# CI for a <lib>4j library in its own repository, called from that repository:
+# CI for a <library> library in its own repository, called from that repository:
 #
 #   on: { push: { branches: [main, "*.x"], tags: ["v*"] }, pull_request: {} }
 #   permissions: { contents: write, packages: write }
-#   jobs: { library: { uses: khakimjanovich/platform/.github/workflows/library.yml@1.x } }
+#   jobs: { library: { uses: org4j/gradle/.github/workflows/library.yml@1.x } }
 #
 # A branch or a pull request: ./gradlew check on the hub release in gradle.properties; nothing is
 # published. A tag vX.Y.Z on branch X.x: the release X.Y.Z, built on hub X.Y.Z and its releases only
-# (PLATFORM_SOURCE=release), published once with a GitHub release. The hub and every library share
+# (ORG4J_SOURCE=release), published once with a GitHub release. The hub and every library share
 # X.Y.Z, so the hub releases first; gradle.properties keeps the line (version=1.x-SNAPSHOT).
 name: library
 
@@ -18,7 +18,7 @@ jobs:
     name: library
     runs-on: ubuntu-latest
     env:
-      # uz.khakimjanovich.settings reads the hub's packages with these.
+      # io.github.org4j.settings reads the hub's packages with these.
       GH_PACKAGES_ACTOR: ${{ github.actor }}
       GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
@@ -30,9 +30,9 @@ jobs:
       - uses: actions/checkout@v7
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          repository: khakimjanovich/platform
+          repository: org4j/gradle
           ref: 1.x
-          path: .platform
+          path: .org4j-gradle
           sparse-checkout: .github/scripts
       - uses: actions/setup-java@v6
         with:
@@ -46,12 +46,12 @@ jobs:
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
         env:
-          PLATFORM_SOURCE: release
+          ORG4J_SOURCE: release
           GH_TOKEN: ${{ github.token }}
         run: |
           line=$(sed -n 's/^version=//p' gradle.properties)
-          version=$(.platform/.github/scripts/release-version.sh "$GITHUB_REF_NAME" "$line")
-          ./gradlew check publish -Pversion="$version" -PplatformVersion="$version"
+          version=$(.org4j-gradle/.github/scripts/release-version.sh "$GITHUB_REF_NAME" "$line")
+          ./gradlew check publish -Pversion="$version" -Porg4jVersion="$version"
           gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
 
       - name: Keep test reports of failed run

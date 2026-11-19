@@ -1,4 +1,4 @@
-package uz.khakimjanovich.gradle.conventions;
+package io.github.org4j.gradle.conventions;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,7 +15,7 @@ class NoWorkaroundsTest {
   @TempDir Path build;
 
   @BeforeEach
-  void aBuildOnPlatformJava() throws IOException {
+  void aBuildOnOrg4jJava() throws IOException {
     write(
         "settings.gradle",
         """
@@ -24,7 +24,7 @@ class NoWorkaroundsTest {
         }
         """
             .formatted(System.getProperty("catalog")));
-    write("build.gradle", "plugins { id 'uz.khakimjanovich.java' }\n");
+    write("build.gradle", "plugins { id 'io.github.org4j.java' }\n");
   }
 
   @Test
@@ -120,7 +120,7 @@ class NoWorkaroundsTest {
     write(
         "build.gradle",
         """
-        plugins { id 'uz.khakimjanovich.java' }
+        plugins { id 'io.github.org4j.java' }
         tasks.withType(Test).configureEach { ignoreFailures = true }
         """);
 

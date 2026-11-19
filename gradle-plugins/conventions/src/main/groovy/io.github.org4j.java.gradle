@@ -10,19 +10,19 @@ plugins {
     id 'net.ltgt.errorprone'
 }
 
-// The plugins read these aliases from the build's catalog `libs`: the platform's catalog
-// (uz.khakimjanovich:version-catalog) has them all. Checked first, so a repository that imports
+// The plugins read these aliases from the build's catalog `libs`: org4j's catalog
+// (io.github.org4j:version-catalog) has them all. Checked first, so a repository that imports
 // another catalog is told what is missing instead of failing on a bare NoSuchElementException.
 def catalogs = rootProject.extensions.getByType(VersionCatalogsExtension)
 def libs = catalogs.find('libs').orElseThrow {
-    new GradleException("No version catalog `libs`: import uz.khakimjanovich:version-catalog as `libs` in settings.gradle")
+    new GradleException("No version catalog `libs`: import io.github.org4j:version-catalog as `libs` in settings.gradle")
 }
 def missing = ['spring-boot-bom', 'spring-boot-configuration-processor', 'spring-modulith-bom', 'starter-test',
                'junit-launcher', 'lombok', 'jspecify', 'errorprone-core', 'nullaway', 'jackson-annotations']
     .findAll { libs.findLibrary(it).isEmpty() }
 missing += ['java', 'google-java-format'].findAll { libs.findVersion(it).isEmpty() }.collect { "versions.$it" }
 if (missing) {
-    throw new GradleException("The catalog `libs` lacks ${missing.join(', ')}: import uz.khakimjanovich:version-catalog")
+    throw new GradleException("The catalog `libs` lacks ${missing.join(', ')}: import io.github.org4j:version-catalog")
 }
 
 java {
@@ -160,7 +160,7 @@ tasks.named('check') { dependsOn verifyNullMarked }
 // a service's packages as in the Humo adapter. `check` fails on a class in src/main/java
 // that breaks a rule; generated code is left out.
 def verifyArchitecture = tasks.register('verifyArchitecture') {
-    // A service's package rules too; uz.khakimjanovich.library sets this false.
+    // A service's package rules too; io.github.org4j.library sets this false.
     ext.serviceLayout = objects.property(Boolean).convention(true)
     def service = ext.serviceLayout
     inputs.property('serviceLayout', service)
@@ -171,58 +171,58 @@ def verifyArchitecture = tasks.register('verifyArchitecture') {
     inputs.files(classDirs)
     outputs.file(passed)
     doLast {
-        def found = uz.khakimjanovich.gradle.conventions.ArchitectureRules.violations(classDirs.files, sources, service.get())
+        def found = io.github.org4j.gradle.conventions.ArchitectureRules.violations(classDirs.files, sources, service.get())
         if (found) throw new GradleException("The architecture is broken in ${root.name}:\n${found.join('\n')}")
         passed.get().asFile.text = ''
     }
 }
 tasks.named('check') { dependsOn verifyArchitecture }
 
-// Platform first: what the platform wraps, a service takes from the platform, never declared again.
-// `check` fails on a main dependency (api, implementation, compileOnly, runtimeOnly) the platform
-// already provides, naming the library to use; dependencies the platform brings with it are fine.
-// A platform library declares them itself: uz.khakimjanovich.library turns this off.
-def verifyPlatformFirst = tasks.register('verifyPlatformFirst') {
-    ext.platformLibrary = objects.property(Boolean).convention(false)
+// org4j first: what org4j wraps, a service takes from org4j, never declared again.
+// `check` fails on a main dependency (api, implementation, compileOnly, runtimeOnly) org4j
+// already provides, naming the library to use; dependencies org4j brings with it are fine.
+// An org4j library declares them itself: io.github.org4j.library turns this off.
+def verifyOrg4jFirst = tasks.register('verifyOrg4jFirst') {
+    ext.org4jLibrary = objects.property(Boolean).convention(false)
     ext.declared = objects.listProperty(String)
-    def library = ext.platformLibrary
+    def library = ext.org4jLibrary
     def declared = ext.declared
     def name = project.name
-    def passed = layout.buildDirectory.file('verifyPlatformFirst/passed')
-    inputs.property('platformLibrary', library)
+    def passed = layout.buildDirectory.file('verifyOrg4jFirst/passed')
+    inputs.property('org4jLibrary', library)
     inputs.property('declared', declared)
     outputs.file(passed)
     onlyIf { !library.get() }
     doLast {
-        // group:name, or group: for every artifact of the group, and the platform library that has it.
-        def platformHas = [
-            'org.springframework.boot:spring-boot-starter-data-redis'         : 'libs.valkey4j (ValkeyKeys)',
-            'org.springframework.boot:spring-boot-starter-data-redis-reactive': 'libs.valkey4j (ValkeyKeys)',
-            'org.springframework.data:spring-data-redis'                      : 'libs.valkey4j (ValkeyKeys)',
-            'io.lettuce:'                                                     : 'libs.valkey4j (ValkeyKeys)',
-            'redis.clients:'                                                  : 'libs.valkey4j (ValkeyKeys)',
-            'org.redisson:'                                                   : 'libs.valkey4j (ValkeyKeys)',
-            'org.springframework.vault:'                                      : 'libs.vault4j (VaultSecrets, VaultTransit)',
-            'org.springframework.cloud:spring-cloud-starter-vault-config'     : 'libs.vault4j (VaultSecrets, VaultTransit)',
-            'org.springframework.cloud:spring-cloud-vault-config'             : 'libs.vault4j (VaultSecrets, VaultTransit)',
-            'org.keycloak:keycloak-admin-client'                              : 'libs.keycloak.admin4j (KeycloakAdmin)',
-            'com.zaxxer:HikariCP'                                             : 'libs.persistence4j (@EnableModulePersistence)',
-            'org.liquibase:liquibase-core'                                    : 'libs.persistence4j (@EnableModulePersistence)',
+        // group:name, or group: for every artifact of the group, and org4j library that has it.
+        def org4jHas = [
+            'org.springframework.boot:spring-boot-starter-data-redis'         : 'libs.valkey (ValkeyKeys)',
+            'org.springframework.boot:spring-boot-starter-data-redis-reactive': 'libs.valkey (ValkeyKeys)',
+            'org.springframework.data:spring-data-redis'                      : 'libs.valkey (ValkeyKeys)',
+            'io.lettuce:'                                                     : 'libs.valkey (ValkeyKeys)',
+            'redis.clients:'                                                  : 'libs.valkey (ValkeyKeys)',
+            'org.redisson:'                                                   : 'libs.valkey (ValkeyKeys)',
+            'org.springframework.vault:'                                      : 'libs.vault (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-starter-vault-config'     : 'libs.vault (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-vault-config'             : 'libs.vault (VaultSecrets, VaultTransit)',
+            'org.keycloak:keycloak-admin-client'                              : 'libs.keycloak.admin (KeycloakAdmin)',
+            'com.zaxxer:HikariCP'                                             : 'libs.persistence (@EnableModulePersistence)',
+            'org.liquibase:liquibase-core'                                    : 'libs.persistence (@EnableModulePersistence)',
         ]
         def found = declared.get().collect { dependency ->
-            def use = platformHas.find { key, provider -> key.endsWith(':') ? dependency.startsWith(key) : dependency == key }?.value
+            def use = org4jHas.find { key, provider -> key.endsWith(':') ? dependency.startsWith(key) : dependency == key }?.value
             use ? "${dependency}: use ${use}" : null
         }.findAll()
-        if (found) throw new GradleException("Declared in ${name}, but the platform provides it:\n  ${found.join('\n  ')}")
+        if (found) throw new GradleException("Declared in ${name}, but org4j provides it:\n  ${found.join('\n  ')}")
         passed.get().asFile.text = ''
     }
 }
 afterEvaluate {
-    verifyPlatformFirst.configure {
+    verifyOrg4jFirst.configure {
         declared.set(['api', 'implementation', 'compileOnly', 'runtimeOnly'].collectMany { configuration ->
             configurations.findByName(configuration)?.dependencies?.withType(ExternalModuleDependency)
                 ?.collect { "${it.group}:${it.name}".toString() } ?: []
         })
     }
 }
-tasks.named('check') { dependsOn verifyPlatformFirst }
+tasks.named('check') { dependsOn verifyOrg4jFirst }

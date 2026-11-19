@@ -1,5 +1,5 @@
-// The catalog (gradle/libs.versions.toml), published as uz.khakimjanovich:version-catalog so other
-// builds import it through uz.khakimjanovich.settings. The hub's own builds read the file directly.
+// The catalog (gradle/libs.versions.toml), published as io.github.org4j:version-catalog so other
+// builds import it through io.github.org4j.settings. The hub's own builds read the file directly.
 plugins {
     id 'version-catalog'
     id 'maven-publish'
@@ -8,7 +8,7 @@ plugins {
 catalog {
     versionCatalog {
         from(rootProject.files('gradle/libs.versions.toml'))
-        version('platform', project.version.toString()) // the release, in place of the line
+        version('org4j', project.version.toString()) // the release, in place of the line
     }
 }
 

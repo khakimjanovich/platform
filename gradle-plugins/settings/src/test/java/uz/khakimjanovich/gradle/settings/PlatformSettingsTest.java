@@ -58,8 +58,8 @@ class PlatformSettingsTest {
     write(library, "settings.gradle", "rootProject.name = 'probe4j'");
     runner(library, "publish", "-Prepo=" + registry.toUri()).build();
     publish("9.9.9", "registry-release", registry);
-    publish("9.9.9-SNAPSHOT", "registry-snapshot", registry);
-    publish("9.9.9-SNAPSHOT", "maven-local", mavenLocal);
+    publish("9.x-SNAPSHOT", "registry-snapshot", registry);
+    publish("9.x-SNAPSHOT", "maven-local", mavenLocal);
   }
 
   @Test
@@ -70,14 +70,14 @@ class PlatformSettingsTest {
   }
 
   @Test
-  void snapshotTakesTheSnapshotFromTheRegistry() throws IOException {
-    var output = consumer("snapshot").build().getOutput();
+  void aSnapshotVersionIsRefused() throws IOException {
+    var output = consumer("release", "-PplatformVersion=9.x-SNAPSHOT").buildAndFail().getOutput();
 
-    assertTrue(output.contains("origin=registry-snapshot"), output);
+    assertTrue(output.contains("write a release, X.Y.Z"), output);
   }
 
   @Test
-  void localTakesTheSnapshotFromMavenLocal() throws IOException {
+  void localTakesTheLineFromMavenLocal() throws IOException {
     var output = consumer("local").build().getOutput();
 
     assertTrue(output.contains("origin=maven-local"), output);
@@ -107,17 +107,17 @@ class PlatformSettingsTest {
   }
 
   @Test
-  void aVersionWithItsOwnSuffixIsRefused() throws IOException {
-    var output = consumer("release", "-PplatformVersion=9.9.9-SNAPSHOT").buildAndFail().getOutput();
+  void snapshotIsNoSourceAnyMore() throws IOException {
+    var output = consumer("snapshot").buildAndFail().getOutput();
 
-    assertTrue(output.contains("write it without -SNAPSHOT"), output);
+    assertTrue(output.contains("set it to one of [local, release]"), output);
   }
 
   @Test
   void anUnknownSourceNamesTheChoices() throws IOException {
     var output = consumer("nexus").buildAndFail().getOutput();
 
-    assertTrue(output.contains("set it to one of [local, snapshot, release]"), output);
+    assertTrue(output.contains("set it to one of [local, release]"), output);
   }
 
   @Test

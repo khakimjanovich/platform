@@ -5,7 +5,12 @@ plugins {
     id 'maven-publish'
 }
 
-catalog { versionCatalog { from(rootProject.files('gradle/libs.versions.toml')) } }
+catalog {
+    versionCatalog {
+        from(rootProject.files('gradle/libs.versions.toml'))
+        version('platform', project.version.toString()) // the release, in place of the line
+    }
+}
 
 publishing {
     publications {

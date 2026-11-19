@@ -11,13 +11,13 @@ The libraries every service builds on, in one Gradle build, published to GitHub 
 | [masking](https://github.com/khakimjanovich/masking4j) (own repository: masking4j) | what must never reach a log, hidden the same way everywhere |
 | [breaker](https://github.com/khakimjanovich/breaker4j) (own repository: breaker4j) | a circuit breaker for one outside system: open after failures in a row, one probe at a time |
 | [outbox](https://github.com/khakimjanovich/outbox4j) (own repository: outbox4j) | events written in the module's own transaction, published to Kafka at least once, in order per key |
-| [idempotency](idempotency/README.md) | the first answer to a client's Idempotency-Key, kept with the work so a retry gets it again |
-| [observability](observability/README.md) | logs, traces and metrics, masked, with a request id on every response |
+| [idempotency](https://github.com/khakimjanovich/idempotency4j) (own repository: idempotency4j) | the first answer to a client's Idempotency-Key, kept with the work so a retry gets it again |
+| [observability](https://github.com/khakimjanovich/observability4j) (own repository: observability4j) | logs, traces and metrics, masked, with a request id on every response |
 | [security](https://github.com/khakimjanovich/security4j) (own repository: security4j) | Keycloak tokens, route rules, public routes, service-to-service tokens |
-| [keycloak](keycloak/README.md) | Keycloak's admin API: users, roles, machine clients |
-| [otp](otp/README.md) | one-time codes in Redis |
+| [keycloak](https://github.com/khakimjanovich/keycloak-admin4j) (own repository: keycloak-admin4j) | Keycloak's admin API: users, roles, machine clients |
+| [otp](https://github.com/khakimjanovich/otp4j) (own repository: otp4j) | one-time codes in Redis |
 | [persistence](https://github.com/khakimjanovich/persistence4j) (own repository: persistence4j) | each module's own pool, schema, migrations and entity manager |
-| [vault](vault/README.md) | secrets from Vault, Vault as the source of every secret, and values sealed with Vault Transit |
+| [vault](https://github.com/khakimjanovich/vault4j) (own repository: vault4j) | secrets from Vault, Vault as the source of every secret, and values sealed with Vault Transit |
 | [valkey](https://github.com/khakimjanovich/valkey4j) (own repository: valkey4j) | Valkey key names inside the app's ACL prefix, counters and limits with expiry |
 | [file-store](file-store/README.md) | files in S3 buckets, typed from their bytes |
 | [build-logic](build-logic/README.md) | the build conventions |

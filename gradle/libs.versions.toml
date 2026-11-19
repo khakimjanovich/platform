@@ -22,13 +22,13 @@ platform-masking = "1.0.0-SNAPSHOT"
 platform-error = "1.0.0-SNAPSHOT"
 platform-breaker = "1.0.0-SNAPSHOT"
 platform-outbox = "1.0.0-SNAPSHOT"
-platform-idempotency = "2.8.0-SNAPSHOT"
-platform-observability = "2.8.0-SNAPSHOT"
+platform-idempotency = "1.0.0-SNAPSHOT"
+platform-observability = "1.0.0-SNAPSHOT"
 platform-security = "1.0.0-SNAPSHOT"
-platform-keycloak = "2.8.0-SNAPSHOT"
-platform-otp = "2.8.0-SNAPSHOT"
+platform-keycloak = "1.0.0-SNAPSHOT"
+platform-otp = "1.0.0-SNAPSHOT"
 platform-persistence = "1.0.0-SNAPSHOT"
-platform-vault = "2.8.0-SNAPSHOT"
+platform-vault = "1.0.0-SNAPSHOT"
 platform-valkey = "1.0.0-SNAPSHOT"
 platform-file-store = "2.8.0-SNAPSHOT"
 # INHOUSE PLUGINS END
@@ -106,17 +106,17 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 
 platform-error = { module = "uz.khakimjanovich:error4j", version.ref = "platform-error" } # its own repository
-platform-otp = { module = "uz.khakimjanovich.platform:otp", version.ref = "platform-otp" }
+platform-otp = { module = "uz.khakimjanovich:otp4j", version.ref = "platform-otp" } # its own repository
 platform-security = { module = "uz.khakimjanovich:security4j", version.ref = "platform-security" } # its own repository
-platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform-keycloak" }
+platform-keycloak = { module = "uz.khakimjanovich:keycloak-admin4j", version.ref = "platform-keycloak" } # its own repository
 platform-persistence = { module = "uz.khakimjanovich:persistence4j", version.ref = "platform-persistence" } # its own repository
-platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "platform-vault" }
+platform-vault = { module = "uz.khakimjanovich:vault4j", version.ref = "platform-vault" } # its own repository
 platform-valkey = { module = "uz.khakimjanovich:valkey4j", version.ref = "platform-valkey" } # its own repository
-platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform-observability" }
+platform-observability = { module = "uz.khakimjanovich:observability4j", version.ref = "platform-observability" } # its own repository
 platform-masking = { module = "uz.khakimjanovich:masking4j", version.ref = "platform-masking" } # its own repository
 platform-breaker = { module = "uz.khakimjanovich:breaker4j", version.ref = "platform-breaker" } # its own repository
 platform-outbox = { module = "uz.khakimjanovich:outbox4j", version.ref = "platform-outbox" } # its own repository
-platform-idempotency = { module = "uz.khakimjanovich.platform:idempotency", version.ref = "platform-idempotency" }
+platform-idempotency = { module = "uz.khakimjanovich:idempotency4j", version.ref = "platform-idempotency" } # its own repository
 platform-config = { module = "uz.khakimjanovich:config4j", version.ref = "platform-config" } # its own repository
 platform-file-store = { module = "uz.khakimjanovich.platform:file-store", version.ref = "platform-file-store" }
 

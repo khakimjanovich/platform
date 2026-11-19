@@ -1,0 +1,22 @@
+// uz.khakimjanovich.settings: where a build takes the platform from (local, snapshot or release).
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+gradlePlugin {
+    plugins {
+        settings {
+            id = 'uz.khakimjanovich.settings'
+            implementationClass = 'uz.khakimjanovich.gradle.settings.PlatformSettingsPlugin'
+        }
+    }
+}
+
+dependencies {
+    testImplementation platform(libs.spring.boot.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.launcher
+}
+
+tasks.withType(Test).configureEach { useJUnitPlatform() }

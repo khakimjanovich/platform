@@ -1,40 +1,21 @@
-// `check` here checks every library, and the build conventions themselves.
+// The hub's three artifacts at one version (`platform` in the catalog): version-catalog and the two
+// plugin artifacts of gradle-plugins. `check` and `publish` here cover all of them.
 plugins {
     id 'base'
 }
 
-// build-logic's projects: the convention plugins and platform.settings.
-def buildLogicTasks = { String task -> [':', ':settings-plugin:'].collect { gradle.includedBuild('build-logic').task(it + task) } }
+def plugins = { String task -> [':gradle-conventions:', ':gradle-settings:'].collect { gradle.includedBuild('gradle-plugins').task(it + task) } }
 
-def checks = subprojects.findAll { it.buildFile.exists() && it.name != 'versioning' }.collect { "${it.path}:check" }
-tasks.named('check') {
-    dependsOn checks
-    dependsOn buildLogicTasks('check')
-}
+tasks.named('check') { dependsOn plugins('check') }
 
-def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
-def snapshot = { String alias -> catalog.findVersion(alias).map { it.requiredVersion.endsWith('-SNAPSHOT') }.orElse(false) }
-def snapshotProjects = subprojects.findAll { it.buildFile.exists() }
-    .findAll { snapshot(it.name == 'versioning' ? 'platform' : "platform-${it.name}") }
-    .collect { it.path }
-def buildLogicSnapshot = snapshot('platform-build')
-
-tasks.register('publishLocal') {
+tasks.register('publishToMavenLocal') {
     group = 'publishing'
-    description = 'Publishes every -SNAPSHOT artifact, the build plugins and the catalog to Maven local.'
-    snapshotProjects.each { dependsOn "${it}:publishToMavenLocal" }
-    if (buildLogicSnapshot) dependsOn buildLogicTasks('publishToMavenLocal')
+    description = 'Publishes the catalog and the plugins to Maven local.'
+    dependsOn ':version-catalog:publishToMavenLocal', plugins('publishToMavenLocal')
 }
 
-tasks.register('publishSnapshots') {
+tasks.register('publish') {
     group = 'publishing'
-    description = 'Publishes every -SNAPSHOT artifact, the build plugins and the catalog to GitHub Packages.'
-    snapshotProjects.each { dependsOn "${it}:publishAllPublicationsToGithubPackagesRepository" }
-    if (buildLogicSnapshot) dependsOn buildLogicTasks('publishAllPublicationsToGithubPackagesRepository')
-}
-
-// The libraries in their own repositories come in as -SNAPSHOTs while develop moves: take the newest
-// build on every resolution, as platform.settings does for the services.
-subprojects {
-    configurations.configureEach { resolutionStrategy.cacheChangingModulesFor 0, 'seconds' }
+    description = 'Publishes the catalog and the plugins to GitHub Packages.'
+    dependsOn ':version-catalog:publish', plugins('publish')
 }

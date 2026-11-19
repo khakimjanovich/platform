@@ -14,9 +14,8 @@ spotless = "8.11.0"
 wiremock = "3.13.2"
 aws-sdk = "2.59.0"
 google-java-format = "1.30.0"
-platform = "2.9.0-SNAPSHOT" # the hub: this catalog's own version; see README.md §Versions
+platform = "1.0.0-SNAPSHOT" # the hub: this catalog and the Gradle plugins; see README.md §Versions
 # INHOUSE PLUGINS START
-platform-build = "2.9.0-SNAPSHOT"
 config4j = "1.0.0-SNAPSHOT"
 masking4j = "1.0.0-SNAPSHOT"
 error4j = "1.0.0-SNAPSHOT"
@@ -136,11 +135,11 @@ nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 
 [plugins]
-# The platform's convention plugins at platform-build: a build on the platform applies them with
-# alias(libs.plugins.platform.java) and writes no version of its own.
-platform-java = { id = "platform.java", version.ref = "platform-build" }
-platform-library = { id = "platform.library", version.ref = "platform-build" }
-platform-module = { id = "platform.module", version.ref = "platform-build" }
-platform-integration-test = { id = "platform.integration-test", version.ref = "platform-build" }
+# The convention plugins at the hub version: a build applies them with
+# alias(libs.plugins.conventions.java) and writes no version of its own.
+conventions-java = { id = "uz.khakimjanovich.java", version.ref = "platform" }
+conventions-library = { id = "uz.khakimjanovich.library", version.ref = "platform" }
+conventions-module = { id = "uz.khakimjanovich.module", version.ref = "platform" }
+conventions-integration-test = { id = "uz.khakimjanovich.integration-test", version.ref = "platform" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator" }

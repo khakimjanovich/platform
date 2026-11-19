@@ -1,7 +1,6 @@
-# Every push to develop: the checks, then every -SNAPSHOT artifact, the build plugins and the catalog
-# to GitHub Packages (./gradlew publishSnapshots). The same snapshot version is published again on each
-# push and consumers get the newest build. Released versions are never touched here; only main
-# releases (release.yml).
+# Every push to develop: the checks, then the catalog and both plugin artifacts at the hub's -SNAPSHOT
+# version to GitHub Packages. The same snapshot is published again on each push until main releases
+# that version (release.yml); consumers get the newest build.
 name: snapshot
 
 on:
@@ -21,9 +20,6 @@ jobs:
   snapshot:
     name: snapshot
     runs-on: ubuntu-latest
-    env: # the libraries in their own repositories (settings.gradle)
-      GH_PACKAGES_ACTOR: ${{ github.actor }}
-      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -32,7 +28,9 @@ jobs:
           java-version: "25"
       - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew check
-      - run: ./gradlew publishSnapshots
+      - run: |
+          grep -qE '^platform = "[^"]*-SNAPSHOT"' gradle/libs.versions.toml || { echo "develop publishes snapshots only"; exit 1; }
+          ./gradlew publish
         env:
           ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
           ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}

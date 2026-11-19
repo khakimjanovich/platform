@@ -1,0 +1,89 @@
+// A library with sources, published as uz.khakimjanovich:<name> (config4j, error4j, …).
+plugins {
+    id 'uz.khakimjanovich.java'
+    id 'maven-publish'
+}
+
+def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
+
+// A library is uz.khakimjanovich:<name> unless its gradle.properties sets another `group`.
+if (!providers.gradleProperty('group').isPresent()) {
+    group = 'uz.khakimjanovich'
+}
+// Each library releases on its own: its repository sets `version` in gradle.properties, and the hub's
+// catalog pins that release.
+if (version == Project.DEFAULT_VERSION) {
+    throw new GradleException("No version for library ${project.name}: set version in gradle.properties")
+}
+
+java { withSourcesJar() }
+
+// A library that moved to new coordinates still announces its former ones (formerCoordinates, e.g.
+// uz.khakimjanovich.platform:config) as a capability: a build that would also get the old artifact fails
+// on the conflict instead of loading both.
+def formerCoordinates = providers.gradleProperty('formerCoordinates')
+if (formerCoordinates.isPresent()) {
+    ['apiElements', 'runtimeElements'].each { name ->
+        configurations.named(name) {
+            outgoing {
+                capability("${project.group}:${project.name}:${project.version}")
+                capability("${formerCoordinates.get()}:${project.version}")
+            }
+        }
+    }
+}
+
+// A library is one flat package, its public API: verifyArchitecture leaves out a service's package rules.
+tasks.named('verifyArchitecture') { serviceLayout.set(false) }
+
+// A library is where the platform declares what it wraps (Redis, Vault, Hikari…): verifyPlatformFirst is for its users.
+tasks.named('verifyPlatformFirst') { platformLibrary.set(true) }
+
+// Never incremental: the configuration processor writes the metadata only from the sources it
+// compiles, so recompiling one class dropped every other property's description, and the build
+// cache then served that metadata to clean builds too.
+tasks.named('compileJava', JavaCompile) {
+    options.incremental = false
+}
+
+// META-INF/spring-configuration-metadata.json in every jar: IDE completion and docs for every property.
+dependencies {
+    annotationProcessor platform(libs.findLibrary('spring-boot-bom').get())
+    annotationProcessor libs.findLibrary('spring-boot-configuration-processor').get()
+}
+
+// Every property the jar's metadata lists has a description (its record's @param): the build fails
+// on one without, so a constructor that hides the Javadoc from the processor is caught.
+def verifyConfigurationMetadata = tasks.register('verifyConfigurationMetadata') {
+    def metadata = layout.buildDirectory.file('classes/java/main/META-INF/spring-configuration-metadata.json')
+    def projectName = project.name // read now: the configuration cache has no project when it runs
+    inputs.files(tasks.named('compileJava'))
+    doLast {
+        def file = metadata.get().asFile
+        if (!file.exists()) return
+        def undescribed = new groovy.json.JsonSlurper().parse(file).properties
+            .findAll { !it.description }
+            .collect { it.name }
+        if (undescribed) {
+            throw new GradleException("Properties without a description in ${projectName}: ${undescribed.join(', ')}")
+        }
+    }
+}
+tasks.named('check') { dependsOn verifyConfigurationMetadata }
+
+publishing {
+    publications {
+        library(MavenPublication) { from components.java } // with test fixtures, where a library has them
+    }
+    // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): GitHub's Maven
+    // registry lets only that repository's token write them. Reading is owner-wide. Credentials are the
+    // Gradle properties githubPackagesUsername and githubPackagesPassword.
+    def packageRepository = providers.environmentVariable('GITHUB_REPOSITORY').getOrElse('khakimjanovich/platform')
+    repositories {
+        maven {
+            name = 'githubPackages'
+            url = "https://maven.pkg.github.com/${packageRepository}"
+            credentials(PasswordCredentials)
+        }
+    }
+}

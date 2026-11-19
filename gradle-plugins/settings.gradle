@@ -1,0 +1,20 @@
+rootProject.name = 'gradle-plugins'
+
+// Two artifacts: the convention plugins, and uz.khakimjanovich.settings in its own jar. A build applies
+// the settings plugin before the conventions, so it must not carry them (they would already be on the
+// classpath, at no version a build can ask for).
+include('gradle-conventions', 'gradle-settings')
+project(':gradle-conventions').projectDir = file('conventions')
+project(':gradle-settings').projectDir = file('settings')
+
+dependencyResolutionManagement {
+    // The plugins these conventions apply: Spotless from Maven Central, Error
+    // Prone's only from the Gradle Plugin Portal. Settings win over repositories a machine's init
+    // script adds to every project, so the Plugin Portal is always there.
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    versionCatalogs { create('libs') { from(files('../gradle/libs.versions.toml')) } }
+}

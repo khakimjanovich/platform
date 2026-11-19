@@ -1,0 +1,25 @@
+// The catalog (gradle/libs.versions.toml), published as uz.khakimjanovich:version-catalog so other
+// builds import it through uz.khakimjanovich.settings. The hub's own builds read the file directly.
+plugins {
+    id 'version-catalog'
+    id 'maven-publish'
+}
+
+group = 'uz.khakimjanovich'
+version = libs.versions.platform.get()
+
+catalog { versionCatalog { from(files('../gradle/libs.versions.toml')) } }
+
+publishing {
+    publications {
+        catalog(MavenPublication) { from components.versionCatalog }
+    }
+    // Credentials are the Gradle properties githubPackagesUsername and githubPackagesPassword.
+    repositories {
+        maven {
+            name = 'githubPackages'
+            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            credentials(PasswordCredentials)
+        }
+    }
+}

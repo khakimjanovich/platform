@@ -1,73 +1,53 @@
-# The production release: a merge to main publishes every artifact whose catalog version is new to
-# GitHub Packages and tags it: a library or build-logic `platform-<name>` as `<name>-v<version>`, the
-# hub catalog `platform` as `platform-v<version>` with a GitHub release. It fails, publishing nothing,
-# on a -SNAPSHOT version or on an artifact changed since the tag of its version
-# (.github/scripts/no-snapshots.sh, unreleased.sh). Snapshots come from develop (snapshot.yml).
+# A merge to main releases the hub: the catalog and both plugin artifacts at the catalog's `platform`
+# version, once, tagged v<version> with a GitHub release. It fails, publishing nothing, on a -SNAPSHOT
+# version or on a hub changed since the tag of its version (.github/scripts). Snapshots come from
+# develop (snapshot.yml).
 name: release
 
 on:
   push:
     branches: [main]
-    paths: [gradle/libs.versions.toml]
 
 permissions:
-  contents: write # the tags and the hub's GitHub release
-  packages: write # the libraries, plugins and catalog
+  contents: write # the tag and the GitHub release
+  packages: write
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  plan:
-    name: plan
+  release:
+    name: release
     runs-on: ubuntu-latest
-    env: # the libraries in their own repositories (settings.gradle)
-      GH_PACKAGES_ACTOR: ${{ github.actor }}
-      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    outputs:
-      unreleased: ${{ steps.plan.outputs.unreleased }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # the release tags
-      - run: .github/scripts/no-snapshots.sh # the release gate let one through: stop here
+      - run: .github/scripts/no-snapshots.sh
       - id: plan
         run: |
-          unreleased=$(.github/scripts/unreleased.sh)
-          echo "${unreleased:-nothing to release}"
-          { echo 'unreleased<<EOF'; echo "$unreleased"; echo EOF; } >> "$GITHUB_OUTPUT"
-
-  release:
-    name: release
-    needs: plan
-    if: needs.plan.outputs.unreleased != ''
-    runs-on: ubuntu-latest
-    env: # the libraries in their own repositories (settings.gradle)
-      GH_PACKAGES_ACTOR: ${{ github.actor }}
-      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      UNRELEASED: ${{ needs.plan.outputs.unreleased }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
+          tag=$(.github/scripts/release-plan.sh)
+          echo "${tag:-nothing to release}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - if: steps.plan.outputs.tag != ''
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
-      - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew check
-      # In catalog order, the hub last: each line is a tag and the Gradle arguments that publish it.
+      - if: steps.plan.outputs.tag != ''
+        uses: gradle/actions/setup-gradle@v6
+      - if: steps.plan.outputs.tag != ''
+        run: ./gradlew check
       - name: Publish and tag
+        if: steps.plan.outputs.tag != ''
         env:
+          TAG: ${{ steps.plan.outputs.tag }}
           ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}
           ORG_GRADLE_PROJECT_githubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          while read -r tag args; do
-            ./gradlew $args < /dev/null # Gradle reads stdin; keep it off the list
-            git tag "$tag" "$GITHUB_SHA"
-            git push origin "refs/tags/$tag"
-            case "$tag" in platform-v*)
-              prerelease=; case "$tag" in *-*-*) prerelease=--prerelease ;; esac
-              gh release create "$tag" --target "$GITHUB_SHA" --generate-notes $prerelease ;;
-            esac
-          done <<< "$UNRELEASED"
+          ./gradlew publish
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+          gh release create "$TAG" --target "$GITHUB_SHA" --generate-notes

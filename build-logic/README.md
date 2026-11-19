@@ -9,8 +9,13 @@ build file says only what is particular to it.
 | `platform.library` | platform libraries | `platform.java`, the platform's group and version, sources, configuration metadata |
 | `platform.module` | the app and its modules | `platform.java`, the Spring Modulith BOM, integration tests |
 | `platform.integration-test` | anything with integration tests | `src/integrationTest` (`*IT`) as a JVM test suite, run by `check` |
+| `platform.settings` | a build on the platform (settings plugin, its own jar: `settings-plugin`) | the platform from `local`, `snapshot` or `release`, its catalog as `libs`, the newest snapshot on every build (README.md §Building on the platform) |
 
-Versions come from `../gradle/libs.versions.toml`, the one catalog. The contract plugin moved with
+Versions come from `../gradle/libs.versions.toml`, the one catalog. A build that applies these plugins
+needs it as `libs` (published as `uz.khakimjanovich.platform:versioning`): `platform.java` checks up
+front for every alias the plugins read and names any that is missing, and `platform.library` takes the
+library's version from `platform-<project name>`. The plugins themselves are versioned `platform-build`.
+The contract plugin moved with
 the contracts to [khakimjanovich/contracts](https://github.com/khakimjanovich/contracts).
 
 ## No workarounds

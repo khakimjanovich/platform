@@ -20,6 +20,7 @@ class PlatformFirstTest {
     write(
         "settings.gradle",
         """
+        rootProject.name = 'valkey' // a library's version is platform-<name> in the catalog
         dependencyResolutionManagement {
             repositories { mavenCentral() }
             versionCatalogs { create('libs') { from(files('%s')) } }

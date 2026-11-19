@@ -10,7 +10,20 @@ plugins {
     id 'net.ltgt.errorprone'
 }
 
-def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
+// The plugins read these aliases from the build's catalog `libs`: the platform's catalog
+// (uz.khakimjanovich.platform:versioning) has them all. Checked first, so a repository that imports
+// another catalog is told what is missing instead of failing on a bare NoSuchElementException.
+def catalogs = rootProject.extensions.getByType(VersionCatalogsExtension)
+def libs = catalogs.find('libs').orElseThrow {
+    new GradleException("No version catalog `libs`: import uz.khakimjanovich.platform:versioning as `libs` in settings.gradle")
+}
+def missing = ['spring-boot-bom', 'spring-boot-configuration-processor', 'spring-modulith-bom', 'starter-test',
+               'junit-launcher', 'lombok', 'jspecify', 'errorprone-core', 'nullaway', 'jackson-annotations']
+    .findAll { libs.findLibrary(it).isEmpty() }
+missing += ['java', 'google-java-format'].findAll { libs.findVersion(it).isEmpty() }.collect { "versions.$it" }
+if (missing) {
+    throw new GradleException("The catalog `libs` lacks ${missing.join(', ')}: import uz.khakimjanovich.platform:versioning")
+}
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(libs.findVersion('java').get().requiredVersion)

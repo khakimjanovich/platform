@@ -1,15 +1,33 @@
-// The platform: every library in one build. The app and the adapters include it
-// (includeBuild), and Gradle puts these projects in place of uz.khakimjanovich.platform:* dependencies.
+// The platform: every library in one build, published as uz.khakimjanovich.platform:*. The services
+// and adapters take it through platform.settings (README.md §Building on the platform).
 pluginManagement { includeBuild 'build-logic' }
 
 rootProject.name = 'platform'
 
 include('versioning')
-include('config', 'masking', 'breaker', 'error', 'otp', 'security', 'keycloak', 'persistence', 'vault', 'valkey', 'file-store', 'observability',
-        'outbox', 'idempotency')
 
 // The version catalog is gradle/libs.versions.toml, Gradle's default (read as `libs`), where
 // Dependabot finds it too.
+// Libraries that left for their own repositories (uz.khakimjanovich:config4j, …) come from GitHub Packages, at
+// the version the catalog pins; only from there (exclusiveContent), so a mavenLocal() an init script
+// adds can't stand in for them.
 dependencyResolutionManagement {
-    repositories { mavenCentral() }
+    // Settings repositories win over any a project or an init script adds (a mavenLocal() everywhere).
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    repositories {
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'platformRegistry'
+                    url = 'https://maven.pkg.github.com/khakimjanovich/*'
+                    credentials {
+                        username = providers.gradleProperty('gpr.user').orElse(providers.environmentVariable('GH_PACKAGES_ACTOR')).getOrElse('')
+                        password = providers.gradleProperty('gpr.key').orElse(providers.environmentVariable('GH_PACKAGES_TOKEN')).getOrElse('')
+                    }
+                }
+            }
+            filter { includeGroupByRegex 'uz\\.khakimjanovich(\\..+)?' }
+        }
+        mavenCentral()
+    }
 }

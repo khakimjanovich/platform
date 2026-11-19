@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'uz.khakimjanovich.platform'
-version = libs.versions.platform.get()
+version = libs.versions.platform.asProvider().get() // the hub version; platform-* are the artifacts' own
 
 catalog { versionCatalog { from(files('../gradle/libs.versions.toml')) } }
 

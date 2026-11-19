@@ -1,5 +1,3 @@
-# Every version in one place, read by every build (platform, app, adapters).
-# Pinned exactly; upgrades get their own commit.
 [versions]
 temporal = "1.40.0"
 standard-webhooks = "1.2.0"
@@ -7,22 +5,39 @@ http-message-signatures = "1.8"
 java = "25"
 spring-boot = "4.1.2"
 spring-modulith = "2.1.2"
-spring-cloud = "2025.1.4" # the train for Spring Boot 4: Spring Cloud Vault
-openapi-generator = "7.26.0" # used by khakimjanovich/contracts, which builds with this catalog
+spring-cloud = "2025.1.4"
+openapi-generator = "7.26.0"
 springdoc = "3.2.0"
 lombok = "1.18.48"
 shedlock = "7.11.0"
 spotless = "8.11.0"
 wiremock = "3.13.2"
 aws-sdk = "2.59.0"
-google-java-format = "1.30.0" # newer releases fail inside Spotless 8.10 (missing commonmark extension)
-platform = "2.7.0" # SemVer; see README.md §Versions
+google-java-format = "1.30.0"
+platform = "2.8.0" # the hub: this catalog's own version; see README.md §Versions
+# INHOUSE PLUGINS START
+platform-build = "2.8.0"
+platform-config = "1.0.0"
+platform-masking = "1.0.0"
+platform-error = "1.0.0"
+platform-breaker = "1.0.0"
+platform-outbox = "1.0.0"
+platform-idempotency = "1.0.0"
+platform-observability = "1.0.0"
+platform-security = "1.0.0"
+platform-keycloak = "1.0.0"
+platform-otp = "1.0.0"
+platform-persistence = "1.0.0"
+platform-vault = "1.0.0"
+platform-valkey = "1.0.0"
+platform-file-store = "1.0.0"
+# INHOUSE PLUGINS END
 errorprone = "2.52.0"
 errorprone-gradle = "5.1.1"
 nullaway = "0.14.3"
-archunit = "1.5.1" # the release the Modulith BOM manages; build-logic runs it in verifyArchitecture
+archunit = "1.5.1"
 jspecify = "1.0.1"
-opentelemetry-instrumentation = "2.28.1-alpha" # the release built on the OpenTelemetry Boot manages (1.62)
+opentelemetry-instrumentation = "2.28.1-alpha"
 
 [libraries]
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -89,20 +104,21 @@ jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
-platform-error = { module = "uz.khakimjanovich.platform:error", version.ref = "platform" }
-platform-otp = { module = "uz.khakimjanovich.platform:otp", version.ref = "platform" }
-platform-security = { module = "uz.khakimjanovich.platform:security", version.ref = "platform" }
-platform-keycloak = { module = "uz.khakimjanovich.platform:keycloak", version.ref = "platform" }
-platform-persistence = { module = "uz.khakimjanovich.platform:persistence", version.ref = "platform" }
-platform-vault = { module = "uz.khakimjanovich.platform:vault", version.ref = "platform" }
-platform-valkey = { module = "uz.khakimjanovich.platform:valkey", version.ref = "platform" }
-platform-observability = { module = "uz.khakimjanovich.platform:observability", version.ref = "platform" }
-platform-masking = { module = "uz.khakimjanovich.platform:masking", version.ref = "platform" }
-platform-breaker = { module = "uz.khakimjanovich.platform:breaker", version.ref = "platform" }
-platform-outbox = { module = "uz.khakimjanovich.platform:outbox", version.ref = "platform" }
-platform-idempotency = { module = "uz.khakimjanovich.platform:idempotency", version.ref = "platform" }
-platform-config = { module = "uz.khakimjanovich.platform:config", version.ref = "platform" }
-platform-file-store = { module = "uz.khakimjanovich.platform:file-store", version.ref = "platform" }
+
+platform-error = { module = "uz.khakimjanovich:error4j", version.ref = "platform-error" } # its own repository
+platform-otp = { module = "uz.khakimjanovich:otp4j", version.ref = "platform-otp" } # its own repository
+platform-security = { module = "uz.khakimjanovich:security4j", version.ref = "platform-security" } # its own repository
+platform-keycloak = { module = "uz.khakimjanovich:keycloak-admin4j", version.ref = "platform-keycloak" } # its own repository
+platform-persistence = { module = "uz.khakimjanovich:persistence4j", version.ref = "platform-persistence" } # its own repository
+platform-vault = { module = "uz.khakimjanovich:vault4j", version.ref = "platform-vault" } # its own repository
+platform-valkey = { module = "uz.khakimjanovich:valkey4j", version.ref = "platform-valkey" } # its own repository
+platform-observability = { module = "uz.khakimjanovich:observability4j", version.ref = "platform-observability" } # its own repository
+platform-masking = { module = "uz.khakimjanovich:masking4j", version.ref = "platform-masking" } # its own repository
+platform-breaker = { module = "uz.khakimjanovich:breaker4j", version.ref = "platform-breaker" } # its own repository
+platform-outbox = { module = "uz.khakimjanovich:outbox4j", version.ref = "platform-outbox" } # its own repository
+platform-idempotency = { module = "uz.khakimjanovich:idempotency4j", version.ref = "platform-idempotency" } # its own repository
+platform-config = { module = "uz.khakimjanovich:config4j", version.ref = "platform-config" } # its own repository
+platform-file-store = { module = "uz.khakimjanovich:filestore4j", version.ref = "platform-file-store" } # its own repository
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }
@@ -120,5 +136,11 @@ nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 
 [plugins]
+# The platform's convention plugins at platform-build: a build on the platform applies them with
+# alias(libs.plugins.platform.java) and writes no version of its own.
+platform-java = { id = "platform.java", version.ref = "platform-build" }
+platform-library = { id = "platform.library", version.ref = "platform-build" }
+platform-module = { id = "platform.module", version.ref = "platform-build" }
+platform-integration-test = { id = "platform.integration-test", version.ref = "platform-build" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator" }

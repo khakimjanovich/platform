@@ -1,5 +1,5 @@
-// A platform library, with sources, under the platform's group and version: the coordinates the app and
-// the adapters depend on, which Gradle maps to this project when they include the platform build.
+// A platform library, with sources, under the platform's group: the coordinates the services and
+// adapters depend on (uz.khakimjanovich.platform:<name>).
 plugins {
     id 'platform.java'
     id 'maven-publish'
@@ -7,10 +7,37 @@ plugins {
 
 def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('libs')
 
-group = 'uz.khakimjanovich.platform'
-version = libs.findVersion('platform').get().requiredVersion
+// Inside the hub a library is uz.khakimjanovich.platform:<name>. In its own repository it owns its
+// package: `group` and the project name in its gradle.properties and settings (uz.khakimjanovich:config4j),
+// since GitHub lets only the repository a package is linked to publish it.
+if (!providers.gradleProperty('group').isPresent()) {
+    group = 'uz.khakimjanovich.platform'
+}
+// Each library releases on its own. In its own repository it sets `version` in gradle.properties and
+// the hub's catalog pins that release; inside the hub its version is `platform-<project name>` there.
+if (version == Project.DEFAULT_VERSION) {
+    def ownVersion = "platform-${project.name}"
+    version = libs.findVersion(ownVersion)
+        .orElseThrow { new GradleException("No version for library ${project.name}: set version in gradle.properties or add ${ownVersion} to the catalog's [versions]") }
+        .requiredVersion
+}
 
 java { withSourcesJar() }
+
+// A library that moved to new coordinates still announces its former ones (formerCoordinates, e.g.
+// uz.khakimjanovich.platform:config) as a capability: a build that would also get the old artifact fails
+// on the conflict instead of loading both.
+def formerCoordinates = providers.gradleProperty('formerCoordinates')
+if (formerCoordinates.isPresent()) {
+    ['apiElements', 'runtimeElements'].each { name ->
+        configurations.named(name) {
+            outgoing {
+                capability("${project.group}:${project.name}:${project.version}")
+                capability("${formerCoordinates.get()}:${project.version}")
+            }
+        }
+    }
+}
 
 // A library is one flat package, its public API: verifyArchitecture leaves out a service's package rules.
 tasks.named('verifyArchitecture') { serviceLayout.set(false) }
@@ -54,12 +81,14 @@ publishing {
     publications {
         library(MavenPublication) { from components.java } // with test fixtures, where a library has them
     }
-    // Only the release workflow publishes. Credentials are the Gradle properties
-    // githubPackagesUsername and githubPackagesPassword; without them `publish` fails.
+    // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): GitHub's Maven
+    // registry lets only that repository's token write them. Reading is owner-wide. Credentials are the
+    // Gradle properties githubPackagesUsername and githubPackagesPassword.
+    def packageRepository = providers.environmentVariable('GITHUB_REPOSITORY').getOrElse('khakimjanovich/platform')
     repositories {
         maven {
             name = 'githubPackages'
-            url = 'https://maven.pkg.github.com/khakimjanovich/platform'
+            url = "https://maven.pkg.github.com/${packageRepository}"
             credentials(PasswordCredentials)
         }
     }

@@ -1,0 +1,24 @@
+// The convention plugins: uz.khakimjanovich.java, .library, .module and .integration-test.
+plugins {
+    id 'groovy-gradle-plugin'
+    id 'maven-publish'
+}
+
+dependencies {
+    implementation libs.spotless.gradle
+    implementation libs.errorprone.gradle
+    implementation libs.archunit // verifyArchitecture runs the shared rules on every project's classes
+
+    // The plugins tested on real builds (Gradle TestKit).
+    testImplementation platform(libs.spring.boot.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.launcher
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    // The fixture builds read the same catalog.
+    def catalog = rootProject.file('gradle/libs.versions.toml')
+    systemProperty 'catalog', catalog.absolutePath
+    inputs.file(catalog)
+}

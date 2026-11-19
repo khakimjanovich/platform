@@ -18,7 +18,7 @@ jobs:
     name: library
     runs-on: ubuntu-latest
     env:
-      # platform.settings reads the platform's packages with these.
+      # uz.khakimjanovich.settings reads the hub's packages with these.
       GH_PACKAGES_ACTOR: ${{ github.actor }}
       GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ORG_GRADLE_PROJECT_githubPackagesUsername: ${{ github.actor }}

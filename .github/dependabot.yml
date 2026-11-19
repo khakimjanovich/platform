@@ -1,5 +1,5 @@
 # Weekly, one grouped pull request per ecosystem: the version catalog (gradle/libs.versions.toml,
-# which every build, build-logic too, reads) and the workflows' actions.
+# which every build, gradle-plugins too, reads) and the workflows' actions.
 version: 2
 updates:
   - package-ecosystem: gradle

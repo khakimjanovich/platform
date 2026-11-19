@@ -1,0 +1,14 @@
+// The catalog (gradle/libs.versions.toml), published as uz.khakimjanovich:version-catalog so other
+// builds import it through uz.khakimjanovich.settings. The hub's own builds read the file directly.
+plugins {
+    id 'version-catalog'
+    id 'maven-publish'
+}
+
+catalog { versionCatalog { from(rootProject.files('gradle/libs.versions.toml')) } }
+
+publishing {
+    publications {
+        catalog(MavenPublication) { from components.versionCatalog }
+    }
+}

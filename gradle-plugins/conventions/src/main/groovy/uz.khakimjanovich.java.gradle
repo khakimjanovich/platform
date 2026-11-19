@@ -1,0 +1,228 @@
+// Every Java build: Java from the catalog, the Spring Boot BOM, Lombok, JUnit 5,
+// parameter names for Spring binding, one code format checked by `check`, every compiler warning an
+// error, and Error Prone's default checks with NullAway on every @NullMarked package (JSpecify).
+// Error Prone skips generated code and tests.
+import net.ltgt.gradle.errorprone.CheckSeverity
+
+plugins {
+    id 'java-library'
+    id 'com.diffplug.spotless'
+    id 'net.ltgt.errorprone'
+}
+
+// The plugins read these aliases from the build's catalog `libs`: the platform's catalog
+// (uz.khakimjanovich:version-catalog) has them all. Checked first, so a repository that imports
+// another catalog is told what is missing instead of failing on a bare NoSuchElementException.
+def catalogs = rootProject.extensions.getByType(VersionCatalogsExtension)
+def libs = catalogs.find('libs').orElseThrow {
+    new GradleException("No version catalog `libs`: import uz.khakimjanovich:version-catalog as `libs` in settings.gradle")
+}
+def missing = ['spring-boot-bom', 'spring-boot-configuration-processor', 'spring-modulith-bom', 'starter-test',
+               'junit-launcher', 'lombok', 'jspecify', 'errorprone-core', 'nullaway', 'jackson-annotations']
+    .findAll { libs.findLibrary(it).isEmpty() }
+missing += ['java', 'google-java-format'].findAll { libs.findVersion(it).isEmpty() }.collect { "versions.$it" }
+if (missing) {
+    throw new GradleException("The catalog `libs` lacks ${missing.join(', ')}: import uz.khakimjanovich:version-catalog")
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(libs.findVersion('java').get().requiredVersion)
+}
+
+// Keep parameter names so Spring can bind query and request parameters by name. Every javac warning
+// fails the build; "processing" is left out because it reports annotations no processor claims,
+// which is how annotation processing works, not a problem in the code.
+tasks.withType(JavaCompile).configureEach { options.compilerArgs.addAll('-parameters', '-Xlint:all,-processing', '-Werror') }
+
+dependencies {
+    implementation platform(libs.findLibrary('spring-boot-bom').get())
+    testImplementation platform(libs.findLibrary('spring-boot-bom').get())
+    testImplementation libs.findLibrary('starter-test').get()
+    testRuntimeOnly libs.findLibrary('junit-launcher').get()
+    compileOnly libs.findLibrary('lombok').get()
+    annotationProcessor libs.findLibrary('lombok').get()
+    implementation libs.findLibrary('jspecify').get()
+    errorprone libs.findLibrary('errorprone-core').get()
+    errorprone libs.findLibrary('nullaway').get()
+}
+
+// Spring Boot's health classes carry Jackson annotations without depending on them, and javac warns
+// about every annotation it can't read ("unknown enum constant"): give each source set the annotations.
+sourceSets.configureEach {
+    dependencies.add(compileOnlyConfigurationName, libs.findLibrary('jackson-annotations').get())
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone {
+        check('NullAway', CheckSeverity.ERROR)
+        option('NullAway:OnlyNullMarked', 'true')
+        option('NullAway:JSpecifyMode', 'true')
+        excludedPaths = '.*/build/generated/.*'
+    }
+}
+// Tests may pass null on purpose; only production code is checked.
+tasks.matching { it.name ==~ /compile(Test|IntegrationTest|TestFixtures)Java/ }.configureEach {
+    options.errorprone.enabled = false
+}
+
+// Test JVMs only: Testcontainers reaches Docker through JNA (net.java.dev.jna, via docker-java's
+// transport), which loads native code. Java 24+ warns about that and a later release will refuse
+// it unless allowed. On the classpath the grant can't name one library, so ALL-UNNAMED; production
+// JVMs carry no JNA and get no grant.
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat(libs.findVersion('google-java-format').get().requiredVersion)
+    }
+}
+
+// No workarounds (gradle-plugins/README.md): a problem in a repository we own is fixed there, one
+// outside is isolated with a comment naming it. `check` fails on what marks a workaround instead:
+// in src/main and the build file, a comment saying TODO, FIXME, HACK, XXX, "workaround", "for now"
+// or "temporary fix" (and the like: a temporary token is a domain word), ignoreFailures or `-x test`;
+// in src/main, a @SuppressWarnings without a // reason on the line above; in any source set, a
+// @Disabled test. A `ponytail:` comment is a deliberate simplification listed in the debt ledger.
+def verifyNoWorkarounds = tasks.register('verifyNoWorkarounds') {
+    def mainFiles = fileTree('src/main') { include '**/*.java', '**/*.groovy', '**/*.yaml', '**/*.yml', '**/*.properties', '**/*.sql', '**/*.lua', '**/*.xml' }
+    def testFiles = fileTree('src') { include '**/*.java'; exclude 'main/**' }
+    def buildFiles = files(buildFile).filter { it.exists() }
+    def root = projectDir
+    def passed = layout.buildDirectory.file('verifyNoWorkarounds/passed')
+    inputs.files(mainFiles, testFiles, buildFiles)
+    outputs.file(passed)
+    doLast {
+        def tag = ~/\b(TODO|FIXME|HACK|XXX)\b|(?i)\b(work-?arounds?|work around|for now|temporar(y|ily) (fix|hack|patch|solution|until|disabled|skipped|removed|turned off))\b/
+        // Where a comment starts, by file type; strings are blanked first so "https://…" or "#1" is not one.
+        def starts = [java: ~/\/\/|\/\*/, groovy: ~/\/\/|\/\*/, gradle: ~/\/\/|\/\*/, sql: ~/--|\/\*/, lua: ~/--/,
+                      yaml: ~/(^|\s)#/, yml: ~/(^|\s)#/, properties: ~/^\s*[#!]/, xml: ~/<!--/]
+        def found = []
+        def report = { File file, int line, String why -> found << "${root.toPath().relativize(file.toPath())}:${line}: ${why}" }
+        (mainFiles.files + buildFiles.files).each { file ->
+            def start = starts[file.name.tokenize('.').last()]
+            def java = file.name.endsWith('.java')
+            def lines = file.readLines()
+            def inBlock = false
+            lines.eachWithIndex { text, i ->
+                def code = text.replaceAll(/"(\\.|[^"\\])*"|'(\\.|[^'\\])*'/, '""')
+                String note = null
+                if (inBlock) {
+                    note = text
+                } else {
+                    def m = code =~ start
+                    if (m.find()) note = code.substring(m.start())
+                }
+                inBlock = note != null && (inBlock || note.startsWith('/*')) && !note.contains('*/')
+                if (note && !note.contains('ponytail:') && note =~ tag) report(file, i + 1, 'a workaround comment')
+                if (text =~ /ignoreFailures|(-x|--exclude-task)\s+\S*test\b/) report(file, i + 1, 'a check turned off')
+                if (java && text =~ /^\s*@SuppressWarnings/ && !(i > 0 && lines[i - 1].trim().startsWith('//'))) {
+                    report(file, i + 1, '@SuppressWarnings without a // reason on the line above')
+                }
+            }
+        }
+        testFiles.files.each { file ->
+            file.readLines().eachWithIndex { text, i -> if (text =~ /^\s*@([\w.]+\.)?Disabled\b/) report(file, i + 1, 'a disabled test') }
+        }
+        if (found) throw new GradleException("Workarounds in ${root.name}; fix the cause instead:\n  ${found.join('\n  ')}")
+        passed.get().asFile.text = ''
+    }
+}
+tasks.named('check') { dependsOn verifyNoWorkarounds }
+
+// Null-safe by default: NullAway checks only @NullMarked code, so every package in src/main must be
+// marked, in its package-info.java. `check` fails on a package that isn't.
+def verifyNullMarked = tasks.register('verifyNullMarked') {
+    def sources = fileTree('src/main/java') { include '**/*.java' }
+    def root = projectDir
+    def passed = layout.buildDirectory.file('verifyNullMarked/passed')
+    inputs.files(sources)
+    outputs.file(passed)
+    doLast {
+        def unmarked = sources.files.collect { it.parentFile }.unique().findAll { dir ->
+            def info = new File(dir, 'package-info.java')
+            // Comments don't count: a commented-out annotation marks nothing.
+            def code = info.exists() ? info.text.replaceAll(/(?s)\/\*.*?\*\//, '').replaceAll(/\/\/.*/, '') : ''
+            !(code =~ /@(org\.jspecify\.annotations\.)?NullMarked\b/)
+        }.collect { root.toPath().relativize(it.toPath()).toString() }.sort()
+        if (unmarked) throw new GradleException("Packages without @NullMarked in ${root.name}; add it to their package-info.java:\n  ${unmarked.join('\n  ')}")
+        passed.get().asFile.text = ''
+    }
+}
+tasks.named('check') { dependsOn verifyNullMarked }
+
+// One architecture for every service (ArchitectureRules): controllers call services, only a service
+// implementation, a workflow or configuration reaches a repository, nothing calls a controller, a
+// constant lives in a ConstantUtils or *Constants class, no Map<String, Object> (a DTO instead), and
+// a service's packages as in the Humo adapter. `check` fails on a class in src/main/java
+// that breaks a rule; generated code is left out.
+def verifyArchitecture = tasks.register('verifyArchitecture') {
+    // A service's package rules too; uz.khakimjanovich.library sets this false.
+    ext.serviceLayout = objects.property(Boolean).convention(true)
+    def service = ext.serviceLayout
+    inputs.property('serviceLayout', service)
+    def classDirs = sourceSets.main.output.classesDirs
+    def sources = file('src/main/java')
+    def root = projectDir
+    def passed = layout.buildDirectory.file('verifyArchitecture/passed')
+    inputs.files(classDirs)
+    outputs.file(passed)
+    doLast {
+        def found = uz.khakimjanovich.gradle.conventions.ArchitectureRules.violations(classDirs.files, sources, service.get())
+        if (found) throw new GradleException("The architecture is broken in ${root.name}:\n${found.join('\n')}")
+        passed.get().asFile.text = ''
+    }
+}
+tasks.named('check') { dependsOn verifyArchitecture }
+
+// Platform first: what the platform wraps, a service takes from the platform, never declared again.
+// `check` fails on a main dependency (api, implementation, compileOnly, runtimeOnly) the platform
+// already provides, naming the library to use; dependencies the platform brings with it are fine.
+// A platform library declares them itself: uz.khakimjanovich.library turns this off.
+def verifyPlatformFirst = tasks.register('verifyPlatformFirst') {
+    ext.platformLibrary = objects.property(Boolean).convention(false)
+    ext.declared = objects.listProperty(String)
+    def library = ext.platformLibrary
+    def declared = ext.declared
+    def name = project.name
+    def passed = layout.buildDirectory.file('verifyPlatformFirst/passed')
+    inputs.property('platformLibrary', library)
+    inputs.property('declared', declared)
+    outputs.file(passed)
+    onlyIf { !library.get() }
+    doLast {
+        // group:name, or group: for every artifact of the group, and the platform library that has it.
+        def platformHas = [
+            'org.springframework.boot:spring-boot-starter-data-redis'         : 'libs.valkey4j (ValkeyKeys)',
+            'org.springframework.boot:spring-boot-starter-data-redis-reactive': 'libs.valkey4j (ValkeyKeys)',
+            'org.springframework.data:spring-data-redis'                      : 'libs.valkey4j (ValkeyKeys)',
+            'io.lettuce:'                                                     : 'libs.valkey4j (ValkeyKeys)',
+            'redis.clients:'                                                  : 'libs.valkey4j (ValkeyKeys)',
+            'org.redisson:'                                                   : 'libs.valkey4j (ValkeyKeys)',
+            'org.springframework.vault:'                                      : 'libs.vault4j (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-starter-vault-config'     : 'libs.vault4j (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-vault-config'             : 'libs.vault4j (VaultSecrets, VaultTransit)',
+            'org.keycloak:keycloak-admin-client'                              : 'libs.keycloak.admin4j (KeycloakAdmin)',
+            'com.zaxxer:HikariCP'                                             : 'libs.persistence4j (@EnableModulePersistence)',
+            'org.liquibase:liquibase-core'                                    : 'libs.persistence4j (@EnableModulePersistence)',
+        ]
+        def found = declared.get().collect { dependency ->
+            def use = platformHas.find { key, provider -> key.endsWith(':') ? dependency.startsWith(key) : dependency == key }?.value
+            use ? "${dependency}: use ${use}" : null
+        }.findAll()
+        if (found) throw new GradleException("Declared in ${name}, but the platform provides it:\n  ${found.join('\n  ')}")
+        passed.get().asFile.text = ''
+    }
+}
+afterEvaluate {
+    verifyPlatformFirst.configure {
+        declared.set(['api', 'implementation', 'compileOnly', 'runtimeOnly'].collectMany { configuration ->
+            configurations.findByName(configuration)?.dependencies?.withType(ExternalModuleDependency)
+                ?.collect { "${it.group}:${it.name}".toString() } ?: []
+        })
+    }
+}
+tasks.named('check') { dependsOn verifyPlatformFirst }

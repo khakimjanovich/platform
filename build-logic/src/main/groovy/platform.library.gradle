@@ -13,13 +13,10 @@ def libs = rootProject.extensions.getByType(VersionCatalogsExtension).named('lib
 if (!providers.gradleProperty('group').isPresent()) {
     group = 'uz.khakimjanovich.platform'
 }
-// Each library releases on its own. In its own repository it sets `version` in gradle.properties and
-// the hub's catalog pins that release; inside the hub its version is `platform-<project name>` there.
+// Each library releases on its own: its repository sets `version` in gradle.properties, and the hub's
+// catalog pins that release.
 if (version == Project.DEFAULT_VERSION) {
-    def ownVersion = "platform-${project.name}"
-    version = libs.findVersion(ownVersion)
-        .orElseThrow { new GradleException("No version for library ${project.name}: set version in gradle.properties or add ${ownVersion} to the catalog's [versions]") }
-        .requiredVersion
+    throw new GradleException("No version for library ${project.name}: set version in gradle.properties")
 }
 
 java { withSourcesJar() }

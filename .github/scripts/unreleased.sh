@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# The production release plan for main. Prints "<tag> <gradle publish args>" for every artifact whose
-# catalog version has no tag yet: the libraries and build-logic (`platform-<name>`, tagged
-# `<name>-v<version>`), then the hub catalog (`platform`, tagged `platform-v<version>`) last, so it is
-# published after what it pins. Fails when an artifact changed since the tag of its version: a
-# released version is never published again, so the change needs a new version.
+# The production release plan for main. Prints "<tag> <gradle publish args>" for build-logic
+# (`platform-build`, tagged `build-logic-v<version>`) and then the hub catalog (`platform`, tagged
+# `platform-v<version>`) when their version has no tag yet. Fails when one changed since the tag of
+# its version: a released version is never published again. The libraries release from their own
+# repositories; the catalog only pins them.
 # Needs the tags locally (checkout with fetch-depth: 0).
 set -euo pipefail
 
@@ -28,16 +28,8 @@ if [ -z "$hub" ]; then
   exit 1
 fi
 
-# Only [versions] entries (`name = "x"`); the [libraries] entries of the same name are tables.
-while read -r name version; do
-  if [ "$name" = build ]; then
-    plan "build-logic-v$version" "-p build-logic publish" build-logic
-  elif [ ! -f "$name/build.gradle" ]; then
-    continue # in its own repository (config4j, …), which releases it; the catalog only pins it
-  else
-    plan "$name-v$version" ":$name:publish" "$name"
-  fi
-done < <(sed -n 's/^platform-\([a-z-]*\) = "\([^"]*\)".*/\1 \2/p' "$catalog")
+build=$(sed -n 's/^platform-build = "\([^"]*\)".*/\1/p' "$catalog")
+plan "build-logic-v$build" "-p build-logic publish" build-logic
 
 plan "platform-v$hub" ":versioning:publish" "$catalog" versioning
 

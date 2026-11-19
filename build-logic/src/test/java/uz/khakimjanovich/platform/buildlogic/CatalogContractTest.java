@@ -61,7 +61,7 @@ class CatalogContractTest {
 
     var output = runner().buildAndFail().getOutput();
 
-    assertTrue(output.contains("add platform-newcomer to the catalog's [versions]"), output);
+    assertTrue(output.contains("set version in gradle.properties"), output);
   }
 
   @Test

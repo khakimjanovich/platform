@@ -173,7 +173,7 @@ public final class ArchitectureRules {
               .because("production code must use SLF4J, never java.util.logging")
               .allowEmptyShould(true),
           slices()
-              .matching("uz.khakimjanovich.platform.(*)..")
+              .matching("uz.khakimjanovich.(*)..")
               .should()
               .beFreeOfCycles()
               .because("packages must be free of cyclic dependencies")
@@ -222,7 +222,7 @@ public final class ArchitectureRules {
           "com.fasterxml.jackson.databind.node.ArrayNode",
           "com.fasterxml.jackson.databind.node.JsonNodeFactory");
 
-  private static final String GENERAL_EXCEPTION = "uz.khakimjanovich.platform.error.GeneralException";
+  private static final String GENERAL_EXCEPTION = "uz.khakimjanovich.error4j.GeneralException";
 
   private static final Set<String> COMPILER_THROWABLES =
       Set.of("java.lang.MatchException", "java.lang.IncompatibleClassChangeError");

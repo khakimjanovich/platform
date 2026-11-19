@@ -196,18 +196,18 @@ def verifyPlatformFirst = tasks.register('verifyPlatformFirst') {
     doLast {
         // group:name, or group: for every artifact of the group, and the platform library that has it.
         def platformHas = [
-            'org.springframework.boot:spring-boot-starter-data-redis'         : 'libs.platform.valkey (ValkeyKeys)',
-            'org.springframework.boot:spring-boot-starter-data-redis-reactive': 'libs.platform.valkey (ValkeyKeys)',
-            'org.springframework.data:spring-data-redis'                      : 'libs.platform.valkey (ValkeyKeys)',
-            'io.lettuce:'                                                     : 'libs.platform.valkey (ValkeyKeys)',
-            'redis.clients:'                                                  : 'libs.platform.valkey (ValkeyKeys)',
-            'org.redisson:'                                                   : 'libs.platform.valkey (ValkeyKeys)',
-            'org.springframework.vault:'                                      : 'libs.platform.vault (VaultSecrets, VaultTransit)',
-            'org.springframework.cloud:spring-cloud-starter-vault-config'     : 'libs.platform.vault (VaultSecrets, VaultTransit)',
-            'org.springframework.cloud:spring-cloud-vault-config'             : 'libs.platform.vault (VaultSecrets, VaultTransit)',
-            'org.keycloak:keycloak-admin-client'                              : 'libs.platform.keycloak (KeycloakAdmin)',
-            'com.zaxxer:HikariCP'                                             : 'libs.platform.persistence (@EnableModulePersistence)',
-            'org.liquibase:liquibase-core'                                    : 'libs.platform.persistence (@EnableModulePersistence)',
+            'org.springframework.boot:spring-boot-starter-data-redis'         : 'libs.valkey4j (ValkeyKeys)',
+            'org.springframework.boot:spring-boot-starter-data-redis-reactive': 'libs.valkey4j (ValkeyKeys)',
+            'org.springframework.data:spring-data-redis'                      : 'libs.valkey4j (ValkeyKeys)',
+            'io.lettuce:'                                                     : 'libs.valkey4j (ValkeyKeys)',
+            'redis.clients:'                                                  : 'libs.valkey4j (ValkeyKeys)',
+            'org.redisson:'                                                   : 'libs.valkey4j (ValkeyKeys)',
+            'org.springframework.vault:'                                      : 'libs.vault4j (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-starter-vault-config'     : 'libs.vault4j (VaultSecrets, VaultTransit)',
+            'org.springframework.cloud:spring-cloud-vault-config'             : 'libs.vault4j (VaultSecrets, VaultTransit)',
+            'org.keycloak:keycloak-admin-client'                              : 'libs.keycloak.admin4j (KeycloakAdmin)',
+            'com.zaxxer:HikariCP'                                             : 'libs.persistence4j (@EnableModulePersistence)',
+            'org.liquibase:liquibase-core'                                    : 'libs.persistence4j (@EnableModulePersistence)',
         ]
         def found = declared.get().collect { dependency ->
             def use = platformHas.find { key, provider -> key.endsWith(':') ? dependency.startsWith(key) : dependency == key }?.value

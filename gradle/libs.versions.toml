@@ -17,20 +17,20 @@ google-java-format = "1.30.0"
 platform = "2.9.0-SNAPSHOT" # the hub: this catalog's own version; see README.md §Versions
 # INHOUSE PLUGINS START
 platform-build = "2.9.0-SNAPSHOT"
-platform-config = "1.0.0"
-platform-masking = "1.0.0"
-platform-error = "1.0.0"
-platform-breaker = "1.0.0"
-platform-outbox = "1.0.0"
-platform-idempotency = "1.0.0"
-platform-observability = "1.0.0"
-platform-security = "1.0.0"
-platform-keycloak = "1.0.0"
-platform-otp = "1.0.0"
-platform-persistence = "1.0.0"
-platform-vault = "1.0.0"
-platform-valkey = "1.0.0"
-platform-file-store = "1.0.0"
+config4j = "1.0.0"
+masking4j = "1.0.0"
+error4j = "1.0.0"
+breaker4j = "1.0.0"
+outbox4j = "1.0.0"
+idempotency4j = "1.0.0"
+observability4j = "1.0.0"
+security4j = "1.0.0"
+keycloak-admin4j = "1.0.0"
+otp4j = "1.0.0"
+persistence4j = "1.0.0"
+vault4j = "1.0.0"
+valkey4j = "1.0.0"
+filestore4j = "1.0.0"
 # INHOUSE PLUGINS END
 errorprone = "2.52.0"
 errorprone-gradle = "5.1.1"
@@ -105,20 +105,20 @@ jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 
-platform-error = { module = "uz.khakimjanovich:error4j", version.ref = "platform-error" } # its own repository
-platform-otp = { module = "uz.khakimjanovich:otp4j", version.ref = "platform-otp" } # its own repository
-platform-security = { module = "uz.khakimjanovich:security4j", version.ref = "platform-security" } # its own repository
-platform-keycloak = { module = "uz.khakimjanovich:keycloak-admin4j", version.ref = "platform-keycloak" } # its own repository
-platform-persistence = { module = "uz.khakimjanovich:persistence4j", version.ref = "platform-persistence" } # its own repository
-platform-vault = { module = "uz.khakimjanovich:vault4j", version.ref = "platform-vault" } # its own repository
-platform-valkey = { module = "uz.khakimjanovich:valkey4j", version.ref = "platform-valkey" } # its own repository
-platform-observability = { module = "uz.khakimjanovich:observability4j", version.ref = "platform-observability" } # its own repository
-platform-masking = { module = "uz.khakimjanovich:masking4j", version.ref = "platform-masking" } # its own repository
-platform-breaker = { module = "uz.khakimjanovich:breaker4j", version.ref = "platform-breaker" } # its own repository
-platform-outbox = { module = "uz.khakimjanovich:outbox4j", version.ref = "platform-outbox" } # its own repository
-platform-idempotency = { module = "uz.khakimjanovich:idempotency4j", version.ref = "platform-idempotency" } # its own repository
-platform-config = { module = "uz.khakimjanovich:config4j", version.ref = "platform-config" } # its own repository
-platform-file-store = { module = "uz.khakimjanovich:filestore4j", version.ref = "platform-file-store" } # its own repository
+error4j = { module = "uz.khakimjanovich:error4j", version.ref = "error4j" }
+otp4j = { module = "uz.khakimjanovich:otp4j", version.ref = "otp4j" }
+security4j = { module = "uz.khakimjanovich:security4j", version.ref = "security4j" }
+keycloak-admin4j = { module = "uz.khakimjanovich:keycloak-admin4j", version.ref = "keycloak-admin4j" }
+persistence4j = { module = "uz.khakimjanovich:persistence4j", version.ref = "persistence4j" }
+vault4j = { module = "uz.khakimjanovich:vault4j", version.ref = "vault4j" }
+valkey4j = { module = "uz.khakimjanovich:valkey4j", version.ref = "valkey4j" }
+observability4j = { module = "uz.khakimjanovich:observability4j", version.ref = "observability4j" }
+masking4j = { module = "uz.khakimjanovich:masking4j", version.ref = "masking4j" }
+breaker4j = { module = "uz.khakimjanovich:breaker4j", version.ref = "breaker4j" }
+outbox4j = { module = "uz.khakimjanovich:outbox4j", version.ref = "outbox4j" }
+idempotency4j = { module = "uz.khakimjanovich:idempotency4j", version.ref = "idempotency4j" }
+config4j = { module = "uz.khakimjanovich:config4j", version.ref = "config4j" }
+filestore4j = { module = "uz.khakimjanovich:filestore4j", version.ref = "filestore4j" }
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }

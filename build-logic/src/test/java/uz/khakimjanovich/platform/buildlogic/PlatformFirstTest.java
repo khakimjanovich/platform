@@ -17,10 +17,11 @@ class PlatformFirstTest {
 
   @BeforeEach
   void aBuildOnThePlatform() throws IOException {
+    write("gradle.properties", "version=0.0.0");
     write(
         "settings.gradle",
         """
-        rootProject.name = 'valkey' // a library's version is platform-<name> in the catalog
+        rootProject.name = 'valkey'
         dependencyResolutionManagement {
             repositories { mavenCentral() }
             versionCatalogs { create('libs') { from(files('%s')) } }
@@ -45,9 +46,9 @@ class PlatformFirstTest {
 
     assertTrue(
         output.contains(
-            "org.springframework.boot:spring-boot-starter-data-redis: use libs.platform.valkey"),
+            "org.springframework.boot:spring-boot-starter-data-redis: use libs.valkey4j"),
         output);
-    assertTrue(output.contains("io.lettuce:lettuce-core: use libs.platform.valkey"), output);
+    assertTrue(output.contains("io.lettuce:lettuce-core: use libs.valkey4j"), output);
   }
 
   @Test

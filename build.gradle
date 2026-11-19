@@ -1,8 +1,10 @@
-// The hub's three artifacts at one version (`platform` in the catalog); `./gradlew check` and
-// `./gradlew publish` cover all of them.
+// The hub's three artifacts at one version: the line in the catalog (`platform`, 1.x-SNAPSHOT) on a
+// branch, X.Y.Z from -PreleaseVersion when a tag releases. `./gradlew check` and `publish` cover all three.
+def hubVersion = providers.gradleProperty('releaseVersion').orElse(libs.versions.platform).get()
+
 subprojects {
     group = 'uz.khakimjanovich'
-    version = libs.versions.platform.get()
+    version = hubVersion
 
     pluginManager.withPlugin('maven-publish') {
         publishing {

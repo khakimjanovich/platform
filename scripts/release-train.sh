@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # release-train.sh X.Y.Z: releases the hub, then the 14 libraries in their dependency order, all at
-# X.Y.Z. Each step tags the head of branch X.x and waits for its release run; a wave starts only when
-# the one before it is out. Run it from the hub; the libraries are its sibling directories.
+# X.Y.Z: for starting a major (X.0.0), when every repository releases. Everyday releases are a tag
+# in the one repository that changed (README.md §Versions). Each step tags the head of branch X.x
+# and waits for its release run; a wave starts only when the one before it is out. Each library's
+# gradle.properties must name hub X.Y.Z first. Run it from the hub; the libraries are its siblings.
 set -euo pipefail
 
 version=${1:?usage: release-train.sh X.Y.Z}

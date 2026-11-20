@@ -14,9 +14,12 @@ spotless = "8.11.0"
 wiremock = "3.13.2"
 aws-sdk = "2.59.0"
 google-java-format = "1.30.0"
-# The hub and every <library> library share this version. On a branch it is the line (1.x-SNAPSHOT,
-# local builds only); a release tag vX.Y.Z publishes the catalog with X.Y.Z here (README.md §Versions).
+# The hub's own version: its catalog and plugins. On a branch it is the line (1.x-SNAPSHOT, local
+# builds only); a release tag vX.Y.Z publishes the catalog with X.Y.Z here (README.md §Versions).
 org4j = "1.x-SNAPSHOT"
+# Every library by its major only: a service gets the newest 1.x of each, and its lockfile keeps the
+# build exact. A local build pins the line instead (version-catalog/build.gradle).
+libraries = "1.+"
 errorprone = "2.52.0"
 errorprone-gradle = "5.1.1"
 nullaway = "0.14.3"
@@ -90,20 +93,20 @@ jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 jackson3-databind = { module = "tools.jackson.core:jackson-databind" }
 
-error = { module = "io.github.org4j:error", version.ref = "org4j" }
-otp = { module = "io.github.org4j:otp", version.ref = "org4j" }
-security = { module = "io.github.org4j:security", version.ref = "org4j" }
-keycloak-admin = { module = "io.github.org4j:keycloak-admin", version.ref = "org4j" }
-persistence = { module = "io.github.org4j:persistence", version.ref = "org4j" }
-vault = { module = "io.github.org4j:vault", version.ref = "org4j" }
-valkey = { module = "io.github.org4j:valkey", version.ref = "org4j" }
-observability = { module = "io.github.org4j:observability", version.ref = "org4j" }
-masking = { module = "io.github.org4j:masking", version.ref = "org4j" }
-breaker = { module = "io.github.org4j:breaker", version.ref = "org4j" }
-outbox = { module = "io.github.org4j:outbox", version.ref = "org4j" }
-idempotency = { module = "io.github.org4j:idempotency", version.ref = "org4j" }
-config = { module = "io.github.org4j:config", version.ref = "org4j" }
-filestore = { module = "io.github.org4j:filestore", version.ref = "org4j" }
+error = { module = "io.github.org4j:error", version.ref = "libraries" }
+otp = { module = "io.github.org4j:otp", version.ref = "libraries" }
+security = { module = "io.github.org4j:security", version.ref = "libraries" }
+keycloak-admin = { module = "io.github.org4j:keycloak-admin", version.ref = "libraries" }
+persistence = { module = "io.github.org4j:persistence", version.ref = "libraries" }
+vault = { module = "io.github.org4j:vault", version.ref = "libraries" }
+valkey = { module = "io.github.org4j:valkey", version.ref = "libraries" }
+observability = { module = "io.github.org4j:observability", version.ref = "libraries" }
+masking = { module = "io.github.org4j:masking", version.ref = "libraries" }
+breaker = { module = "io.github.org4j:breaker", version.ref = "libraries" }
+outbox = { module = "io.github.org4j:outbox", version.ref = "libraries" }
+idempotency = { module = "io.github.org4j:idempotency", version.ref = "libraries" }
+config = { module = "io.github.org4j:config", version.ref = "libraries" }
+filestore = { module = "io.github.org4j:filestore", version.ref = "libraries" }
 
 aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
 aws-s3 = { module = "software.amazon.awssdk:s3" }

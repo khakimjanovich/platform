@@ -1,8 +1,7 @@
 # gradle
 
 The Gradle tooling of org4j: one version catalog and the Gradle plugins that every org4j library and
-every service builds with, released together with the libraries at one version and published to
-GitHub Packages.
+every service builds with, released on its own and published to GitHub Packages.
 
 | Artifact | Folder | What it is |
 |---|---|---|
@@ -29,19 +28,31 @@ Each builds with [library.yml](.github/workflows/library.yml), the reusable work
 
 ## Versions
 
-The model follows Laravel's: release branches, tags, one version for the whole set.
+Release branches and tags, with one major for the whole set and each repository released on its own.
 
-- One version for the hub and all 14 libraries: `org4j` in `gradle/libs.versions.toml`, following
-  Semantic Versioning 2.0. Release `1.2.0` is the tag `v1.2.0` in all 15 repositories.
-- Branches: `1.x` holds the current major and is the default branch; `main` holds the next major.
+- The major is shared and set by hand: `1.x` is one line for the hub and all 14 libraries.
+  Branches: `1.x` holds the current major and is the default branch; `main` holds the next major.
   Once a year, `main` becomes the next `X.x` and releases `X.0.0`.
-- On a branch the version is the line, `1.x-SNAPSHOT`. It is never published; it exists for local
-  builds (`./gradlew publishToMavenLocal`, `org4jSource=local`).
-- A push or a pull request runs `check` only (`build.yml`). Nothing is published from a branch.
-- A tag `vX.Y.Z` on `X.x` publishes `X.Y.Z` once, with a GitHub release (`release.yml`,
-  `.github/scripts/release-version.sh`). The published catalog must hold no `-SNAPSHOT`.
-- A release builds on releases only: the hub first, then the libraries in their dependency order.
-  `scripts/release-train.sh X.Y.Z` tags and waits for all 15, wave by wave.
+- A line takes fixes and additive changes (Semantic Versioning 2.0, minor and patch). Anything that
+  removes or changes what users rely on waits for the next major.
+- Each repository has its own version and releases only when it changed: a tag `vX.Y.Z` on `X.x`
+  publishes `X.Y.Z` once, with a GitHub release (`release.yml` for the hub, `library.yml` for a
+  library; `.github/scripts/release-version.sh` refuses a tag off its line).
+- The hub's version is `org4j`: its catalog and plugins. The catalog names every library by its
+  major only (`libraries = "1.+"`), so a service resolves the newest 1.x of each without a new hub,
+  and keeps its build exact with Gradle's dependency locking. The hub releases when the hub itself
+  changes, not when a library does.
+- A library builds and releases on the hub release in its `gradle.properties` (`org4jVersion`), and
+  publishes the versions of the other org4j libraries it was built on, so a user gets at least those.
+- On a branch every version is the line, `1.x-SNAPSHOT`. It is never published; it exists for local
+  builds (`./gradlew publishToMavenLocal`, `org4jSource=local`), where the catalog pins every
+  library to the line instead of `1.+`.
+- A push or a pull request runs `check` only. Nothing is published from a branch. The published
+  catalog must hold no `-SNAPSHOT`.
+- A change across libraries releases in dependency order: the library that adds an API first, then
+  the one that uses it, once its pull request builds on that release.
+- `scripts/release-train.sh X.Y.Z` tags all 15 at one version, wave by wave: for starting a major
+  (`X.0.0`), not for everyday releases.
 - Dependabot proposes the catalog's and the workflows' updates weekly, grouped (`.github/dependabot.yml`).
 
 ## Building on org4j

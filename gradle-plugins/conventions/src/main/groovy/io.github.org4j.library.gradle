@@ -73,7 +73,12 @@ tasks.named('check') { dependsOn verifyConfigurationMetadata }
 
 publishing {
     publications {
-        library(MavenPublication) { from components.java } // with test fixtures, where a library has them
+        library(MavenPublication) {
+            from components.java // with test fixtures, where a library has them
+            // Another org4j library is declared by its major (1.+): publish the version this one was
+            // built and tested on, so a user resolves at least that.
+            versionMapping { allVariants { fromResolutionResult() } }
+        }
     }
     // Only CI publishes, to the packages of the repository it runs in (GITHUB_REPOSITORY): GitHub's Maven
     // registry lets only that repository's token write them. Reading is owner-wide. Credentials are the

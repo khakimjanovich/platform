@@ -5,10 +5,22 @@ plugins {
     id 'maven-publish'
 }
 
+def hubVersion = project.version.toString()
+def line = libs.versions.org4j.get()
+def libraries = libs.versions.libraries.get()
+// A line's libraries are that major: 1.x-SNAPSHOT takes 1.+.
+if (libraries != "${line.tokenize('.')[0]}.+") {
+    throw new GradleException("libraries is $libraries, the line is $line: set it to ${line.tokenize('.')[0]}.+")
+}
+
 catalog {
     versionCatalog {
         from(rootProject.files('gradle/libs.versions.toml'))
-        version('org4j', project.version.toString()) // the release, in place of the line
+        version('org4j', hubVersion) // the release, in place of the line
+        // A local build (org4jSource=local) takes the libraries' line from ~/.m2, not a release.
+        if (hubVersion.endsWith('-SNAPSHOT')) {
+            version('libraries', hubVersion)
+        }
     }
 }
 

@@ -4,7 +4,7 @@ name: build
 
 on:
   push:
-    branches: [main, "*.x"]
+    branches: ["*.x"]
     paths-ignore: ["**/*.md", "LICENSE", "docs/**"]
   pull_request:
     paths-ignore: ["**/*.md", "LICENSE", "docs/**"]

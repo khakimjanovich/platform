@@ -1,6 +1,6 @@
 # CI for a <library> library in its own repository, called from that repository:
 #
-#   on: { push: { branches: [main, "*.x"], tags: ["v*"] }, pull_request: {} }
+#   on: { push: { branches: ["*.x"], tags: ["v*"] }, pull_request: {} }
 #   permissions: { contents: write, packages: write }
 #   jobs: { library: { uses: org4j/gradle/.github/workflows/library.yml@1.x } }
 #

@@ -31,8 +31,9 @@ Each builds with [library.yml](.github/workflows/library.yml), the reusable work
 Release branches and tags, with one major for the whole set and each repository released on its own.
 
 - The major is shared and set by hand: `1.x` is one line for the hub and all 14 libraries.
-  Branches: `1.x` holds the current major and is the default branch; `main` holds the next major.
-  Once a year, `main` becomes the next `X.x` and releases `X.0.0`.
+  Branches: `1.x` holds the current major and is the default branch; there is no `main`.
+  The next major branches from `1.x` as `X.x` when it starts, releases `X.0.0` and becomes the
+  default branch.
 - A line takes fixes and additive changes (Semantic Versioning 2.0, minor and patch). Anything that
   removes or changes what users rely on waits for the next major.
 - Each repository has its own version and releases only when it changed: a tag `vX.Y.Z` on `X.x`
